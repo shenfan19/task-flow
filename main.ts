@@ -9,6 +9,9 @@ export default class FlowyTaskPlugin extends Plugin {
 	async onload() {
 		// Ensure app is available globally for Vue components (Tasks plugin API needs it)
 		(window as any).app = this.app;
+		// Vue store uses this to persist node positions via loadData/saveData,
+		// which writes plain JSON to .obsidian/plugins/flowy-task/data.json
+		(window as any).flowyTaskPlugin = this;
 
 		this.registerView(
 			VIEW_TYPE_FLOWY_TASK,

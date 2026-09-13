@@ -2,16 +2,36 @@
   <div class="position-relative w-100 h-100">
     <!-- Floating Filter Panel -->
     <FilterPanel />
-    
+
+    <button
+      class="btn btn-sm btn-outline-primary position-absolute top-0 start-50 translate-middle-x mt-2"
+      style="z-index: 1000;"
+      @click="runAutoLayout"
+    >
+      自动排布
+    </button>
+
     <!-- Graph Container (Full Size) -->
     <div class="w-100 h-100 bg-white">
-      <div ref="chartContainer" class="w-100 h-100 min-vh-50"></div>
+      <VueFlow
+        :nodes="nodes"
+        :edges="edges"
+        :default-edge-options="defaultEdgeOptions"
+        class="w-100 h-100"
+        @node-click="onNodeClick"
+        @node-drag-stop="onNodeDragStop"
+      >
+        <template #node-task="taskNodeProps">
+          <TaskFlowNode v-bind="taskNodeProps" />
+        </template>
+        <Background />
+      </VueFlow>
     </div>
-    
+
     <!-- Overlay for task details -->
     <div v-if="editingTask" class="task-editor-overlay position-absolute top-0 end-0 p-3 bg-white border-start h-100 shadow" style="width: 320px; z-index: 1000;">
       <h5 class="border-bottom pb-2 mb-3">任务详情</h5>
-      
+
       <div class="mb-3">
         <label class="form-label text-muted small fw-bold mb-1">文件路径</label>
         <div class="small text-break">{{ editingTask.path }}</div>
@@ -21,7 +41,7 @@
         <label class="form-label text-muted small fw-bold mb-1">任务内容</label>
         <div class="p-2 bg-light border rounded small" style="white-space: pre-wrap;">{{ editingTask.originalTask?.originalMarkdown || editingTask.name }}</div>
       </div>
-      
+
       <div class="mb-3">
         <label class="form-label text-muted small fw-bold mb-1">状态</label>
         <div>
@@ -42,110 +62,52 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue';
-import * as echarts from 'echarts';
+import { ref, computed, onMounted } from 'vue';
+import { VueFlow, MarkerType } from '@vue-flow/core';
+import { Background } from '@vue-flow/background';
+import '@vue-flow/core/dist/style.css';
+import '@vue-flow/core/dist/theme-default.css';
 import { useTaskStore } from '../store';
 import FilterPanel from './FilterPanel.vue';
+import TaskFlowNode from './TaskFlowNode.vue';
+import { layoutWithDagre } from '../utils/layout';
 
-const chartContainer = ref(null);
 const taskStore = useTaskStore();
 const editingTask = ref(null);
-let chart = null;
 
-const renderChart = () => {
-  if (!chartContainer.value) return;
-
-  if (!chart) {
-    chart = echarts.init(chartContainer.value);
-    
-    chart.on('mouseup', (params) => {
-      if (params.componentType === 'series' && params.seriesType === 'graph') {
-        const nodeIndex = params.dataIndex;
-        const task = taskStore.filteredTasks[nodeIndex];
-        if (task) {
-          const option = chart.getOption();
-          const nodeData = option.series[0].data[nodeIndex];
-          taskStore.updateTaskPosition(task.id, nodeData.x, nodeData.y);
-        }
-      }
-    });
-
-    chart.on('click', (params) => {
-      if (params.componentType === 'series' && params.seriesType === 'graph') {
-        editingTask.value = taskStore.filteredTasks[params.dataIndex];
-      }
-    });
-  }
-
-  const nodes = taskStore.filteredTasks.map(task => ({
-    name: task.id, // Use ID internally for linking if needed
-    x: task.position?.x || Math.random() * 500,
-    y: task.position?.y || Math.random() * 500,
-    id: String(task.id),
-    itemStyle: {
-      color: task.completed ? '#198754' : '#0d6efd'
-    },
-    label: {
-      show: true,
-      formatter: task.name.substring(0, 15) + (task.name.length > 15 ? '...' : ''),
-      position: 'bottom',
-      color: '#333'
-    },
-    symbolSize: 25,
-    draggable: true
-  }));
-
-  // No explicit dependencies yet since standard Obsidian tasks don't map them natively
-  const links = [];
-
-  const option = {
-    tooltip: { 
-      trigger: 'item',
-      formatter: function(params) {
-        if (params.dataType === 'node') {
-          const t = taskStore.filteredTasks[params.dataIndex];
-          return t ? t.name : params.name;
-        }
-        return '';
-      }
-    },
-    series: [
-      {
-        type: 'graph',
-        layout: 'none',
-        data: nodes,
-        links: links,
-        edgeSymbol: ['none', 'arrow'],
-        lineStyle: { color: '#bbb', width: 2, curveness: 0.1 },
-        emphasis: { focus: 'adjacency' },
-        roam: true // Enable zooming and panning
-      }
-    ]
-  };
-
-  chart.setOption(option);
+const defaultEdgeOptions = {
+  markerEnd: MarkerType.ArrowClosed
 };
 
-watch(() => taskStore.filteredTasks, () => {
-  renderChart();
-}, { deep: true });
+const nodes = computed(() =>
+  taskStore.filteredTasks.map((task) => ({
+    id: task.id,
+    type: 'task',
+    position: task.position,
+    data: { task }
+  }))
+);
 
-onMounted(() => {
-  // Fetch native tasks!
+const edges = computed(() => taskStore.filteredEdges);
+
+const onNodeClick = (event) => {
+  editingTask.value = taskStore.filteredTasks.find((t) => t.id === event.node.id) || null;
+};
+
+const onNodeDragStop = (event) => {
+  taskStore.updateTaskPosition(event.node.id, event.node.position.x, event.node.position.y);
+};
+
+const runAutoLayout = () => {
+  const positions = layoutWithDagre(nodes.value, edges.value);
+  positions.forEach(({ id, x, y }) => taskStore.updateTaskPosition(id, x, y));
+};
+
+onMounted(async () => {
+  // Positions must load before tasks are built, since each task's starting
+  // position is read from taskStore.positions at construction time.
+  await taskStore.loadPositions();
   taskStore.fetchTasksFromObsidian();
-  
-  // Need a slight delay to ensure container is fully sized by parent flexbox
-  setTimeout(() => {
-    renderChart();
-    window.addEventListener('resize', () => chart?.resize());
-  }, 100);
-});
-
-onUnmounted(() => {
-  if (chart) {
-    chart.dispose();
-    chart = null;
-  }
 });
 </script>
 

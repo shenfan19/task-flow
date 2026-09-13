@@ -1,14 +1,12 @@
 import { defineStore } from 'pinia';
 import { TasksPluginAPI } from '../api/TasksPluginAPI';
+import { stableTaskId } from '../utils/hash';
 
 export const useTaskStore = defineStore('task', {
   state: () => {
-    // Load previously saved positions mapping (id -> {x, y})
-    const savedPositions = JSON.parse(localStorage.getItem('flowy_task_positions')) || {};
-    
     return {
       tasks: [], // We'll populate this from Obsidian Tasks
-      positions: savedPositions,
+      positions: {}, // id -> {x, y}, loaded from plugin data.json via loadPositions()
       filters: {
         directories: [],
         status: {
@@ -40,26 +38,52 @@ export const useTaskStore = defineStore('task', {
 
         return dirMatch && statusMatch;
       });
+    },
+    // Dependency edges derived from the Tasks plugin's own id / dependsOn fields,
+    // restricted to edges whose endpoints both survive the current filter.
+    filteredEdges() {
+      const visibleIds = new Set(this.filteredTasks.map((t) => t.id));
+      const nodeIdByPluginId = new Map();
+      for (const task of this.tasks) {
+        if (task.pluginId) nodeIdByPluginId.set(task.pluginId, task.id);
+      }
+
+      const edges = [];
+      for (const task of this.filteredTasks) {
+        for (const depPluginId of task.dependsOn) {
+          const sourceId = nodeIdByPluginId.get(depPluginId);
+          if (sourceId && visibleIds.has(sourceId)) {
+            edges.push({ id: `${sourceId}->${task.id}`, source: sourceId, target: task.id });
+          }
+        }
+      }
+      return edges;
     }
   },
   actions: {
+    async loadPositions() {
+      if (!window.flowyTaskPlugin) return;
+      const data = await window.flowyTaskPlugin.loadData();
+      this.positions = data || {};
+    },
     fetchTasksFromObsidian() {
       if (!window.app) return;
-      
+
       const api = new TasksPluginAPI(window.app);
       const allTasks = api.getTasks() || [];
-      
-      // Limit to 20 for initial prototype
-      const limitedTasks = allTasks.slice(0, 20);
-      
-      this.tasks = limitedTasks.map((t, indexStr) => {
-        const id = `obsidian-task-${indexStr}`;
+
+      this.tasks = allTasks.map((t) => {
+        const name = t.descriptionWithoutTags || t.description || 'Unnamed Task';
+        const path = t.taskLocation?.path || t.path || '';
+        const id = stableTaskId(path, name);
         const pos = this.positions[id] || { x: Math.random() * 500, y: Math.random() * 500 };
         return {
-          id: id,
+          id, // stable across re-parses; independent of the Tasks plugin's own id field
+          pluginId: t.id || '', // Tasks plugin's own 🆔, used to match dependsOn references
+          dependsOn: t.dependsOn || [],
           originalTask: t, // Keep a reference to the actual Obsidian Task object
-          name: t.descriptionWithoutTags || t.description || 'Unnamed Task',
-          path: t.taskLocation?.path || t.path || '',
+          name,
+          path,
           completed: t.status?.symbol !== ' ',
           status: t.status,
           position: pos
@@ -75,8 +99,9 @@ export const useTaskStore = defineStore('task', {
         this.savePositions();
       }
     },
-    savePositions() {
-      localStorage.setItem('flowy_task_positions', JSON.stringify(this.positions));
+    async savePositions() {
+      if (!window.flowyTaskPlugin) return;
+      await window.flowyTaskPlugin.saveData(this.positions);
     }
   }
 });
