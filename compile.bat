@@ -1,2 +1,2 @@
 npm run build
-rename flowy-task/style.css flowy-task/styles.css
+rename task-flowchart/style.css task-flowchart/styles.css

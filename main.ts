@@ -3,28 +3,28 @@ import { createApp, App as VueApp } from 'vue';
 import { createPinia } from 'pinia';
 import App from './src/App.vue';
 
-const VIEW_TYPE_FLOWY_TASK = "flowy-task-view";
+const VIEW_TYPE_TASK_FLOWCHART = "task-flowchart-view";
 
-export default class FlowyTaskPlugin extends Plugin {
+export default class TaskFlowchartPlugin extends Plugin {
 	async onload() {
 		// Ensure app is available globally for Vue components (Tasks plugin API needs it)
 		(window as any).app = this.app;
 		// Vue store uses this to persist node positions via loadData/saveData,
-		// which writes plain JSON to .obsidian/plugins/flowy-task/data.json
-		(window as any).flowyTaskPlugin = this;
+		// which writes plain JSON to .obsidian/plugins/task-flowchart/data.json
+		(window as any).taskFlowchartPlugin = this;
 
 		this.registerView(
-			VIEW_TYPE_FLOWY_TASK,
-			(leaf) => new FlowyTaskView(leaf)
+			VIEW_TYPE_TASK_FLOWCHART,
+			(leaf) => new TaskFlowchartView(leaf)
 		);
 
-		this.addRibbonIcon('dice', 'Activate FlowyTask', (evt: MouseEvent) => {
+		this.addRibbonIcon('dice', 'Activate Task Flowchart', (evt: MouseEvent) => {
 			this.activateView();
 		});
 
 		this.addCommand({
-			id: 'open-flowytask-view',
-			name: 'Open FlowyTask Graph View',
+			id: 'open-task-flowchart-view',
+			name: 'Open Task Flowchart view',
 			callback: () => {
 				this.activateView();
 			}
@@ -39,7 +39,7 @@ export default class FlowyTaskPlugin extends Plugin {
 		const { workspace } = this.app;
 
 		let leaf: WorkspaceLeaf | null = null;
-		const leaves = workspace.getLeavesOfType(VIEW_TYPE_FLOWY_TASK);
+		const leaves = workspace.getLeavesOfType(VIEW_TYPE_TASK_FLOWCHART);
 
 		if (leaves.length > 0) {
 			leaf = leaves[0];
@@ -47,7 +47,7 @@ export default class FlowyTaskPlugin extends Plugin {
 			leaf = workspace.getLeaf('tab');
 			if (leaf) {
 				await leaf.setViewState({
-					type: VIEW_TYPE_FLOWY_TASK,
+					type: VIEW_TYPE_TASK_FLOWCHART,
 					active: true,
 				});
 			}
@@ -59,7 +59,7 @@ export default class FlowyTaskPlugin extends Plugin {
 	}
 }
 
-class FlowyTaskView extends ItemView {
+class TaskFlowchartView extends ItemView {
 	vueApp: VueApp;
 
 	constructor(leaf: WorkspaceLeaf) {
@@ -67,17 +67,17 @@ class FlowyTaskView extends ItemView {
 	}
 
 	getViewType() {
-		return VIEW_TYPE_FLOWY_TASK;
+		return VIEW_TYPE_TASK_FLOWCHART;
 	}
 
 	getDisplayText() {
-		return "FlowyTask";
+		return "Task Flowchart";
 	}
 
 	async onOpen() {
 		const container = this.containerEl.children[1];
 		container.empty();
-		
+
 		this.vueApp = createApp(App);
 		this.vueApp.use(createPinia());
 		this.vueApp.mount(container);

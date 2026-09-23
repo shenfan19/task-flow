@@ -19,11 +19,11 @@ export default defineConfig({
   build: {
     lib: {
       entry: path.resolve(__dirname, 'main.ts'),
-      name: 'FlowyTask',
+      name: 'TaskFlowchart',
       fileName: () => 'main.js',
       formats: ['cjs']
     },
-    outDir: 'flowy-task',
+    outDir: 'task-flowchart',
     emptyOutDir: true,
     rollupOptions: {
       external: [
@@ -35,7 +35,7 @@ export default defineConfig({
         globals: {
           obsidian: 'obsidian'
         },
-        banner: '/* FlowyTask Obsidian Plugin */',
+        banner: '/* Task Flowchart Obsidian Plugin */',
       }
     }
   }

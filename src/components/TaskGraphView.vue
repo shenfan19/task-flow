@@ -3,76 +3,12 @@
     <!-- Left button rail: filters, view controls, node appearance -->
     <div class="ft-left-rail">
       <FilterPanel />
-      <button class="btn btn-sm btn-outline-secondary bg-white shadow-sm" @click="onOverviewClick">
-        Overview
-      </button>
-      <div class="d-flex flex-column gap-1 bg-white shadow-sm p-2 rounded">
-        <select
-          class="form-select form-select-sm"
-          :value="taskStore.viewSettings.layoutDirection"
-          @change="onLayoutDirectionChange"
-        >
-          <option value="TB">Top to Bottom</option>
-          <option value="BT">Bottom to Top</option>
-          <option value="LR">Left to Right</option>
-          <option value="RL">Right to Left</option>
-        </select>
-        <select
-          class="form-select form-select-sm"
-          :value="taskStore.viewSettings.edgeType"
-          @change="onEdgeTypeChange"
-        >
-          <option value="default">Bezier</option>
-          <option value="straight">Straight</option>
-          <option value="smoothstep">Step</option>
-        </select>
-        <div class="ft-interval-row">
-          <button class="btn btn-sm btn-outline-primary" @click="onLayoutClick">
-            Layout
-          </button>
-          <div class="form-check">
-            <input
-              class="form-check-input"
-              type="checkbox"
-              id="autoLayoutToggle"
-              :checked="taskStore.viewSettings.autoLayoutEnabled"
-              @change="taskStore.updateViewSettings({ autoLayoutEnabled: $event.target.checked })"
-            >
-            <label class="form-check-label" for="autoLayoutToggle">every</label>
-          </div>
-          <input
-            type="number"
-            min="1"
-            class="ft-interval-input"
-            :value="taskStore.viewSettings.autoLayoutInterval"
-            @change="taskStore.updateViewSettings({ autoLayoutInterval: Math.max(1, Number($event.target.value)) })"
-          >
-          <span>s</span>
-        </div>
-        <div class="ft-interval-row">
-          <button class="btn btn-sm btn-outline-primary" @click="taskStore.fetchTasksFromObsidian()">
-            Refresh
-          </button>
-          <div class="form-check">
-            <input
-              class="form-check-input"
-              type="checkbox"
-              id="autoRefreshToggle"
-              :checked="taskStore.viewSettings.autoRefreshEnabled"
-              @change="taskStore.updateViewSettings({ autoRefreshEnabled: $event.target.checked })"
-            >
-            <label class="form-check-label" for="autoRefreshToggle">every</label>
-          </div>
-          <input
-            type="number"
-            min="1"
-            class="ft-interval-input"
-            :value="taskStore.viewSettings.autoRefreshInterval"
-            @change="taskStore.updateViewSettings({ autoRefreshInterval: Math.max(1, Number($event.target.value)) })"
-          >
-          <span>s</span>
-        </div>
-      </div>
+      <ViewControlPanel
+        @overview="onOverviewClick"
+        @layout="onLayoutClick"
+        @direction-change="onLayoutDirectionChange"
+        @edge-type-change="onEdgeTypeChange"
+      />
       <AppearancePanel />
     </div>
 
@@ -85,6 +21,8 @@
         class="w-100 h-100"
         @node-click="onNodeClick"
         @node-drag-stop="onNodeDragStop"
+        @connect="onConnect"
+        @edges-change="onEdgesChange"
       >
         <template #node-task="taskNodeProps">
           <TaskFlowNode v-bind="taskNodeProps" />
@@ -103,6 +41,7 @@ import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
 import { useTaskStore } from '../store';
 import FilterPanel from './FilterPanel.vue';
+import ViewControlPanel from './ViewControlPanel.vue';
 import AppearancePanel from './AppearancePanel.vue';
 import TaskFlowNode from './TaskFlowNode.vue';
 import { layoutWithDagre } from '../utils/layout';
@@ -216,14 +155,33 @@ const onLayoutClick = () => {
   fitView({ padding: 0.2 });
 };
 
-const onLayoutDirectionChange = (event) => {
-  taskStore.updateViewSettings({ layoutDirection: event.target.value });
+const onLayoutDirectionChange = (value) => {
+  taskStore.updateViewSettings({ layoutDirection: value });
   onLayoutClick();
 };
 
-const onEdgeTypeChange = (event) => {
-  taskStore.updateViewSettings({ edgeType: event.target.value });
+const onEdgeTypeChange = (value) => {
+  taskStore.updateViewSettings({ edgeType: value });
   onLayoutClick();
+};
+
+// Dragging a new connection from node A to node B means "B depends on A"
+// (matches filteredEdges' own source=blocker, target=blocked convention) —
+// writes real 🆔/⛔ tags back to the source files, it isn't a canvas-only edit.
+const onConnect = (connection) => {
+  taskStore.connectTasks(connection.source, connection.target);
+};
+
+// Selecting an edge and pressing Delete/Backspace (Vue Flow's built-in
+// behavior) fires an edges-change with a "remove" entry; without this, the
+// edge would just reappear on the next refresh since it's derived from the
+// task's real dependsOn field, not from Vue Flow's own edge list.
+const onEdgesChange = (changes) => {
+  for (const change of changes) {
+    if (change.type !== 'remove') continue;
+    const [sourceId, targetId] = change.id.split('->');
+    if (sourceId && targetId) taskStore.disconnectTasks(sourceId, targetId);
+  }
 };
 
 const onOverviewClick = () => {
@@ -306,15 +264,5 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: flex-start;
   gap: 8px;
-}
-
-.ft-interval-row {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.ft-interval-input {
-  width: 48px;
 }
 </style>

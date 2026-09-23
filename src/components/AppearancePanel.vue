@@ -41,6 +41,16 @@
         >
         <label class="form-check-label" for="richTextToggle">Rich text</label>
       </div>
+      <div class="form-check">
+        <input
+          class="form-check-input"
+          type="checkbox"
+          id="priorityStylingToggle"
+          :checked="taskStore.appearance.priorityStyling"
+          @change="taskStore.updateAppearance({ priorityStyling: $event.target.checked })"
+        >
+        <label class="form-check-label" for="priorityStylingToggle">Color/size by priority</label>
+      </div>
     </div>
   </div>
 </template>

@@ -1,6 +1,25 @@
 import { defineStore } from 'pinia';
 import { TasksPluginAPI } from '../api/TasksPluginAPI';
 import { stableTaskId } from '../utils/hash';
+import { generateTaskId, addIdTag, addDependsOnTag, removeDependsOnTag } from '../utils/taskLineEdits';
+
+// Rewrites one line of a task's source file in place. Line numbers are
+// stable across these edits since they only append/adjust trailing inline
+// text, never insert or remove whole lines.
+async function editTaskLine(task, transform) {
+  if (!window.app) return;
+  const file = window.app.vault.getAbstractFileByPath(task.path);
+  if (!file) return;
+  const lineNumber = task.originalTask?.taskLocation?.lineNumber;
+  if (lineNumber === undefined) return;
+
+  await window.app.vault.process(file, (content) => {
+    const lines = content.split('\n');
+    if (lines[lineNumber] === undefined) return content;
+    lines[lineNumber] = transform(lines[lineNumber]);
+    return lines.join('\n');
+  });
+}
 
 export const useTaskStore = defineStore('task', {
   state: () => {
@@ -13,14 +32,17 @@ export const useTaskStore = defineStore('task', {
         status: {
           done: true,
           todo: true
-        }
+        },
+        onlyRelated: true // hide tasks with no dependsOn link either way; was previously hardcoded on
       },
+      filterPresets: [], // [{id, name, directories, directoryMode, status}], persisted via saveState
       appearance: {
         nodeBg: '#ffffff',
         nodeBorder: '#0d6efd',
         nodeText: '#212529',
         fontSize: 12,
-        richText: false // off by default: skips the MarkdownRenderer call entirely, not just hides its output
+        richText: false, // off by default: skips the MarkdownRenderer call entirely, not just hides its output
+        priorityStyling: false // off by default: when on, priority overrides border color + node size (see TaskFlowNode.vue)
       },
       viewSettings: {
         layoutDirection: 'TB', // dagre rankdir: TB/BT/LR/RL
@@ -46,10 +68,13 @@ export const useTaskStore = defineStore('task', {
       return this.tasks.filter(task => {
         // A task with no dependency link either way is noise on a vault this
         // size (thousands of tasks); it belongs in a plain to-do list, not a
-        // dependency graph, so it's hidden by default rather than filterable.
-        const hasOutgoing = task.dependsOn.length > 0;
-        const hasIncoming = task.pluginId && this.referencedPluginIds.has(task.pluginId);
-        if (!hasOutgoing && !hasIncoming) return false;
+        // dependency graph. Toggleable rather than hardcoded, see the
+        // "only related" checkbox in FilterPanel.vue.
+        if (this.filters.onlyRelated) {
+          const hasOutgoing = task.dependsOn.length > 0;
+          const hasIncoming = task.pluginId && this.referencedPluginIds.has(task.pluginId);
+          if (!hasOutgoing && !hasIncoming) return false;
+        }
 
         // Logic AND between all filters
 
@@ -95,8 +120,8 @@ export const useTaskStore = defineStore('task', {
   },
   actions: {
     async loadState() {
-      if (!window.flowyTaskPlugin) return;
-      const data = await window.flowyTaskPlugin.loadData();
+      if (!window.taskFlowchartPlugin) return;
+      const data = await window.taskFlowchartPlugin.loadData();
       // data.json used to be a flat {id: {x,y}} positions map; fall back to
       // treating the whole object as positions if it isn't in the new shape.
       this.positions = data?.positions ?? data ?? {};
@@ -105,6 +130,9 @@ export const useTaskStore = defineStore('task', {
       }
       if (data?.viewSettings) {
         this.viewSettings = { ...this.viewSettings, ...data.viewSettings };
+      }
+      if (data?.filterPresets) {
+        this.filterPresets = data.filterPresets;
       }
     },
     fetchTasksFromObsidian() {
@@ -127,10 +155,10 @@ export const useTaskStore = defineStore('task', {
           path,
           completed: t.status?.symbol !== ' ',
           status: t.status,
+          priority: t.priority, // Tasks plugin's Priority enum string ('0' Highest .. '5' Lowest, '3' None)
           position: pos
         };
       });
-      console.log('FlowyTask: Fetched', this.tasks.length, 'tasks from Obsidian Tasks plugin');
     },
     updateTaskPosition(taskId, x, y) {
       const task = this.tasks.find(t => t.id === taskId);
@@ -148,12 +176,68 @@ export const useTaskStore = defineStore('task', {
       this.viewSettings = { ...this.viewSettings, ...partial };
       this.saveState();
     },
+    saveFilterPreset(name) {
+      this.filterPresets.push({
+        id: Date.now().toString(36),
+        name,
+        directories: [...this.filters.directories],
+        directoryMode: this.filters.directoryMode,
+        status: { ...this.filters.status },
+        onlyRelated: this.filters.onlyRelated
+      });
+      this.saveState();
+    },
+    applyFilterPreset(id) {
+      const preset = this.filterPresets.find((p) => p.id === id);
+      if (!preset) return;
+      this.filters.directories = [...preset.directories];
+      this.filters.directoryMode = preset.directoryMode;
+      this.filters.status = { ...preset.status };
+      if (preset.onlyRelated !== undefined) this.filters.onlyRelated = preset.onlyRelated;
+    },
+    deleteFilterPreset(id) {
+      this.filterPresets = this.filterPresets.filter((p) => p.id !== id);
+      this.saveState();
+    },
+    // Drawing an edge from `source` to `target` on the canvas means "target
+    // depends on source" — writes real 🆔/⛔ tags back to both files (giving
+    // source an id first if it doesn't have one yet), and updates the
+    // in-memory tasks immediately so the graph reflects it without waiting
+    // for the Tasks plugin to re-index the file.
+    async connectTasks(sourceTaskId, targetTaskId) {
+      const source = this.tasks.find((t) => t.id === sourceTaskId);
+      const target = this.tasks.find((t) => t.id === targetTaskId);
+      if (!source || !target || source === target) return;
+
+      let sourcePluginId = source.pluginId;
+      if (!sourcePluginId) {
+        const existingIds = new Set(this.tasks.map((t) => t.pluginId).filter(Boolean));
+        sourcePluginId = generateTaskId(existingIds);
+        await editTaskLine(source, (line) => addIdTag(line, sourcePluginId));
+        source.pluginId = sourcePluginId;
+      }
+
+      if (target.dependsOn.includes(sourcePluginId)) return;
+      await editTaskLine(target, (line) => addDependsOnTag(line, sourcePluginId));
+      target.dependsOn = [...target.dependsOn, sourcePluginId];
+    },
+    // Removes the dependency the given edge represents, both from the
+    // target's file and from the in-memory task.
+    async disconnectTasks(sourceTaskId, targetTaskId) {
+      const source = this.tasks.find((t) => t.id === sourceTaskId);
+      const target = this.tasks.find((t) => t.id === targetTaskId);
+      if (!source || !target || !source.pluginId) return;
+
+      await editTaskLine(target, (line) => removeDependsOnTag(line, source.pluginId));
+      target.dependsOn = target.dependsOn.filter((id) => id !== source.pluginId);
+    },
     async saveState() {
-      if (!window.flowyTaskPlugin) return;
-      await window.flowyTaskPlugin.saveData({
+      if (!window.taskFlowchartPlugin) return;
+      await window.taskFlowchartPlugin.saveData({
         positions: this.positions,
         appearance: this.appearance,
-        viewSettings: this.viewSettings
+        viewSettings: this.viewSettings,
+        filterPresets: this.filterPresets
       });
     }
   }

@@ -43,12 +43,29 @@ const props = defineProps({
 
 const taskStore = useTaskStore();
 
-const nodeStyle = computed(() => ({
-  background: taskStore.appearance.nodeBg,
-  border: `1px solid ${taskStore.appearance.nodeBorder}`,
-  color: taskStore.appearance.nodeText,
-  fontSize: `${taskStore.appearance.fontSize}px`
-}));
+// Tasks plugin's Priority enum string values; '3' (None) is intentionally
+// absent so a normal-priority task just falls back to the uniform appearance
+// settings instead of getting its own color.
+const PRIORITY_STYLES = {
+  '0': { color: '#d32f2f', scale: 1.3 }, // Highest
+  '1': { color: '#f57c00', scale: 1.15 }, // High
+  '2': { color: '#fbc02d', scale: 1.05 }, // Medium
+  '4': { color: '#1976d2', scale: 0.9 }, // Low
+  '5': { color: '#757575', scale: 0.8 } // Lowest
+};
+
+const nodeStyle = computed(() => {
+  const priorityStyle = taskStore.appearance.priorityStyling
+    ? PRIORITY_STYLES[props.data.task.priority]
+    : undefined;
+
+  return {
+    background: taskStore.appearance.nodeBg,
+    border: `1px solid ${priorityStyle?.color ?? taskStore.appearance.nodeBorder}`,
+    color: taskStore.appearance.nodeText,
+    fontSize: `${taskStore.appearance.fontSize * (priorityStyle?.scale ?? 1)}px`
+  };
+});
 
 // Lifecycle handle MarkdownRenderer.render needs to attach/detach anything
 // the rendered markdown creates (e.g. live embeds); one per node.
