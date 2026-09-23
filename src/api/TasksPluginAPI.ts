@@ -22,7 +22,7 @@ export class TasksPluginAPI {
      */
     public getTasks(): any[] {
         if (!this.isTasksPluginAvailable()) {
-            console.warn('Task Flowchart: Obsidian Tasks plugin is not available.');
+            console.warn('Task Flow: Obsidian Tasks plugin is not available.');
             return [];
         }
 
@@ -32,11 +32,11 @@ export class TasksPluginAPI {
             if (typeof tasksPlugin.getTasks === 'function') {
                 return tasksPlugin.getTasks();
             } else {
-                console.error('Task Flowchart: Tasks plugin found, but getTasks() method is missing.');
+                console.error('Task Flow: Tasks plugin found, but getTasks() method is missing.');
                 return [];
             }
         } catch (error) {
-            console.error('Task Flowchart: Error fetching tasks from Tasks plugin:', error);
+            console.error('Task Flow: Error fetching tasks from Tasks plugin:', error);
             return [];
         }
     }

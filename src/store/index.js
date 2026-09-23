@@ -120,8 +120,8 @@ export const useTaskStore = defineStore('task', {
   },
   actions: {
     async loadState() {
-      if (!window.taskFlowchartPlugin) return;
-      const data = await window.taskFlowchartPlugin.loadData();
+      if (!window.taskFlowPlugin) return;
+      const data = await window.taskFlowPlugin.loadData();
       // data.json used to be a flat {id: {x,y}} positions map; fall back to
       // treating the whole object as positions if it isn't in the new shape.
       this.positions = data?.positions ?? data ?? {};
@@ -232,8 +232,8 @@ export const useTaskStore = defineStore('task', {
       target.dependsOn = target.dependsOn.filter((id) => id !== source.pluginId);
     },
     async saveState() {
-      if (!window.taskFlowchartPlugin) return;
-      await window.taskFlowchartPlugin.saveData({
+      if (!window.taskFlowPlugin) return;
+      await window.taskFlowPlugin.saveData({
         positions: this.positions,
         appearance: this.appearance,
         viewSettings: this.viewSettings,

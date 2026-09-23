@@ -21,7 +21,7 @@ const error = ref(null);
 
 onErrorCaptured((err) => {
   error.value = err.message || err.toString();
-  console.error('Task Flowchart rendering error:', err);
+  console.error('Task Flow rendering error:', err);
   return false; // stop propagation
 });
 </script>

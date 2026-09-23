@@ -1,41 +1,48 @@
-# Task Flowchart
+# Task Flow
 
-**Task Flowchart turns your [Tasks plugin](https://github.com/obsidian-tasks-group/obsidian-tasks) dependencies into an interactive node graph**, so you can see task dependency chains, blockers, and what's actually ready to work on — instead of scrolling a flat checklist.
+![GitHub release](https://img.shields.io/github/v/release/shenfan19/task-flow?sort=semver)
+![License](https://img.shields.io/github/license/shenfan19/task-flow)
+![Obsidian downloads](https://img.shields.io/badge/dynamic/json?logo=obsidian&color=%23483699&label=downloads&query=%24%5B%22task-flow%22%5D.downloads&url=https%3A%2F%2Fraw.githubusercontent.com%2Fobsidianmd%2Fobsidian-releases%2Fmaster%2Fcommunity-plugin-stats.json)
 
-If you already tag tasks with the Tasks plugin's `🆔` and `⛔` (dependsOn) metadata, Task Flowchart reads that graph and draws it for you: drag nodes around, auto-arrange them, draw or delete dependency links directly on the canvas, click through to the source note, and filter down to the project you're actually looking at.
+See your task dependencies as a graph, not a wall of checkboxes.
 
-## Features
+## How to install
 
-- **Dependency graph, not a to-do list** — nodes and arrows are derived live from the Tasks plugin's own `id`/`dependsOn` fields; a task can depend on multiple upstream tasks.
-- **Edit dependencies on the canvas** — drag from one node to another to create a real `🆔`/`⛔` link in the underlying files (generating an id for the source task if it doesn't have one yet); select an edge and press Delete to remove it. This isn't a separate diagram format — it edits the same metadata the Tasks plugin already reads.
-- **Interactive canvas** — drag nodes freely; positions persist. One-click auto-layout (dagre) in four directions (top-to-bottom, bottom-to-top, left-to-right, right-to-left), with a choice of bezier, straight, or stepped edges.
-- **Click a node, open the file** — jumps straight to the task's line in a side-by-side pane; drag it back into your main view like any other Obsidian tab.
-- **File Filters with saved presets** — scope the graph to specific folders (include or exclude mode), filter by done/to-do, toggle whether unrelated tasks are hidden, and save named presets to jump between projects.
-- **Customizable node appearance** — background, border and text color, font size, and an optional rich-text (Markdown) rendering mode for long task descriptions with links.
-- **Priority-aware styling** — optionally color and size nodes by the Tasks plugin's priority markers, so the most important blockers stand out at a glance.
-- **Auto-refresh & auto-layout** — both live in the View Control panel, independently toggleable with their own interval, so the graph can stay current with edits made elsewhere in the vault without you reopening it.
+Manual install for now, until Task Flow clears review and lands in Obsidian's Community Plugins browser:
+
+1. Download `main.js`, `manifest.json`, and `styles.css` from the [latest Release](https://github.com/shenfan19/task-flow/releases).
+2. Copy them into `<your-vault>/.obsidian/plugins/task-flow/`.
+3. Reload Obsidian and enable **Task Flow** under Settings → Community plugins.
+
+## Why Task Flow?
+
+A flat task list can't show you *why* something is stuck. Once a project has more than a handful of tasks blocking each other, scrolling a checklist stops answering the two questions that actually matter:
+
+- What's blocking what?
+- What's actually safe to start right now?
+
+Task Flow answers both at a glance, by drawing the dependency chains you've already tagged with the [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) plugin's own `id`/`dependsOn` fields — no separate diagram to maintain, no second source of truth. Draw a new dependency by dragging between two nodes, delete one by selecting it and pressing Delete, and the underlying task metadata updates right along with it.
+
+## Key Features
+
+- **Reads your existing Tasks metadata** — nodes and arrows come straight from the Tasks plugin's `id`/`dependsOn` fields; a task can depend on more than one upstream task.
+- **Edit dependencies on the canvas** — drag between nodes to create a link, select and delete to remove one. It writes back to the real task text, it isn't a canvas-only sketch.
+- **One-click auto-layout** — four directions, plus a choice of bezier, straight, or stepped edges.
+- **Click a node, open the file** — jumps to the task's exact line in a side pane you can drag back into your main view.
+- **File Filters with saved presets** — scope by folder (include or exclude), by done/to-do, toggle whether unrelated tasks are hidden, and save named presets per project.
+- **Node appearance you control** — colors, font size, an optional rich-text (Markdown) render mode, and optional color/size-by-priority.
+- **Auto-refresh & auto-layout** — independently toggleable with their own interval, so the graph keeps up with edits made elsewhere without reopening the view.
+
+<!-- TODO: add a screenshot of the graph view here before publishing -->
 
 ## Requirements
 
 - The [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) community plugin, installed and enabled.
-- Tasks that reference each other using Tasks' own `🆔 <id>` and `⛔ <id>` syntax. Task Flowchart doesn't invent a new dependency format — it reads and writes the one you're already using.
-
-## Installation
-
-Manual installation, until Task Flowchart is available in Obsidian's Community Plugins browser:
-
-1. Download `main.js`, `manifest.json`, and `styles.css` from the [latest Release](https://github.com/shenfan19/flowy-task/releases).
-2. Copy them into `<your-vault>/.obsidian/plugins/task-flowchart/`.
-3. Reload Obsidian and enable **Task Flowchart** under Settings → Community plugins.
+- Tasks that reference each other using Tasks' Dataview-style syntax: `[id:: <id>]` and `[dependsOn:: <id1>,<id2>]`. Task Flow doesn't invent a new dependency format — it reads and writes the one you're already using.
 
 ## Usage
 
-- Click the Task Flowchart ribbon icon (or run the **Open Task Flowchart view** command) to open the graph.
-- The left-hand rail holds three panels — **File Filters**, **View Control**, and node appearance — everything lives in that one view, there's no separate settings screen to hunt for.
-
-## Why a graph instead of a list?
-
-A flat checklist can't show you *why* something is stuck. A dependency graph makes it visually obvious what's blocking what, what's safe to start right now, and where the actual critical path runs — the same reason project-management tools draw Gantt charts and dependency diagrams instead of plain lists.
+Click the Task Flow ribbon icon (or run **Open Task Flow view**) to open the graph. The left-hand rail holds three panels — **File Filters**, **View Control**, and node appearance — everything lives in that one view, there's no separate settings screen to dig through.
 
 ## License
 
