@@ -6,9 +6,6 @@
     </button>
 
     <div v-show="!isCollapsed" class="filter-panel-content bg-white border rounded shadow-sm p-3" style="width: 300px; max-height: calc(100vh - 100px); overflow-y: auto;">
-      <h6>File Filters (AND)</h6>
-      <hr class="my-2">
-
       <!-- Only tasks with a dependsOn relation -->
       <div class="form-check mb-3">
         <input
