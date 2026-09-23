@@ -6,26 +6,59 @@ export const useTaskStore = defineStore('task', {
   state: () => {
     return {
       tasks: [], // We'll populate this from Obsidian Tasks
-      positions: {}, // id -> {x, y}, loaded from plugin data.json via loadPositions()
+      positions: {}, // id -> {x, y}, loaded from plugin data.json via loadState()
       filters: {
         directories: [],
+        directoryMode: 'include', // 'include': only show checked dirs; 'exclude': hide checked dirs
         status: {
           done: true,
           todo: true
         }
+      },
+      appearance: {
+        nodeBg: '#ffffff',
+        nodeBorder: '#0d6efd',
+        nodeText: '#212529',
+        fontSize: 12,
+        richText: false // off by default: skips the MarkdownRenderer call entirely, not just hides its output
+      },
+      viewSettings: {
+        layoutDirection: 'TB', // dagre rankdir: TB/BT/LR/RL
+        edgeType: 'default', // vue-flow edge type: default(bezier)/straight/smoothstep
+        autoLayoutEnabled: false, // off by default: re-running dagre on a timer repositions every node, which visibly jumps
+        autoLayoutInterval: 10, // seconds
+        autoRefreshEnabled: true, // preserves the previous always-on behavior
+        autoRefreshInterval: 30 // seconds
       }
     };
   },
   getters: {
-    filteredTasks: (state) => {
-      return state.tasks.filter(task => {
+    // Tasks plugin ids referenced by at least one other task's dependsOn,
+    // used below to tell whether a task is a dependency of something else.
+    referencedPluginIds() {
+      const ids = new Set();
+      for (const task of this.tasks) {
+        for (const dep of task.dependsOn) ids.add(dep);
+      }
+      return ids;
+    },
+    filteredTasks() {
+      return this.tasks.filter(task => {
+        // A task with no dependency link either way is noise on a vault this
+        // size (thousands of tasks); it belongs in a plain to-do list, not a
+        // dependency graph, so it's hidden by default rather than filterable.
+        const hasOutgoing = task.dependsOn.length > 0;
+        const hasIncoming = task.pluginId && this.referencedPluginIds.has(task.pluginId);
+        if (!hasOutgoing && !hasIncoming) return false;
+
         // Logic AND between all filters
-        
+
         // 1. Directory Filter (Obsidian task path)
         let dirMatch = true;
-        if (state.filters.directories.length > 0) {
+        if (this.filters.directories.length > 0) {
           // Task plugin gives 'path' which is the file path (e.g. 'folder/file.md')
-          dirMatch = state.filters.directories.some(dir => task.path?.startsWith(dir));
+          const matchesChecked = this.filters.directories.some(dir => task.path?.startsWith(dir));
+          dirMatch = this.filters.directoryMode === 'exclude' ? !matchesChecked : matchesChecked;
         }
 
         // 2. Status Filter
@@ -33,8 +66,8 @@ export const useTaskStore = defineStore('task', {
         // Obsidian Task status is usually a class/object. Let's simplify:
         // ' ' is todo, 'x' or 'X' or '-' is done/cancelled
         const isDone = task.status?.symbol !== ' ';
-        if (state.filters.status.done && isDone) statusMatch = true;
-        if (state.filters.status.todo && !isDone) statusMatch = true;
+        if (this.filters.status.done && isDone) statusMatch = true;
+        if (this.filters.status.todo && !isDone) statusMatch = true;
 
         return dirMatch && statusMatch;
       });
@@ -61,10 +94,18 @@ export const useTaskStore = defineStore('task', {
     }
   },
   actions: {
-    async loadPositions() {
+    async loadState() {
       if (!window.flowyTaskPlugin) return;
       const data = await window.flowyTaskPlugin.loadData();
-      this.positions = data || {};
+      // data.json used to be a flat {id: {x,y}} positions map; fall back to
+      // treating the whole object as positions if it isn't in the new shape.
+      this.positions = data?.positions ?? data ?? {};
+      if (data?.appearance) {
+        this.appearance = { ...this.appearance, ...data.appearance };
+      }
+      if (data?.viewSettings) {
+        this.viewSettings = { ...this.viewSettings, ...data.viewSettings };
+      }
     },
     fetchTasksFromObsidian() {
       if (!window.app) return;
@@ -89,19 +130,31 @@ export const useTaskStore = defineStore('task', {
           position: pos
         };
       });
-      console.log('FlowyTask: Fetched tasks from Obsidian Tasks plugin:', this.tasks);
+      console.log('FlowyTask: Fetched', this.tasks.length, 'tasks from Obsidian Tasks plugin');
     },
     updateTaskPosition(taskId, x, y) {
       const task = this.tasks.find(t => t.id === taskId);
       if (task) {
         task.position = { x, y };
         this.positions[taskId] = { x, y };
-        this.savePositions();
+        this.saveState();
       }
     },
-    async savePositions() {
+    updateAppearance(partial) {
+      this.appearance = { ...this.appearance, ...partial };
+      this.saveState();
+    },
+    updateViewSettings(partial) {
+      this.viewSettings = { ...this.viewSettings, ...partial };
+      this.saveState();
+    },
+    async saveState() {
       if (!window.flowyTaskPlugin) return;
-      await window.flowyTaskPlugin.saveData(this.positions);
+      await window.flowyTaskPlugin.saveData({
+        positions: this.positions,
+        appearance: this.appearance,
+        viewSettings: this.viewSettings
+      });
     }
   }
 });
