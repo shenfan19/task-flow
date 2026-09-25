@@ -62,10 +62,12 @@ const nodes = computed(() =>
   }))
 );
 
-// Which pair of handles (see TaskFlowNode.vue's 4 sides) an edge should use,
-// picked from the two nodes' current positions so the connection always
-// leaves/enters from whichever side is closest — recomputed whenever a node
-// is dragged or auto-laid-out, not fixed to the layout direction setting.
+// Which pair of handles (see TaskFlowNode.vue's 4 sides) an edge should use.
+// The axis follows the layout direction setting: TB/BT only ever use the
+// top/bottom handles, LR/RL only left/right, so every edge in the graph runs
+// the same way. Picking the nearest side per edge instead mixed the two axes
+// (a far-sideways edge in a TB layout would leave from a left/right handle),
+// which is what made curves bend oddly and cross each other.
 const HANDLES_BY_DIRECTION = {
   right: { source: 'right-source', target: 'left-target' },
   left: { source: 'left-source', target: 'right-target' },
@@ -73,22 +75,34 @@ const HANDLES_BY_DIRECTION = {
   top: { source: 'top-source', target: 'bottom-target' }
 };
 
-const pickHandles = (sourcePos, targetPos) => {
+// Along the layout axis, closer than this (px, top-left to top-left) counts
+// as "same row/column" — only reachable by dragging nodes by hand, since
+// dagre always puts a dependency's two ends in different ranks. Forcing the
+// layout axis there would loop the edge back on itself, so fall back to the
+// cross axis for just that edge.
+const SAME_RANK_TOLERANCE = 30;
+
+const pickHandles = (sourcePos, targetPos, layoutDirection) => {
   const dx = targetPos.x - sourcePos.x;
   const dy = targetPos.y - sourcePos.y;
-  const direction = Math.abs(dx) > Math.abs(dy)
-    ? (dx >= 0 ? 'right' : 'left')
-    : (dy >= 0 ? 'bottom' : 'top');
+  const vertical = layoutDirection === 'TB' || layoutDirection === 'BT';
+  const useVertical = vertical
+    ? Math.abs(dy) >= SAME_RANK_TOLERANCE
+    : Math.abs(dx) < SAME_RANK_TOLERANCE;
+  const direction = useVertical
+    ? (dy >= 0 ? 'bottom' : 'top')
+    : (dx >= 0 ? 'right' : 'left');
   return HANDLES_BY_DIRECTION[direction];
 };
 
 const edges = computed(() => {
   const positionById = new Map(taskStore.filteredTasks.map((t) => [t.id, t.position]));
+  const layoutDirection = taskStore.viewSettings.layoutDirection;
   return taskStore.filteredEdges.map((edge) => {
     const sourcePos = positionById.get(edge.source);
     const targetPos = positionById.get(edge.target);
     const handles = sourcePos && targetPos
-      ? pickHandles(sourcePos, targetPos)
+      ? pickHandles(sourcePos, targetPos, layoutDirection)
       : HANDLES_BY_DIRECTION.bottom;
     return {
       ...edge,

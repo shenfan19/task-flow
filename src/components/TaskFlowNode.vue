@@ -5,8 +5,9 @@
     :style="nodeStyle"
   >
     <!-- One source + one target handle per side, stacked exactly on top of
-         each other, so an edge can be anchored to whichever side is nearest
-         regardless of whether this node is that edge's source or target.
+         each other, so an edge can be anchored to whichever side the layout
+         direction calls for regardless of whether this node is that edge's
+         source or target.
          Only the source dot is visible; the target one is still tracked for
          position lookups (see TaskGraphView.vue's pickHandles). -->
     <Handle type="target" :position="Position.Top" id="top-target" class="ft-node-handle ft-node-handle--hidden" />
