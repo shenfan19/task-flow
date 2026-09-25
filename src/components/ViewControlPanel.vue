@@ -58,6 +58,30 @@
         <span>s</span>
       </div>
 
+      <!-- Places tasks along the flow direction by date (done, else
+           scheduled, else due); see layoutWithTimeAxis in utils/layout.js. -->
+      <div class="ft-interval-row mb-1">
+        <div class="form-check">
+          <input
+            class="form-check-input"
+            type="checkbox"
+            id="timeAxisToggle"
+            :checked="taskStore.viewSettings.timeAxis"
+            @change="$emit('time-axis-change', { timeAxis: $event.target.checked })"
+          >
+          <label class="form-check-label" for="timeAxisToggle">Time axis</label>
+        </div>
+        <input
+          v-if="taskStore.viewSettings.timeAxis"
+          type="number"
+          min="1"
+          class="ft-interval-input"
+          :value="taskStore.viewSettings.timeScale"
+          @change="$emit('time-axis-change', { timeScale: Math.max(1, Number($event.target.value)) })"
+        >
+        <span v-if="taskStore.viewSettings.timeAxis">px/day</span>
+      </div>
+
       <div class="ft-interval-row">
         <button class="btn btn-sm btn-outline-primary" @click="taskStore.fetchTasksFromObsidian()">
           Refresh
@@ -89,7 +113,7 @@
 import { ref } from 'vue';
 import { useTaskStore } from '../store';
 
-defineEmits(['overview', 'layout', 'direction-change', 'edge-type-change']);
+defineEmits(['overview', 'layout', 'direction-change', 'edge-type-change', 'time-axis-change']);
 
 const taskStore = useTaskStore();
 const isCollapsed = ref(true);

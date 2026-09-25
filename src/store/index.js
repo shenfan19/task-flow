@@ -21,6 +21,22 @@ async function editTaskLine(task, transform) {
   });
 }
 
+// The one date a task is placed by on the time axis: done date for a
+// finished task (when it actually happened), otherwise scheduled, then due
+// (when it is meant to happen). Returned as a whole-day number counted in
+// UTC so time zones can never shift a task onto a neighboring day.
+const DATE_FIELDS = ['doneDate', 'scheduledDate', 'dueDate'];
+
+function taskDay(t) {
+  for (const field of DATE_FIELDS) {
+    const m = t[field];
+    if (!m || typeof m.isValid !== 'function' || !m.isValid()) continue;
+    const [y, mo, d] = m.format('YYYY-MM-DD').split('-').map(Number);
+    return Date.UTC(y, mo - 1, d) / 86400000;
+  }
+  return null;
+}
+
 export const useTaskStore = defineStore('task', {
   state: () => {
     return {
@@ -50,8 +66,15 @@ export const useTaskStore = defineStore('task', {
         autoLayoutEnabled: false, // off by default: re-running dagre on a timer repositions every node, which visibly jumps
         autoLayoutInterval: 10, // seconds
         autoRefreshEnabled: true, // preserves the previous always-on behavior
-        autoRefreshInterval: 30 // seconds
-      }
+        autoRefreshInterval: 30, // seconds
+        timeAxis: false, // when on, nodes are placed along the flow direction by date (see layoutWithTimeAxis)
+        timeScale: 40 // px per day on the time axis
+      },
+      // {minDay, pxPerDay, direction} from the last time-axis layout, which is
+      // what the ruler reads to map canvas coordinates back to dates. Saved
+      // with the positions it was computed alongside, so the ruler still
+      // matches after a reload without re-running layout.
+      timeAxisInfo: null
     };
   },
   getters: {
@@ -134,6 +157,9 @@ export const useTaskStore = defineStore('task', {
       if (data?.filterPresets) {
         this.filterPresets = data.filterPresets;
       }
+      if (data?.timeAxisInfo) {
+        this.timeAxisInfo = data.timeAxisInfo;
+      }
     },
     fetchTasksFromObsidian() {
       if (!window.app) return;
@@ -156,6 +182,7 @@ export const useTaskStore = defineStore('task', {
           completed: t.status?.symbol !== ' ',
           status: t.status,
           priority: t.priority, // Tasks plugin's Priority enum string ('0' Highest .. '5' Lowest, '3' None)
+          day: taskDay(t), // whole-day number or null, see taskDay above
           position: pos
         };
       });
@@ -170,6 +197,12 @@ export const useTaskStore = defineStore('task', {
     },
     updateAppearance(partial) {
       this.appearance = { ...this.appearance, ...partial };
+      this.saveState();
+    },
+    // Positions are saved separately by updateTaskPosition; this only
+    // records how they map back to dates.
+    setTimeAxisInfo(info) {
+      this.timeAxisInfo = info;
       this.saveState();
     },
     updateViewSettings(partial) {
@@ -237,8 +270,9 @@ export const useTaskStore = defineStore('task', {
         positions: this.positions,
         appearance: this.appearance,
         viewSettings: this.viewSettings,
-        filterPresets: this.filterPresets
+        filterPresets: this.filterPresets,
+        timeAxisInfo: this.timeAxisInfo
       });
     }
   }
-});
+});

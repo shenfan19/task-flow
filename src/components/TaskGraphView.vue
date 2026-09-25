@@ -8,6 +8,7 @@
         @layout="onLayoutClick"
         @direction-change="onLayoutDirectionChange"
         @edge-type-change="onEdgeTypeChange"
+        @time-axis-change="onTimeAxisChange"
       />
       <AppearancePanel />
     </div>
@@ -20,6 +21,7 @@
         :default-edge-options="defaultEdgeOptions"
         class="w-100 h-100"
         @node-click="onNodeClick"
+        @node-drag="onNodeDrag"
         @node-drag-stop="onNodeDragStop"
         @connect="onConnect"
         @edges-change="onEdgesChange"
@@ -28,6 +30,7 @@
           <TaskFlowNode v-bind="taskNodeProps" />
         </template>
         <Background />
+        <TimeAxisRuler v-if="taskStore.viewSettings.timeAxis && taskStore.timeAxisInfo" :info="taskStore.timeAxisInfo" />
       </VueFlow>
     </div>
   </div>
@@ -44,7 +47,8 @@ import FilterPanel from './FilterPanel.vue';
 import ViewControlPanel from './ViewControlPanel.vue';
 import AppearancePanel from './AppearancePanel.vue';
 import TaskFlowNode from './TaskFlowNode.vue';
-import { layoutWithDagre } from '../utils/layout';
+import TimeAxisRuler from './TimeAxisRuler.vue';
+import { layoutWithDagre, layoutWithTimeAxis } from '../utils/layout';
 
 const taskStore = useTaskStore();
 const { fitView, findNode } = useVueFlow();
@@ -95,17 +99,29 @@ const pickHandles = (sourcePos, targetPos, layoutDirection) => {
   return HANDLES_BY_DIRECTION[direction];
 };
 
+// On the time axis, an edge whose dependent task is dated earlier than the
+// task it depends on points backwards in time; drawn red so a plan that
+// contradicts its own dependencies stands out. Only real dates count, not
+// the estimated placement of undated tasks.
+const BACKWARD_EDGE_COLOR = '#d32f2f';
+
 const edges = computed(() => {
-  const positionById = new Map(taskStore.filteredTasks.map((t) => [t.id, t.position]));
+  const taskById = new Map(taskStore.filteredTasks.map((t) => [t.id, t]));
   const layoutDirection = taskStore.viewSettings.layoutDirection;
+  const timeAxis = taskStore.viewSettings.timeAxis;
   return taskStore.filteredEdges.map((edge) => {
-    const sourcePos = positionById.get(edge.source);
-    const targetPos = positionById.get(edge.target);
-    const handles = sourcePos && targetPos
-      ? pickHandles(sourcePos, targetPos, layoutDirection)
+    const source = taskById.get(edge.source);
+    const target = taskById.get(edge.target);
+    const handles = source && target
+      ? pickHandles(source.position, target.position, layoutDirection)
       : HANDLES_BY_DIRECTION.bottom;
+    const backward = timeAxis && source?.day != null && target?.day != null && target.day < source.day;
     return {
       ...edge,
+      ...(backward && {
+        style: { stroke: BACKWARD_EDGE_COLOR },
+        markerEnd: { type: MarkerType.ArrowClosed, color: BACKWARD_EDGE_COLOR }
+      }),
       sourceHandle: handles.source,
       targetHandle: handles.target,
       // Set directly on the edge (not via default-edge-options) because Vue
@@ -138,7 +154,24 @@ const onNodeClick = async (event) => {
   await fileLeaf.openFile(file, line !== undefined ? { eState: { line } } : undefined);
 };
 
+// With the time axis on, a node's coordinate along the flow direction is its
+// date, so dragging only moves it sideways: the along-axis coordinate is put
+// back to the stored one on every drag step, not just when the drag ends.
+const lockAlongAxis = (node) => {
+  if (!taskStore.viewSettings.timeAxis || !taskStore.timeAxisInfo) return;
+  const task = taskStore.tasks.find((t) => t.id === node.id);
+  if (!task) return;
+  const direction = taskStore.timeAxisInfo.direction;
+  if (direction === 'TB' || direction === 'BT') node.position.y = task.position.y;
+  else node.position.x = task.position.x;
+};
+
+const onNodeDrag = (event) => {
+  (event.nodes ?? [event.node]).forEach(lockAlongAxis);
+};
+
 const onNodeDragStop = (event) => {
+  lockAlongAxis(event.node);
   taskStore.updateTaskPosition(event.node.id, event.node.position.x, event.node.position.y);
 };
 
@@ -151,12 +184,18 @@ const runAutoLayout = () => {
     const graphNode = findNode(node.id);
     return {
       ...node,
+      day: node.data.task.day,
       width: graphNode?.dimensions?.width,
       height: graphNode?.dimensions?.height
     };
   });
-  const positions = layoutWithDagre(layoutNodes, edges.value, taskStore.viewSettings.layoutDirection);
+  const { layoutDirection, timeAxis, timeScale } = taskStore.viewSettings;
+  // Falls back to the plain layout (and hides the ruler) when no visible
+  // task has a date at all.
+  const timed = timeAxis ? layoutWithTimeAxis(layoutNodes, edges.value, layoutDirection, timeScale) : null;
+  const positions = timed ? timed.positions : layoutWithDagre(layoutNodes, edges.value, layoutDirection);
   positions.forEach(({ id, x, y }) => taskStore.updateTaskPosition(id, x, y));
+  taskStore.setTimeAxisInfo(timed ? timed.info : null);
 };
 
 // The manual button also re-centers the view, since a fresh layout can move
@@ -171,6 +210,11 @@ const onLayoutClick = () => {
 
 const onLayoutDirectionChange = (value) => {
   taskStore.updateViewSettings({ layoutDirection: value });
+  onLayoutClick();
+};
+
+const onTimeAxisChange = (partial) => {
+  taskStore.updateViewSettings(partial);
   onLayoutClick();
 };
 
