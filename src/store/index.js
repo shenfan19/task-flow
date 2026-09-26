@@ -1,25 +1,53 @@
 import { defineStore } from 'pinia';
 import { TasksPluginAPI } from '../api/TasksPluginAPI';
 import { stableTaskId } from '../utils/hash';
-import { generateTaskId, addIdTag, addDependsOnTag, removeDependsOnTag } from '../utils/taskLineEdits';
+import {
+  generateTaskId,
+  addIdTag,
+  addDependsOnTag,
+  removeDependsOnTag,
+  newSiblingTaskLine,
+  listItemBlockEnd
+} from '../utils/taskLineEdits';
 
-// Rewrites one line of a task's source file in place. Line numbers are
-// stable across these edits since they only append/adjust trailing inline
-// text, never insert or remove whole lines.
+// Which line of `lines` currently holds `task`. Normally its recorded line
+// number, but a line inserted above it (see createLinkedTask) shifts it down
+// until the Tasks plugin re-indexes the file, so when that line no longer
+// matches the task's own markdown, the nearest line that does is used.
+function locateTaskLine(lines, task) {
+  const lineNumber = task.originalTask?.taskLocation?.lineNumber;
+  const markdown = task.originalTask?.originalMarkdown;
+  if (lineNumber === undefined) return -1;
+  if (!markdown || lines[lineNumber] === markdown) return lines[lineNumber] === undefined ? -1 : lineNumber;
+  let best = -1;
+  lines.forEach((l, i) => {
+    if (l === markdown && (best === -1 || Math.abs(i - lineNumber) < Math.abs(best - lineNumber))) best = i;
+  });
+  return best === -1 && lines[lineNumber] !== undefined ? lineNumber : best;
+}
+
+// Rewrites one line of a task's source file in place. Only appends/adjusts
+// trailing inline text, never inserts or removes whole lines.
 async function editTaskLine(task, transform) {
   if (!window.app) return;
   const file = window.app.vault.getAbstractFileByPath(task.path);
   if (!file) return;
-  const lineNumber = task.originalTask?.taskLocation?.lineNumber;
-  if (lineNumber === undefined) return;
 
   await window.app.vault.process(file, (content) => {
     const lines = content.split('\n');
-    if (lines[lineNumber] === undefined) return content;
-    lines[lineNumber] = transform(lines[lineNumber]);
+    const index = locateTaskLine(lines, task);
+    if (index === -1) return content;
+    lines[index] = transform(lines[index]);
+    task.originalTask = { ...task.originalTask, originalMarkdown: lines[index] };
     return lines.join('\n');
   });
 }
+
+// Name for a task created by dragging out of a node; numbered when the
+// file already has one of that name, since the node id is derived from
+// path + name and two identical names would collide.
+const NEW_TASK_NAME = 'new task';
+const UNINDEXED_GRACE_MS = 60000;
 
 // The one date a task is placed by on the time axis: done date for a
 // finished task (when it actually happened), otherwise scheduled, then due
@@ -67,14 +95,18 @@ export const useTaskStore = defineStore('task', {
         autoLayoutInterval: 10, // seconds
         autoRefreshEnabled: true, // preserves the previous always-on behavior
         autoRefreshInterval: 30, // seconds
-        timeAxis: false, // when on, nodes are placed along the flow direction by date (see layoutWithTimeAxis)
-        timeScale: 40 // px per day on the time axis
+        timeAxis: false // when on, nodes are ordered along the flow direction by date (see layoutWithTimeAxis)
       },
-      // {minDay, pxPerDay, direction} from the last time-axis layout, which is
-      // what the ruler reads to map canvas coordinates back to dates. Saved
+      // {direction, anchors} from the last time-axis layout, which is what
+      // the ruler reads to map canvas coordinates back to dates. Saved
       // with the positions it was computed alongside, so the ruler still
       // matches after a reload without re-running layout.
-      timeAxisInfo: null
+      timeAxisInfo: null,
+      // Tasks created on the canvas (see createLinkedTask) that the Tasks
+      // plugin may not have indexed yet: {task, createdAt}. Kept across
+      // refreshes until a fetch returns them, so a refresh landing before the
+      // re-index doesn't make the new node vanish for a cycle.
+      unindexedTasks: []
     };
   },
   getters: {
@@ -186,6 +218,16 @@ export const useTaskStore = defineStore('task', {
           position: pos
         };
       });
+
+      const fetchedIds = new Set(this.tasks.map((t) => t.id));
+      const now = Date.now();
+      this.unindexedTasks = this.unindexedTasks.filter(
+        (u) => !fetchedIds.has(u.task.id) && now - u.createdAt < UNINDEXED_GRACE_MS
+      );
+      for (const u of this.unindexedTasks) {
+        u.task.position = this.positions[u.task.id] || u.task.position;
+        this.tasks.push(u.task);
+      }
     },
     updateTaskPosition(taskId, x, y) {
       const task = this.tasks.find(t => t.id === taskId);
@@ -263,6 +305,84 @@ export const useTaskStore = defineStore('task', {
 
       await editTaskLine(target, (line) => removeDependsOnTag(line, source.pluginId));
       target.dependsOn = target.dependsOn.filter((id) => id !== source.pluginId);
+    },
+    // Creates a blank task right after `originTaskId`'s list item in the same
+    // file, linked to it: with `upstream` false the new task depends on the
+    // origin (origin -> new), with `upstream` true the origin depends on the
+    // new task (new -> origin). The new line and the origin's tag edit are
+    // written in one vault.process call, so the origin's line number can't
+    // go stale between them. The new task is added to the in-memory list
+    // straight away at `position`, before the Tasks plugin re-indexes the
+    // file. Returns {path, lineNumber, name} of the new line, or null.
+    async createLinkedTask(originTaskId, { upstream, position }) {
+      const origin = this.tasks.find((t) => t.id === originTaskId);
+      if (!origin || !window.app) return null;
+      const file = window.app.vault.getAbstractFileByPath(origin.path);
+      if (!file) return null;
+
+      const api = new TasksPluginAPI(window.app);
+      const globalFilter = await api.getGlobalFilter();
+      const existingIds = new Set(this.tasks.map((t) => t.pluginId).filter(Boolean));
+      const newPluginId = generateTaskId(existingIds);
+      existingIds.add(newPluginId);
+      const originPluginId = origin.pluginId || generateTaskId(existingIds);
+
+      const namesInFile = new Set(this.tasks.filter((t) => t.path === origin.path).map((t) => t.name));
+      let name = NEW_TASK_NAME;
+      for (let n = 2; namesInFile.has(name); n++) name = `${NEW_TASK_NAME} ${n}`;
+      const description = globalFilter ? `${globalFilter} ${name}` : name;
+
+      let created = null;
+      await window.app.vault.process(file, (content) => {
+        const lines = content.split('\n');
+        const originIndex = locateTaskLine(lines, origin);
+        if (originIndex === -1) return content;
+
+        let newLine = newSiblingTaskLine(lines[originIndex], description);
+        if (upstream) {
+          newLine = addIdTag(newLine, newPluginId);
+          lines[originIndex] = addDependsOnTag(lines[originIndex], newPluginId);
+        } else {
+          lines[originIndex] = addIdTag(lines[originIndex], originPluginId);
+          newLine = addDependsOnTag(addIdTag(newLine, newPluginId), originPluginId);
+        }
+        const insertAt = listItemBlockEnd(lines, originIndex) + 1;
+        lines.splice(insertAt, 0, newLine);
+        created = { originIndex, originLine: lines[originIndex], lineNumber: insertAt, newLine };
+        return lines.join('\n');
+      });
+      if (!created) return null;
+
+      origin.originalTask = { ...origin.originalTask, originalMarkdown: created.originLine };
+      if (upstream) {
+        origin.dependsOn = [...origin.dependsOn, newPluginId];
+      } else {
+        origin.pluginId = originPluginId;
+      }
+
+      const id = stableTaskId(origin.path, name);
+      this.positions[id] = { ...position };
+      const task = {
+        id,
+        pluginId: newPluginId,
+        dependsOn: upstream ? [] : [originPluginId],
+        originalTask: {
+          taskLocation: { path: origin.path, lineNumber: created.lineNumber },
+          originalMarkdown: created.newLine
+        },
+        name,
+        path: origin.path,
+        completed: false,
+        status: { symbol: ' ' },
+        priority: '3',
+        day: null,
+        position: { ...position }
+      };
+      this.tasks.push(task);
+      this.unindexedTasks.push({ task, createdAt: Date.now() });
+      this.saveState();
+
+      return { path: origin.path, lineNumber: created.lineNumber, name };
     },
     async saveState() {
       if (!window.taskFlowPlugin) return;

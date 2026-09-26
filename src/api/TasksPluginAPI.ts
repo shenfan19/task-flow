@@ -17,6 +17,23 @@ export class TasksPluginAPI {
     }
 
     /**
+     * The Tasks plugin's global filter (e.g. "#task"), or '' when none is
+     * set. A line written without it is not recognized as a task at all, so
+     * a newly created task has to include it. Read straight from the
+     * plugin's data.json, since the parsed settings aren't exposed.
+     */
+    public async getGlobalFilter(): Promise<string> {
+        if (!this.isTasksPluginAvailable()) return '';
+        try {
+            const data = await this.app.plugins.plugins['obsidian-tasks-plugin'].loadData();
+            return (data?.globalFilter || '').trim();
+        } catch (error) {
+            console.error('Task Flow: Error reading Tasks plugin settings:', error);
+            return '';
+        }
+    }
+
+    /**
      * Fetch all cached tasks from the Obsidian Tasks plugin.
      * Returns an empty array if the plugin is not available.
      */

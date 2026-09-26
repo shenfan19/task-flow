@@ -24,9 +24,11 @@
 import { computed } from 'vue';
 import { useVueFlow } from '@vue-flow/core';
 
-// {minDay, pxPerDay, direction} as produced by layoutWithTimeAxis; a node's
-// center along the flow direction is at sign * (day - minDay) * pxPerDay in
-// canvas coordinates.
+// {direction, anchors} as produced by layoutWithTimeAxis: anchors are
+// {main, day} pairs, one per dated level, giving the canvas coordinate along
+// the flow direction where that day sits. The axis is elastic: between two
+// anchors days are spread evenly over whatever distance the layout left
+// between them, so the scale changes from one stretch to the next.
 const props = defineProps({
   info: {
     type: Object,
@@ -38,57 +40,77 @@ const { viewport, dimensions } = useVueFlow();
 
 const DAY_MS = 86400000;
 const pad = (n) => String(n).padStart(2, '0');
+// Scale used past the ends of the axis when there is no neighboring anchor
+// to take one from: a single dated level, or none at all (then the axis
+// starts at today, at the top/left edge of the graph).
+const FALLBACK_PX_PER_DAY = 40;
+
+const todayDay = () => {
+  const now = new Date();
+  return Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / DAY_MS;
+};
 
 const vertical = computed(() => props.info.direction === 'TB' || props.info.direction === 'BT');
 const sign = computed(() => (props.info.direction === 'BT' || props.info.direction === 'RL' ? -1 : 1));
 
-// Screen position (px from the ruler's start edge) of a given day, and back.
-const dayToScreen = (day) => {
-  const { x, y, zoom } = viewport.value;
-  const canvas = sign.value * (day - props.info.minDay) * props.info.pxPerDay;
-  return canvas * zoom + (vertical.value ? y : x);
-};
-const screenToDay = (s) => {
-  const { x, y, zoom } = viewport.value;
-  const canvas = (s - (vertical.value ? y : x)) / zoom;
-  return props.info.minDay + sign.value * canvas / props.info.pxPerDay;
+const anchors = computed(() =>
+  props.info.anchors.length > 0 ? props.info.anchors : [{ main: 0, day: todayDay() }]
+);
+
+// Canvas coordinate of a given day: piecewise-linear through the anchors,
+// extended past both ends at the slope of the nearest segment. Only needed
+// for today's marker, since every labeled tick sits exactly on an anchor.
+const dayToMain = (day) => {
+  const list = anchors.value;
+  let a = list[0];
+  let b = { main: a.main + sign.value * FALLBACK_PX_PER_DAY, day: a.day + 1 };
+  if (list.length > 1) {
+    let i = 1;
+    while (i < list.length - 1 && day > list[i].day) i++;
+    [a, b] = [list[i - 1], list[i]];
+  }
+  return a.main + (day - a.day) * (b.main - a.main) / (b.day - a.day);
 };
 
-// Tick spacing adapts to how many screen pixels one day currently spans, so
-// labels never pile up: days when zoomed in, then Mondays, month starts, and
-// finally year starts.
-const UNITS = [
-  { minPx: 28, isTick: () => true, label: (d) => `${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}` },
-  { minPx: 5, isTick: (d) => d.getUTCDay() === 1, label: (d) => `${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}` },
-  { minPx: 1.2, isTick: (d) => d.getUTCDate() === 1, label: (d) => `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}` },
-  { minPx: 0, isTick: (d) => d.getUTCDate() === 1 && d.getUTCMonth() === 0, label: (d) => `${d.getUTCFullYear()}` }
-];
+const toScreen = (main) => {
+  const { x, y, zoom } = viewport.value;
+  return main * zoom + (vertical.value ? y : x);
+};
 
-const MAX_DAYS_SCANNED = 40000;
+// Only the dates some task on the canvas actually has get a tick; the days
+// in between are interpolated positions with no task on them, and labeling
+// them would only add noise. When two such dates come too close on screen,
+// the later one is skipped so labels never overlap. Labels carry the year
+// only when the dates on the canvas span more than one year.
+const MIN_LABEL_GAP_VERTICAL = 16;
+const MIN_LABEL_GAP_HORIZONTAL = 46;
+const MIN_LABEL_GAP_HORIZONTAL_WITH_YEAR = 66;
+
+const yearOf = (day) => new Date(day * DAY_MS).getUTCFullYear();
 
 const ticks = computed(() => {
   const length = vertical.value ? dimensions.value.height : dimensions.value.width;
   if (!length) return [];
-  const pxPerDayOnScreen = props.info.pxPerDay * viewport.value.zoom;
-  const unit = UNITS.find((u) => pxPerDayOnScreen >= u.minPx);
-
-  const a = screenToDay(0);
-  const b = screenToDay(length);
-  const first = Math.floor(Math.min(a, b));
-  const last = Math.min(Math.ceil(Math.max(a, b)), first + MAX_DAYS_SCANNED);
-
-  const result = [];
-  for (let day = first; day <= last; day++) {
+  const days = props.info.anchors.map((a) => a.day);
+  const withYear = days.length > 0 && yearOf(Math.min(...days)) !== yearOf(Math.max(...days));
+  const gap = vertical.value
+    ? MIN_LABEL_GAP_VERTICAL
+    : withYear ? MIN_LABEL_GAP_HORIZONTAL_WITH_YEAR : MIN_LABEL_GAP_HORIZONTAL;
+  const accepted = [];
+  for (const { main, day } of props.info.anchors) {
+    const offset = toScreen(main);
+    if (offset < 0 || offset > length) continue;
+    if (accepted.some((t) => Math.abs(t.offset - offset) < gap)) continue;
     const date = new Date(day * DAY_MS);
-    if (!unit.isTick(date)) continue;
-    result.push({ day, offset: dayToScreen(day), label: unit.label(date) });
+    const monthDay = `${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}`;
+    const label = withYear ? `${date.getUTCFullYear()}-${monthDay}` : monthDay;
+    accepted.push({ day, offset, label });
   }
-  return result;
+  return accepted;
 });
 
 const todayOffset = computed(() => {
-  const now = new Date();
-  const offset = dayToScreen(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / DAY_MS);
+  const offset = toScreen(dayToMain(todayDay()));
   const length = vertical.value ? dimensions.value.height : dimensions.value.width;
   return offset >= 0 && offset <= length ? offset : null;
 });
@@ -133,19 +155,26 @@ const tickStyle = (offset) => (vertical.value ? { top: `${offset}px` } : { left:
 .ft-ruler--vertical .ft-ruler__tick {
   left: 0;
   width: 8px;
-  border-top: 1px solid #adb5bd;
+  border-top: 1px solid #0d6efd;
 }
 
 .ft-ruler--horizontal .ft-ruler__tick {
   top: 0;
   height: 8px;
-  border-left: 1px solid #adb5bd;
+  border-left: 1px solid #0d6efd;
+}
+
+.ft-ruler__label {
+  color: #0d6efd;
+  font-weight: 600;
 }
 
 .ft-ruler__label {
   position: absolute;
   white-space: nowrap;
 }
+
+
 
 .ft-ruler--vertical .ft-ruler__label {
   left: 11px;

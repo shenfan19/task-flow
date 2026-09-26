@@ -58,7 +58,7 @@
         <span>s</span>
       </div>
 
-      <!-- Places tasks along the flow direction by date (done, else
+      <!-- Orders tasks along the flow direction by date (done, else
            scheduled, else due); see layoutWithTimeAxis in utils/layout.js. -->
       <div class="ft-interval-row mb-1">
         <div class="form-check">
@@ -71,15 +71,6 @@
           >
           <label class="form-check-label" for="timeAxisToggle">Time axis</label>
         </div>
-        <input
-          v-if="taskStore.viewSettings.timeAxis"
-          type="number"
-          min="1"
-          class="ft-interval-input"
-          :value="taskStore.viewSettings.timeScale"
-          @change="$emit('time-axis-change', { timeScale: Math.max(1, Number($event.target.value)) })"
-        >
-        <span v-if="taskStore.viewSettings.timeAxis">px/day</span>
       </div>
 
       <div class="ft-interval-row">

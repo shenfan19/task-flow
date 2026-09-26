@@ -65,3 +65,28 @@ export function removeDependsOnTag(line, depId) {
   const replacement = ids.length > 0 ? ` [${DEPENDS_ON_SYMBOL}:: ${ids.join(',')}]` : '';
   return line.slice(0, match.index) + replacement + line.slice(match.index + match[0].length);
 }
+
+// A fresh unchecked task line with the same indentation and list marker as
+// `line` (the task it is created next to), so it lands as that task's
+// sibling rather than as a child of it or of its parent.
+export function newSiblingTaskLine(line, description) {
+  const match = line.match(/^(\s*)([-*+]|\d+[.)])(\s+)\[.\]/);
+  const [, indent, marker, gap] = match ?? ['', '', '-', ' '];
+  return `${indent}${marker}${gap}[ ] ${description}`;
+}
+
+// Index of the last line belonging to the list item at `lineNumber`: the
+// item itself plus everything after it indented deeper (its subtasks and
+// continuation lines). A new sibling is inserted right after this, so it
+// never steals the original task's subtasks.
+export function listItemBlockEnd(lines, lineNumber) {
+  const indentOf = (s) => s.match(/^\s*/)[0].replace(/\t/g, '    ').length;
+  const baseIndent = indentOf(lines[lineNumber]);
+  let end = lineNumber;
+  for (let i = lineNumber + 1; i < lines.length; i++) {
+    if (lines[i].trim() === '') break;
+    if (indentOf(lines[i]) <= baseIndent) break;
+    end = i;
+  }
+  return end;
+}

@@ -19,18 +19,24 @@
         :nodes="nodes"
         :edges="edges"
         :default-edge-options="defaultEdgeOptions"
+        :delete-key-code="DELETE_KEYS"
         class="w-100 h-100"
         @node-click="onNodeClick"
         @node-drag="onNodeDrag"
         @node-drag-stop="onNodeDragStop"
         @connect="onConnect"
+        @connect-start="onConnectStart"
+        @connect-end="onConnectEnd"
         @edges-change="onEdgesChange"
       >
         <template #node-task="taskNodeProps">
           <TaskFlowNode v-bind="taskNodeProps" />
         </template>
         <Background />
-        <TimeAxisRuler v-if="taskStore.viewSettings.timeAxis && taskStore.timeAxisInfo" :info="taskStore.timeAxisInfo" />
+        <TimeAxisRuler
+          v-if="taskStore.viewSettings.timeAxis && taskStore.timeAxisInfo?.anchors"
+          :info="taskStore.timeAxisInfo"
+        />
       </VueFlow>
     </div>
   </div>
@@ -51,7 +57,11 @@ import TimeAxisRuler from './TimeAxisRuler.vue';
 import { layoutWithDagre, layoutWithTimeAxis } from '../utils/layout';
 
 const taskStore = useTaskStore();
-const { fitView, findNode } = useVueFlow();
+const { fitView, findNode, screenToFlowCoordinate } = useVueFlow();
+
+// Vue Flow only listens for Backspace by default; Delete is what most
+// people reach for first to remove a selected edge.
+const DELETE_KEYS = ['Backspace', 'Delete'];
 
 const defaultEdgeOptions = {
   markerEnd: MarkerType.ArrowClosed
@@ -138,11 +148,11 @@ const edges = computed(() => {
 // a fresh split is created on the next click.
 let fileLeaf = null;
 
-const onNodeClick = async (event) => {
-  const task = taskStore.filteredTasks.find((t) => t.id === event.node.id);
-  if (!task || !window.app) return;
-
-  const file = window.app.vault.getAbstractFileByPath(task.path);
+// Opens `path` in the reused side split at `line`. With `selectText`, that
+// text on the line is selected in source mode, ready to be typed over.
+const openInSidePane = async (path, line, selectText) => {
+  if (!window.app) return;
+  const file = window.app.vault.getAbstractFileByPath(path);
   if (!file) return;
 
   const workspace = window.app.workspace;
@@ -150,17 +160,33 @@ const onNodeClick = async (event) => {
     fileLeaf = workspace.getLeaf('split', 'vertical');
   }
 
-  const line = task.originalTask?.taskLocation?.lineNumber;
-  await fileLeaf.openFile(file, line !== undefined ? { eState: { line } } : undefined);
+  const openState = line !== undefined ? { eState: { line } } : {};
+  if (selectText) openState.state = { mode: 'source' };
+  await fileLeaf.openFile(file, openState);
+
+  const editor = fileLeaf.view?.editor;
+  if (!selectText || !editor || line === undefined) return;
+  const ch = editor.getLine(line).indexOf(selectText);
+  if (ch === -1) return;
+  workspace.setActiveLeaf(fileLeaf, { focus: true });
+  editor.setSelection({ line, ch }, { line, ch: ch + selectText.length });
+  editor.focus();
 };
 
-// With the time axis on, a node's coordinate along the flow direction is its
-// date, so dragging only moves it sideways: the along-axis coordinate is put
-// back to the stored one on every drag step, not just when the drag ends.
+const onNodeClick = async (event) => {
+  const task = taskStore.filteredTasks.find((t) => t.id === event.node.id);
+  if (!task) return;
+  await openInSidePane(task.path, task.originalTask?.taskLocation?.lineNumber);
+};
+
+// With the time axis on, a dated node's coordinate along the flow direction
+// is its date, so dragging it only moves it sideways: the along-axis
+// coordinate is put back to the stored one on every drag step, not just when
+// the drag ends. Undated nodes move freely.
 const lockAlongAxis = (node) => {
   if (!taskStore.viewSettings.timeAxis || !taskStore.timeAxisInfo) return;
   const task = taskStore.tasks.find((t) => t.id === node.id);
-  if (!task) return;
+  if (!task || task.day == null) return;
   const direction = taskStore.timeAxisInfo.direction;
   if (direction === 'TB' || direction === 'BT') node.position.y = task.position.y;
   else node.position.x = task.position.x;
@@ -189,10 +215,10 @@ const runAutoLayout = () => {
       height: graphNode?.dimensions?.height
     };
   });
-  const { layoutDirection, timeAxis, timeScale } = taskStore.viewSettings;
-  // Falls back to the plain layout (and hides the ruler) when no visible
-  // task has a date at all.
-  const timed = timeAxis ? layoutWithTimeAxis(layoutNodes, edges.value, layoutDirection, timeScale) : null;
+  const { layoutDirection, timeAxis } = taskStore.viewSettings;
+  // With no dated task at all the time axis still lays out and shows a
+  // ruler, starting from today; nothing on it is tied to a real date then.
+  const timed = timeAxis ? layoutWithTimeAxis(layoutNodes, edges.value, layoutDirection) : null;
   const positions = timed ? timed.positions : layoutWithDagre(layoutNodes, edges.value, layoutDirection);
   positions.forEach(({ id, x, y }) => taskStore.updateTaskPosition(id, x, y));
   taskStore.setTimeAxisInfo(timed ? timed.info : null);
@@ -223,11 +249,67 @@ const onEdgeTypeChange = (value) => {
   onLayoutClick();
 };
 
-// Dragging a new connection from node A to node B means "B depends on A"
-// (matches filteredEdges' own source=blocker, target=blocked convention) —
-// writes real 🆔/⛔ tags back to the source files, it isn't a canvas-only edit.
+// Each node has a handle on all four sides; which way a drag out of one
+// points depends on the layout direction. The handle on the downstream side
+// (e.g. bottom in TB) and the two on the cross sides mean "a task that comes
+// after this one"; the upstream side (top in TB) means "a task this one
+// depends on", so the arrow ends up pointing back at the node dragged from.
+const UPSTREAM_SIDE_BY_DIRECTION = { TB: 'top', BT: 'bottom', LR: 'left', RL: 'right' };
+
+const isUpstreamHandle = (handleId) =>
+  handleId?.split('-')[0] === UPSTREAM_SIDE_BY_DIRECTION[taskStore.viewSettings.layoutDirection];
+
+// The drag currently in progress, from connect-start to connect-end:
+// {nodeId, upstream, x, y, connected}.
+let pendingDrag = null;
+
+const eventPoint = (event) => {
+  const p = event?.changedTouches?.[0] ?? event?.touches?.[0] ?? event;
+  return p && p.clientX !== undefined ? { x: p.clientX, y: p.clientY } : null;
+};
+
+const onConnectStart = ({ event, nodeId, handleId }) => {
+  const point = eventPoint(event);
+  pendingDrag = { nodeId, upstream: isUpstreamHandle(handleId), connected: false, ...point };
+};
+
+// Dragging a connection from node A to node B out of a downstream or side
+// handle means "B depends on A" (matches filteredEdges' own source=blocker,
+// target=blocked convention); out of A's upstream handle it means "A depends
+// on B". Writes real id/dependsOn tags back to the source files, it isn't a
+// canvas-only edit.
 const onConnect = (connection) => {
-  taskStore.connectTasks(connection.source, connection.target);
+  const upstream = pendingDrag?.nodeId === connection.source && pendingDrag.upstream;
+  if (pendingDrag) pendingDrag.connected = true;
+  if (upstream) taskStore.connectTasks(connection.target, connection.source);
+  else taskStore.connectTasks(connection.source, connection.target);
+};
+
+// Shorter drags than this (screen px) are treated as a click on the handle,
+// not as a request for a new task.
+const MIN_NEW_TASK_DRAG = 30;
+
+// A drag that ends on empty canvas instead of another node creates a blank
+// "new task" linked to the node it started from, placed where it was
+// dropped, and opens it in the side pane with its name selected for editing.
+const onConnectEnd = async (event) => {
+  const drag = pendingDrag;
+  pendingDrag = null;
+  if (!drag || drag.connected || drag.x === undefined) return;
+  if (event?.target?.closest?.('.vue-flow__node')) return;
+  const end = eventPoint(event);
+  if (!end || Math.hypot(end.x - drag.x, end.y - drag.y) < MIN_NEW_TASK_DRAG) return;
+
+  const drop = screenToFlowCoordinate(end);
+  const created = await taskStore.createLinkedTask(drag.nodeId, {
+    upstream: drag.upstream,
+    position: { x: drop.x - 60, y: drop.y - 15 }
+  });
+  if (!created) return;
+  await openInSidePane(created.path, created.lineNumber, created.name);
+  // Picks up the Tasks plugin's own parse of the new line once it has
+  // re-indexed the file; the node id is the same, so it stays where it is.
+  setTimeout(() => taskStore.fetchTasksFromObsidian(), 1500);
 };
 
 // Selecting an edge and pressing Delete/Backspace (Vue Flow's built-in

@@ -45,109 +45,131 @@ export function layoutWithDagre(nodes, edges, direction = 'TB') {
   });
 }
 
-// Minimum clearance kept between two nodes when spreading out ones whose
-// dates put them on top of each other.
-const MAIN_GAP = 4;
+// Minimum clearance kept between two nodes that share a level on the time
+// axis, and between one level and the next.
 const CROSS_GAP = 20;
+const LEVEL_GAP = 60;
 
-// Where an undated task goes on the axis: midway between the latest dated
-// task it (transitively) depends on and the earliest dated task that depends
-// on it, one day after/before when only one side exists, and a little before
-// the earliest date when neither does. Searches stop at the first dated task
-// on each path, since anything past it is already bounded by it.
-function estimateUndatedDays(nodes, edges, minDay) {
-  const dayById = new Map(nodes.map((n) => [n.id, n.day ?? null]));
-  const upstream = new Map();
-  const downstream = new Map();
-  for (const edge of edges) {
-    if (!upstream.has(edge.target)) upstream.set(edge.target, []);
-    upstream.get(edge.target).push(edge.source);
-    if (!downstream.has(edge.source)) downstream.set(edge.source, []);
-    downstream.get(edge.source).push(edge.target);
+// Assigns every node a level along the flow direction for the time axis.
+// Dates decide the order only, not the distance: all tasks sharing a date
+// share one level, and a later date always sits on a later level than an
+// earlier one. Dependencies then push the rest along, so a dependent task
+// lands at least one level past the task it depends on, and undated tasks
+// between two dated ones spread out between them. A dependency that
+// contradicts the dates, or would loop back through them, is skipped here
+// (it is still drawn, in red, by the view).
+function assignLevels(nodes, edges) {
+  const groupOf = new Map();
+  const dayOfGroup = new Map();
+  for (const node of nodes) {
+    const group = node.day === null || node.day === undefined ? `n:${node.id}` : `d:${node.day}`;
+    groupOf.set(node.id, group);
+    if (group.startsWith('d:')) dayOfGroup.set(group, node.day);
   }
+  const groups = [...new Set(groupOf.values())];
+  const next = new Map(groups.map((g) => [g, new Set()]));
 
-  const nearestDated = (startId, neighbors, pick) => {
-    let best = null;
-    const seen = new Set([startId]);
-    const queue = [...(neighbors.get(startId) || [])];
-    while (queue.length) {
-      const id = queue.shift();
-      if (seen.has(id)) continue;
-      seen.add(id);
-      const day = dayById.get(id);
-      if (day !== null && day !== undefined) {
-        best = best === null ? day : pick(best, day);
-        continue;
+  const reaches = (from, to) => {
+    const seen = new Set([from]);
+    const stack = [from];
+    while (stack.length) {
+      const g = stack.pop();
+      if (g === to) return true;
+      for (const n of next.get(g)) {
+        if (!seen.has(n)) {
+          seen.add(n);
+          stack.push(n);
+        }
       }
-      queue.push(...(neighbors.get(id) || []));
     }
-    return best;
+    return false;
   };
 
-  const estimated = new Map();
-  for (const node of nodes) {
-    if (dayById.get(node.id) !== null) continue;
-    const after = nearestDated(node.id, upstream, Math.max);
-    const before = nearestDated(node.id, downstream, Math.min);
-    let day;
-    if (after !== null && before !== null) day = (after + before) / 2;
-    else if (after !== null) day = after + 1;
-    else if (before !== null) day = before - 1;
-    else day = minDay - 2;
-    estimated.set(node.id, day);
+  const datedGroups = [...dayOfGroup.keys()].sort((a, b) => dayOfGroup.get(a) - dayOfGroup.get(b));
+  for (let i = 1; i < datedGroups.length; i++) next.get(datedGroups[i - 1]).add(datedGroups[i]);
+
+  for (const edge of edges) {
+    const a = groupOf.get(edge.source);
+    const b = groupOf.get(edge.target);
+    if (!a || !b || a === b || next.get(a).has(b)) continue;
+    if (reaches(b, a)) continue;
+    next.get(a).add(b);
   }
-  return estimated;
+
+  // Longest path from the sources, so every constraint above holds.
+  const indegree = new Map(groups.map((g) => [g, 0]));
+  for (const g of groups) for (const n of next.get(g)) indegree.set(n, indegree.get(n) + 1);
+  const levelOfGroup = new Map(groups.map((g) => [g, 0]));
+  const queue = groups.filter((g) => indegree.get(g) === 0);
+  while (queue.length) {
+    const g = queue.shift();
+    for (const n of next.get(g)) {
+      levelOfGroup.set(n, Math.max(levelOfGroup.get(n), levelOfGroup.get(g) + 1));
+      indegree.set(n, indegree.get(n) - 1);
+      if (indegree.get(n) === 0) queue.push(n);
+    }
+  }
+
+  return { levelOf: (id) => levelOfGroup.get(groupOf.get(id)), dayOfGroup, levelOfGroup };
 }
 
-// Time-axis layout: along the flow direction each node's center sits at its
-// date (node.day, a whole-day number, see taskDay in the store), scaled by
-// pxPerDay; across it, dagre's ordering is kept so its crossing reduction
-// still applies. Nodes that end up overlapping (same or nearby dates) are
-// pushed sideways, in dagre's order, until they clear. Returns null when no
-// node has a date, so the caller can fall back to the plain layout.
-export function layoutWithTimeAxis(nodes, edges, direction = 'TB', pxPerDay = 40) {
-  const datedDays = nodes.map((n) => n.day).filter((d) => d !== null && d !== undefined);
-  if (datedDays.length === 0) return null;
-  const minDay = Math.min(...datedDays);
-
+// Time-axis layout. Along the flow direction nodes sit on the levels from
+// assignLevels, each level only as far from the previous one as its nodes
+// need, so the axis stretches and shrinks with the tasks rather than
+// running at a fixed number of pixels per day. Across it, dagre's ordering
+// is kept so its crossing reduction still applies, and nodes on the same
+// level are pushed sideways until they clear. Returns the positions plus
+// {direction, anchors}: one {main, day} per dated level, which is what the
+// ruler interpolates its dates between. With no dated node at all, anchors
+// is empty.
+export function layoutWithTimeAxis(nodes, edges, direction = 'TB') {
   const g = runDagre(nodes, edges, direction);
   const vertical = direction === 'TB' || direction === 'BT';
   const sign = direction === 'BT' || direction === 'RL' ? -1 : 1;
-  const estimated = estimateUndatedDays(nodes, edges, minDay);
+  const { levelOf, dayOfGroup, levelOfGroup } = assignLevels(nodes, edges);
 
   const items = nodes.map((node) => {
     const { width, height } = sizeOf(node);
     const center = g.node(node.id);
-    const day = node.day ?? estimated.get(node.id);
     return {
       id: node.id,
       width,
       height,
-      main: sign * (day - minDay) * pxPerDay,
+      level: levelOf(node.id),
       cross: vertical ? center.x : center.y,
       mainSize: vertical ? height : width,
       crossSize: vertical ? width : height
     };
   });
 
+  const levelCount = Math.max(0, ...items.map((i) => i.level)) + 1;
+  const levelSize = Array(levelCount).fill(0);
+  for (const item of items) levelSize[item.level] = Math.max(levelSize[item.level], item.mainSize);
+  const levelMain = [0];
+  for (let l = 1; l < levelCount; l++) {
+    levelMain[l] = levelMain[l - 1] + (levelSize[l - 1] + levelSize[l]) / 2 + LEVEL_GAP;
+  }
+
   items.sort((a, b) => a.cross - b.cross);
   const placed = [];
   for (const item of items) {
-    for (let guard = 0; guard < placed.length + 1; guard++) {
-      const hit = placed.find((p) =>
-        Math.abs(p.main - item.main) < (p.mainSize + item.mainSize) / 2 + MAIN_GAP &&
-        Math.abs(p.cross - item.cross) < (p.crossSize + item.crossSize) / 2 + CROSS_GAP
-      );
-      if (!hit) break;
-      item.cross = hit.cross + (hit.crossSize + item.crossSize) / 2 + CROSS_GAP;
+    for (const p of placed) {
+      if (p.level !== item.level) continue;
+      const minCross = p.cross + (p.crossSize + item.crossSize) / 2 + CROSS_GAP;
+      if (item.cross < minCross) item.cross = minCross;
     }
     placed.push(item);
   }
 
   const positions = items.map((item) => {
-    const cx = vertical ? item.cross : item.main;
-    const cy = vertical ? item.main : item.cross;
+    const main = sign * levelMain[item.level];
+    const cx = vertical ? item.cross : main;
+    const cy = vertical ? main : item.cross;
     return { id: item.id, x: cx - item.width / 2, y: cy - item.height / 2 };
   });
-  return { positions, info: { minDay, pxPerDay, direction } };
+
+  const anchors = [...dayOfGroup.entries()]
+    .map(([group, day]) => ({ main: sign * levelMain[levelOfGroup.get(group)], day }))
+    .sort((a, b) => a.day - b.day);
+  return { positions, info: { direction, anchors } };
 }
