@@ -26,6 +26,14 @@
          MarkdownRenderer call below never runs at all, not just hidden. -->
     <div v-if="taskStore.appearance.richText" ref="richTextEl" class="task-flow-node__label"></div>
     <div v-else class="task-flow-node__label">{{ data.task.name }}</div>
+    <div v-if="taskStore.appearance.showTags && data.task.tags.length" class="task-flow-node__tags">
+      <span
+        v-for="tag in data.task.tags"
+        :key="tag"
+        class="ft-tag"
+        :style="{ '--ft-tag-hue': taskStore.tagHues.get(tag) ?? 0 }"
+      >{{ tag.replace(/^#/, '') }}</span>
+    </div>
   </div>
 </template>
 
@@ -107,6 +115,35 @@ watchEffect(() => {
 .ft-node-handle--hidden {
   opacity: 0;
   pointer-events: none;
+}
+
+.task-flow-node__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 4px;
+}
+
+/* Tag chip colors come from one hue per tag (assigned in utils/tagColor.js); light
+   and dark themes only differ in lightness, so a tag keeps its color family
+   when Obsidian's theme changes. Also used by the filter panel. */
+:global(.ft-tag) {
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: 8px;
+  font-size: 0.8em;
+  line-height: 1.5;
+  white-space: nowrap;
+  text-decoration: none;
+  background: hsl(var(--ft-tag-hue) 75% 91%);
+  color: hsl(var(--ft-tag-hue) 55% 30%);
+  border: 1px solid hsl(var(--ft-tag-hue) 55% 80%);
+}
+
+:global(.theme-dark .ft-tag) {
+  background: hsl(var(--ft-tag-hue) 35% 24%);
+  color: hsl(var(--ft-tag-hue) 70% 82%);
+  border-color: hsl(var(--ft-tag-hue) 35% 36%);
 }
 
 /* MarkdownRenderer wraps plain text in a <p>, and Obsidian's own global CSS

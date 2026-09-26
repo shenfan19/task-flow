@@ -51,6 +51,16 @@
         >
         <label class="form-check-label" for="priorityStylingToggle">Color/size by priority</label>
       </div>
+      <div class="form-check">
+        <input
+          class="form-check-input"
+          type="checkbox"
+          id="showTagsToggle"
+          :checked="taskStore.appearance.showTags"
+          @change="taskStore.updateAppearance({ showTags: $event.target.checked })"
+        >
+        <label class="form-check-label" for="showTagsToggle">Show tags</label>
+      </div>
     </div>
   </div>
 </template>

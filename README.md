@@ -47,7 +47,8 @@ Task Flow answers both at a glance. Upstream tasks sit before the tasks that wai
 - **Time axis**: order the graph by date, with tasks that share a date lined up and a ruler along the edge of the view that marks each task's date and stretches to fit the tasks in between.
 - **Click a node to open its note**: the note opens in a side pane at the task's exact line.
 - **Auto layout in four directions**: top to bottom, bottom to top, left to right or right to left, with curved, straight or stepped arrows.
-- **File filters with saved presets**: limit the graph to some folders or hide some folders, show done or open tasks, and save each combination under a name.
+- **Tags with automatic colors**: each task's tags show as colored chips on its node, every tag gets its own color without any setup, and you can filter the graph by tag.
+- **File filters with saved presets**: limit the graph to some folders or tags or hide them, show done or open tasks, and save each combination under a name.
 - **Node style**: choose colors and font size, render task text as Markdown, and optionally color and size nodes by priority.
 - **Auto refresh and auto layout**: each on its own timer, so the graph keeps up with edits you make elsewhere in the vault.
 
@@ -148,6 +149,7 @@ The time axis layout is applied when you click **Layout**, and each time the aut
 
 - **Only show tasks with a relation**: hide tasks that have no dependency link in either direction. On by default.
 - **Status**: show open tasks, done tasks, or both. Cancelled tasks count as done.
+- **Tags**: click tag chips to check them, then choose **Include checked** to show only tasks that have at least one of those tags or **Exclude checked** to hide them. Unchecked chips are shown faded, and hovering a chip shows how many tasks use it. **Clear** unchecks all tags.
 - **Directory Path**: tick folders in the tree, then choose **Include checked** to show only tasks in those folders or **Exclude checked** to show everything except them.
 - **Presets**: type a name and click **Save** to store the current filter settings, then pick a preset from the list to switch back to it later. **Delete** removes the selected preset.
 
@@ -158,11 +160,12 @@ The time axis layout is applied when you click **Layout**, and each time the aut
 - **Background**, **Border** and **Text Color** set the node colors.
 - **Font Size** sets the text size in pixels.
 - **Rich text** renders each task's text as Markdown, so links, tags and formatting show up as they do in your notes. It is off by default, since rendering is slower on large graphs.
+- **Show tags** shows each task's tags as colored chips under its text. It is on by default. Colors are assigned automatically so that different tags always look clearly different, and a tag has the same color on every node and in **File Filters**. The global filter tag of the Tasks plugin, if you use one, is not shown.
 - **Color/size by priority** gives tasks with a priority set in the Tasks plugin their own border color and a larger or smaller node, from red and largest for the highest priority to grey and smallest for the lowest. Tasks with normal priority keep the colors above.
 
 ### Staying up to date
 
-Task Flow reads tasks from the Tasks plugin. Click **Refresh** in **View Control** to reload them, or tick **every** next to it to reload automatically at the interval you set, 30 seconds by default. Refreshing only updates the tasks and arrows and never moves nodes that are already on the graph.
+Task Flow reads tasks from the Tasks plugin. Click **Refresh** in **View Control** to reload them, or tick **every** next to it to reload automatically at the interval you set, 30 seconds by default. Refreshing only updates the tasks and arrows and never moves nodes that are already on the graph. While you are dragging a node or drawing a connection, both the automatic refresh and the automatic layout wait, so they never interrupt what you are doing.
 
 ## Where Task Flow keeps its data
 

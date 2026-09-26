@@ -119,14 +119,21 @@ const tickStyle = (offset) => (vertical.value ? { top: `${offset}px` } : { left:
 </script>
 
 <style scoped>
+/* No filled strip: just an axis line along the edge of the view, with each
+   date as a small pill, so the ruler reads as part of the canvas rather than
+   a panel on top of it. Colors come from Obsidian's theme variables, with
+   fallbacks for anywhere they aren't defined, so it fits light and dark
+   themes alike. */
 .ft-ruler {
   position: absolute;
   z-index: 5;
   pointer-events: none;
-  background: rgba(255, 255, 255, 0.85);
-  color: #6c757d;
   font-size: 10px;
   overflow: hidden;
+  --ft-ruler-accent: var(--text-accent, #3a6fd8);
+  --ft-ruler-line: var(--background-modifier-border, #d9dde3);
+  --ft-ruler-bg: var(--background-primary, #ffffff);
+  --ft-ruler-today: var(--text-error, #d9534f);
 }
 
 /* Vertical flows get the ruler on the right edge, horizontal ones along the
@@ -135,16 +142,16 @@ const tickStyle = (offset) => (vertical.value ? { top: `${offset}px` } : { left:
   top: 0;
   right: 0;
   bottom: 0;
-  width: 64px;
-  border-left: 1px solid #ced4da;
+  width: 76px;
+  border-left: 1px solid var(--ft-ruler-line);
 }
 
 .ft-ruler--horizontal {
   left: 0;
   right: 0;
   bottom: 0;
-  height: 26px;
-  border-top: 1px solid #ced4da;
+  height: 30px;
+  border-top: 1px solid var(--ft-ruler-line);
 }
 
 .ft-ruler__tick,
@@ -154,47 +161,49 @@ const tickStyle = (offset) => (vertical.value ? { top: `${offset}px` } : { left:
 
 .ft-ruler--vertical .ft-ruler__tick {
   left: 0;
-  width: 8px;
-  border-top: 1px solid #0d6efd;
+  width: 6px;
+  border-top: 1.5px solid var(--ft-ruler-accent);
 }
 
 .ft-ruler--horizontal .ft-ruler__tick {
   top: 0;
-  height: 8px;
-  border-left: 1px solid #0d6efd;
-}
-
-.ft-ruler__label {
-  color: #0d6efd;
-  font-weight: 600;
+  height: 6px;
+  border-left: 1.5px solid var(--ft-ruler-accent);
 }
 
 .ft-ruler__label {
   position: absolute;
   white-space: nowrap;
+  padding: 0 6px;
+  border-radius: 9px;
+  line-height: 16px;
+  font-weight: 600;
+  color: var(--ft-ruler-accent);
+  background: var(--ft-ruler-bg);
+  border: 1px solid var(--ft-ruler-line);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
-
-
 .ft-ruler--vertical .ft-ruler__label {
-  left: 11px;
-  top: -7px;
+  left: 9px;
+  top: -9px;
 }
 
 .ft-ruler--horizontal .ft-ruler__label {
-  left: 3px;
-  top: 9px;
+  left: 0;
+  top: 7px;
+  transform: translateX(-50%);
 }
 
 .ft-ruler--vertical .ft-ruler__today {
   left: 0;
   right: 0;
-  border-top: 2px solid #d32f2f;
+  border-top: 2px solid var(--ft-ruler-today);
 }
 
 .ft-ruler--horizontal .ft-ruler__today {
   top: 0;
   bottom: 0;
-  border-left: 2px solid #d32f2f;
+  border-left: 2px solid var(--ft-ruler-today);
 }
 </style>

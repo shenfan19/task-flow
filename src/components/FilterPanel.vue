@@ -67,6 +67,56 @@
         </div>
       </div>
 
+      <!-- Tag Filter: click a chip to check/uncheck it -->
+      <div class="mb-3">
+        <label class="form-label text-muted small fw-bold mb-1">Tags</label>
+        <div class="d-flex gap-3 mb-1">
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              value="include"
+              v-model="taskStore.filters.tagMode"
+              id="tagModeInclude"
+            >
+            <label class="form-check-label" for="tagModeInclude">Include checked</label>
+          </div>
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="radio"
+              value="exclude"
+              v-model="taskStore.filters.tagMode"
+              id="tagModeExclude"
+            >
+            <label class="form-check-label" for="tagModeExclude">Exclude checked</label>
+          </div>
+        </div>
+        <div class="ft-tag-list">
+          <!-- A span rather than a button: Obsidian's global button styles
+               outrank a single class and would paint over the tag colors. -->
+          <span
+            v-for="{ tag, count } in taskStore.availableTags"
+            :key="tag"
+            role="button"
+            tabindex="0"
+            class="ft-tag ft-tag-toggle"
+            :class="{ 'ft-tag-toggle--on': checkedTags.has(tag) }"
+            :style="{ '--ft-tag-hue': taskStore.tagHues.get(tag) ?? 0 }"
+            :title="`${count} task${count === 1 ? '' : 's'}`"
+            @click="taskStore.toggleTagFilter(tag)"
+            @keydown.enter.prevent="taskStore.toggleTagFilter(tag)"
+          >{{ tag.replace(/^#/, '') }}</span>
+          <span v-if="taskStore.availableTags.length === 0" class="text-muted small">No tags found</span>
+        </div>
+        <button
+          v-if="taskStore.filters.tags.length"
+          type="button"
+          class="ft-tag-clear"
+          @click="taskStore.filters.tags = []"
+        >Clear</button>
+      </div>
+
       <!-- Directory Tree Filter -->
       <div>
         <label class="form-label text-muted small fw-bold mb-1">Directory Path</label>
@@ -114,6 +164,7 @@ const taskStore = useTaskStore();
 const isCollapsed = ref(true); // Default collapsed like graph view
 const treeData = ref([]);
 const selectedPresetId = ref('');
+const checkedTags = computed(() => new Set(taskStore.filters.tags));
 const newPresetName = ref('');
 
 const onPresetSelect = () => {
@@ -185,6 +236,34 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.ft-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+/* Unchecked chips are faded so the checked ones stand out; the chip colors
+   themselves come from the shared .ft-tag rule in TaskFlowNode.vue. */
+.ft-tag-toggle {
+  cursor: pointer;
+  opacity: 0.45;
+  font-size: 0.8rem;
+}
+
+.ft-tag-toggle--on {
+  opacity: 1;
+  font-weight: 600;
+  border-width: 2px;
+}
+
+.ft-tag-clear {
+  margin-top: 4px;
+  font-size: 0.75rem;
+  padding: 0 6px;
+}
+
 .directory-tree {
   font-size: 0.85rem;
   max-height: 250px;

@@ -22,6 +22,7 @@
         :delete-key-code="DELETE_KEYS"
         class="w-100 h-100"
         @node-click="onNodeClick"
+        @node-drag-start="onNodeDragStart"
         @node-drag="onNodeDrag"
         @node-drag-stop="onNodeDragStop"
         @connect="onConnect"
@@ -192,11 +193,22 @@ const lockAlongAxis = (node) => {
   else node.position.x = task.position.x;
 };
 
+// True while a node is being dragged or a connection is being drawn. The
+// refresh and layout timers skip their tick then, since replacing the nodes
+// or moving them mid-gesture would cancel what the user is doing.
+let nodeDragging = false;
+const isInteracting = () => nodeDragging || pendingDrag !== null;
+
+const onNodeDragStart = () => {
+  nodeDragging = true;
+};
+
 const onNodeDrag = (event) => {
   (event.nodes ?? [event.node]).forEach(lockAlongAxis);
 };
 
 const onNodeDragStop = (event) => {
+  nodeDragging = false;
   lockAlongAxis(event.node);
   taskStore.updateTaskPosition(event.node.id, event.node.position.x, event.node.position.y);
 };
@@ -340,6 +352,7 @@ const restartRefreshTimer = () => {
   refreshTimer = null;
   if (taskStore.viewSettings.autoRefreshEnabled) {
     refreshTimer = setInterval(() => {
+      if (isInteracting()) return;
       taskStore.fetchTasksFromObsidian();
     }, taskStore.viewSettings.autoRefreshInterval * 1000);
   }
@@ -355,6 +368,7 @@ const restartLayoutTimer = () => {
   layoutTimer = null;
   if (taskStore.viewSettings.autoLayoutEnabled) {
     layoutTimer = setInterval(() => {
+      if (isInteracting()) return;
       runAutoLayout();
     }, taskStore.viewSettings.autoLayoutInterval * 1000);
   }

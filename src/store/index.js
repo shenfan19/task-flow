@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { TasksPluginAPI } from '../api/TasksPluginAPI';
 import { stableTaskId } from '../utils/hash';
+import { assignTagHues } from '../utils/tagColor';
 import {
   generateTaskId,
   addIdTag,
@@ -77,7 +78,9 @@ export const useTaskStore = defineStore('task', {
           done: true,
           todo: true
         },
-        onlyRelated: true // hide tasks with no dependsOn link either way; was previously hardcoded on
+        onlyRelated: true, // hide tasks with no dependsOn link either way; was previously hardcoded on
+        tags: [],
+        tagMode: 'include' // 'include': only tasks with any checked tag; 'exclude': hide tasks with any checked tag
       },
       filterPresets: [], // [{id, name, directories, directoryMode, status}], persisted via saveState
       appearance: {
@@ -86,13 +89,14 @@ export const useTaskStore = defineStore('task', {
         nodeText: '#212529',
         fontSize: 12,
         richText: false, // off by default: skips the MarkdownRenderer call entirely, not just hides its output
-        priorityStyling: false // off by default: when on, priority overrides border color + node size (see TaskFlowNode.vue)
+        priorityStyling: false, // off by default: when on, priority overrides border color + node size (see TaskFlowNode.vue)
+        showTags: true // colored tag chips under each node's text
       },
       viewSettings: {
         layoutDirection: 'TB', // dagre rankdir: TB/BT/LR/RL
         edgeType: 'default', // vue-flow edge type: default(bezier)/straight/smoothstep
         autoLayoutEnabled: false, // off by default: re-running dagre on a timer repositions every node, which visibly jumps
-        autoLayoutInterval: 10, // seconds
+        autoLayoutInterval: 30, // seconds
         autoRefreshEnabled: true, // preserves the previous always-on behavior
         autoRefreshInterval: 30, // seconds
         timeAxis: false // when on, nodes are ordered along the flow direction by date (see layoutWithTimeAxis)
@@ -119,16 +123,42 @@ export const useTaskStore = defineStore('task', {
       }
       return ids;
     },
+    // Tasks that pass the "only related" filter; the tag list in the filter
+    // panel is built from these, so it only offers tags that can show up.
+    relatedTasks() {
+      // A task with no dependency link either way is noise on a vault this
+      // size (thousands of tasks); it belongs in a plain to-do list, not a
+      // dependency graph. Toggleable rather than hardcoded, see the
+      // "only related" checkbox in FilterPanel.vue.
+      if (!this.filters.onlyRelated) return this.tasks;
+      return this.tasks.filter((task) => {
+        const hasOutgoing = task.dependsOn.length > 0;
+        const hasIncoming = task.pluginId && this.referencedPluginIds.has(task.pluginId);
+        return hasOutgoing || hasIncoming;
+      });
+    },
+    // tag -> hue for every tag in the vault, see utils/tagColor.js.
+    tagHues() {
+      return assignTagHues(this.tasks.flatMap((t) => t.tags));
+    },
+    // [{tag, count}] over relatedTasks, most used first.
+    availableTags() {
+      const counts = new Map();
+      for (const task of this.relatedTasks) {
+        for (const tag of task.tags) counts.set(tag, (counts.get(tag) || 0) + 1);
+      }
+      return [...counts.entries()]
+        .map(([tag, count]) => ({ tag, count }))
+        .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
+    },
     filteredTasks() {
-      return this.tasks.filter(task => {
-        // A task with no dependency link either way is noise on a vault this
-        // size (thousands of tasks); it belongs in a plain to-do list, not a
-        // dependency graph. Toggleable rather than hardcoded, see the
-        // "only related" checkbox in FilterPanel.vue.
-        if (this.filters.onlyRelated) {
-          const hasOutgoing = task.dependsOn.length > 0;
-          const hasIncoming = task.pluginId && this.referencedPluginIds.has(task.pluginId);
-          if (!hasOutgoing && !hasIncoming) return false;
+      const checkedTags = new Set(this.filters.tags);
+      return this.relatedTasks.filter(task => {
+        // Tag filter: in include mode a task needs at least one checked tag,
+        // in exclude mode it must have none of them.
+        if (checkedTags.size > 0) {
+          const hasChecked = task.tags.some((tag) => checkedTags.has(tag));
+          if (this.filters.tagMode === 'exclude' ? hasChecked : !hasChecked) return false;
         }
 
         // Logic AND between all filters
@@ -214,6 +244,7 @@ export const useTaskStore = defineStore('task', {
           completed: t.status?.symbol !== ' ',
           status: t.status,
           priority: t.priority, // Tasks plugin's Priority enum string ('0' Highest .. '5' Lowest, '3' None)
+          tags: [...new Set(t.tags || [])], // e.g. ['#work'], without the Tasks global filter
           day: taskDay(t), // whole-day number or null, see taskDay above
           position: pos
         };
@@ -237,6 +268,12 @@ export const useTaskStore = defineStore('task', {
         this.saveState();
       }
     },
+    toggleTagFilter(tag) {
+      const tags = new Set(this.filters.tags);
+      if (tags.has(tag)) tags.delete(tag);
+      else tags.add(tag);
+      this.filters.tags = [...tags];
+    },
     updateAppearance(partial) {
       this.appearance = { ...this.appearance, ...partial };
       this.saveState();
@@ -258,7 +295,9 @@ export const useTaskStore = defineStore('task', {
         directories: [...this.filters.directories],
         directoryMode: this.filters.directoryMode,
         status: { ...this.filters.status },
-        onlyRelated: this.filters.onlyRelated
+        onlyRelated: this.filters.onlyRelated,
+        tags: [...this.filters.tags],
+        tagMode: this.filters.tagMode
       });
       this.saveState();
     },
@@ -269,6 +308,8 @@ export const useTaskStore = defineStore('task', {
       this.filters.directoryMode = preset.directoryMode;
       this.filters.status = { ...preset.status };
       if (preset.onlyRelated !== undefined) this.filters.onlyRelated = preset.onlyRelated;
+      this.filters.tags = [...(preset.tags ?? [])];
+      this.filters.tagMode = preset.tagMode ?? 'include';
     },
     deleteFilterPreset(id) {
       this.filterPresets = this.filterPresets.filter((p) => p.id !== id);
@@ -375,6 +416,7 @@ export const useTaskStore = defineStore('task', {
         completed: false,
         status: { symbol: ' ' },
         priority: '3',
+        tags: [],
         day: null,
         position: { ...position }
       };
