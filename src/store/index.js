@@ -9,7 +9,9 @@ import {
   addDependsOnTag,
   removeDependsOnTag,
   newSiblingTaskLine,
-  listItemBlockEnd
+  listItemBlockEnd,
+  readInlineFields,
+  stripInlineFields
 } from '../utils/taskLineEdits';
 
 // Which line of `lines` currently holds `task`. Normally its recorded line
@@ -58,15 +60,30 @@ const UNINDEXED_GRACE_MS = 60000;
 // UTC so time zones can never shift a task onto a neighboring day.
 const DATE_FIELDS = ['doneDate', 'scheduledDate', 'dueDate'];
 
-function taskDay(t) {
+// Inline field names of the same three dates, used when the Tasks plugin
+// could not read them (see readInlineFields).
+const INLINE_DATE_FIELDS = ['completion', 'scheduled', 'due'];
+
+function dayFromIso(text) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(text ?? '');
+  return m ? Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])) / 86400000 : null;
+}
+
+function taskDay(t, fields) {
   for (const field of DATE_FIELDS) {
     const m = t[field];
     if (!m || typeof m.isValid !== 'function' || !m.isValid()) continue;
-    const [y, mo, d] = m.format('YYYY-MM-DD').split('-').map(Number);
-    return Date.UTC(y, mo - 1, d) / 86400000;
+    return dayFromIso(m.format('YYYY-MM-DD'));
+  }
+  for (const field of INLINE_DATE_FIELDS) {
+    const day = dayFromIso(fields[field]);
+    if (day !== null) return day;
   }
   return null;
 }
+
+// Ids listed in a dependsOn field value, e.g. "abc123,def456".
+const splitIds = (value) => (value ?? '').split(',').map((s) => s.trim()).filter(Boolean);
 
 export const useTaskStore = defineStore('task', {
   state: () => {
@@ -82,7 +99,8 @@ export const useTaskStore = defineStore('task', {
         },
         onlyRelated: true, // hide tasks with no dependsOn link either way; was previously hardcoded on
         tags: [],
-        tagMode: 'include' // 'include': only tasks with any checked tag; 'exclude': hide tasks with any checked tag
+        tagMode: 'include', // 'include': only tasks with any checked tag; 'exclude': hide tasks with any checked tag
+        excludeText: '' // comma-separated keywords; a task whose line contains any of them is hidden
       },
       filterPresets: [], // [{id, name, directories, directoryMode, status}], persisted via saveState
       appearance: {
@@ -153,9 +171,24 @@ export const useTaskStore = defineStore('task', {
         .map(([tag, count]) => ({ tag, count }))
         .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
     },
+    // Lowercased keywords from filters.excludeText.
+    excludeKeywords() {
+      return this.filters.excludeText
+        .split(',')
+        .map((k) => k.trim().toLowerCase())
+        .filter(Boolean);
+    },
     filteredTasks() {
       const checkedTags = new Set(this.filters.tags);
+      const excluded = this.excludeKeywords;
       return this.relatedTasks.filter(task => {
+        // Keyword exclusion, matched anywhere in the task's markdown line,
+        // e.g. "archived on" to hide tasks an archiving plugin has marked.
+        if (excluded.length > 0) {
+          const line = (task.originalTask?.originalMarkdown || task.name).toLowerCase();
+          if (excluded.some((k) => line.includes(k))) return false;
+        }
+
         // Tag filter: in include mode a task needs at least one checked tag,
         // in exclude mode it must have none of them.
         if (checkedTags.size > 0) {
@@ -222,6 +255,13 @@ export const useTaskStore = defineStore('task', {
       if (data?.filterPresets) {
         this.filterPresets = data.filterPresets;
       }
+      if (data?.filters) {
+        this.filters = {
+          ...this.filters,
+          ...data.filters,
+          status: { ...this.filters.status, ...data.filters.status }
+        };
+      }
       if (data?.timeAxisInfo) {
         this.timeAxisInfo = data.timeAxisInfo;
       }
@@ -234,14 +274,17 @@ export const useTaskStore = defineStore('task', {
       const allTasks = api.getTasks() || [];
 
       this.tasks = allTasks.map((t) => {
-        const name = t.descriptionWithoutTags || t.description || 'Unnamed Task';
+        // Fields are read from the whole line as well as taken from the Tasks
+        // plugin, which misses any that have plain text after them.
+        const fields = readInlineFields(t.originalMarkdown || '');
+        const name = stripInlineFields(t.descriptionWithoutTags || t.description || '') || 'Unnamed Task';
         const path = t.taskLocation?.path || t.path || '';
         const id = stableTaskId(path, name);
         const pos = this.positions[id] || { x: Math.random() * 500, y: Math.random() * 500 };
         return {
           id, // stable across re-parses; independent of the Tasks plugin's own id field
-          pluginId: t.id || '', // Tasks plugin's own 🆔, used to match dependsOn references
-          dependsOn: t.dependsOn || [],
+          pluginId: t.id || fields.id || '', // the task's id field, used to match dependsOn references
+          dependsOn: [...new Set([...(t.dependsOn || []), ...splitIds(fields.dependsOn)])],
           originalTask: t, // Keep a reference to the actual Obsidian Task object
           name,
           path,
@@ -249,7 +292,7 @@ export const useTaskStore = defineStore('task', {
           status: t.status,
           priority: t.priority, // Tasks plugin's Priority enum string ('0' Highest .. '5' Lowest, '3' None)
           tags: [...new Set(t.tags || [])], // e.g. ['#work'], without the Tasks global filter
-          day: taskDay(t), // whole-day number or null, see taskDay above
+          day: taskDay(t, fields), // whole-day number or null, see taskDay above
           position: pos
         };
       });
@@ -301,7 +344,8 @@ export const useTaskStore = defineStore('task', {
         status: { ...this.filters.status },
         onlyRelated: this.filters.onlyRelated,
         tags: [...this.filters.tags],
-        tagMode: this.filters.tagMode
+        tagMode: this.filters.tagMode,
+        excludeText: this.filters.excludeText
       });
       this.saveState();
     },
@@ -314,6 +358,7 @@ export const useTaskStore = defineStore('task', {
       if (preset.onlyRelated !== undefined) this.filters.onlyRelated = preset.onlyRelated;
       this.filters.tags = [...(preset.tags ?? [])];
       this.filters.tagMode = preset.tagMode ?? 'include';
+      this.filters.excludeText = preset.excludeText ?? '';
     },
     deleteFilterPreset(id) {
       this.filterPresets = this.filterPresets.filter((p) => p.id !== id);
@@ -439,6 +484,7 @@ export const useTaskStore = defineStore('task', {
         appearance: this.appearance,
         viewSettings: this.viewSettings,
         filterPresets: this.filterPresets,
+        filters: this.filters,
         timeAxisInfo: this.timeAxisInfo
       });
     }

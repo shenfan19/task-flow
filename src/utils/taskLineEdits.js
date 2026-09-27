@@ -90,3 +90,27 @@ export function listItemBlockEnd(lines, lineNumber) {
   }
   return end;
 }
+
+// Dataview-style inline fields anywhere on a line, in either bracket style:
+// "[key:: value]" or "(key:: value)".
+const INLINE_FIELD = /[[(]([A-Za-z][\w-]*)::\s*([^\])]*?)\s*[\])]/g;
+
+// Every inline field on the line, keyed by field name (first one wins). The
+// Tasks plugin only reads fields from the end of a line backwards and stops
+// at the first piece of plain text, so a line such as
+// "- [x] Write copy  [id:: copy]  archived on 2026-09-27" loses its id there.
+// Task Flow reads the fields wherever they are, so links survive text that
+// other plugins append after them.
+export function readInlineFields(line) {
+  const fields = {};
+  for (const match of line.matchAll(INLINE_FIELD)) {
+    if (!(match[1] in fields)) fields[match[1]] = match[2];
+  }
+  return fields;
+}
+
+// A task's display text without any inline fields, for the case where the
+// Tasks plugin left unread fields inside its description.
+export function stripInlineFields(text) {
+  return text.replace(INLINE_FIELD, ' ').replace(/\s+/g, ' ').trim();
+}

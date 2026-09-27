@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.3
+
+### Fixed
+
+- Dependency and date fields are read anywhere on a task's line. Previously a task whose `[id:: ]` or `[dependsOn:: ]` field was followed by other text, such as the note an archiving plugin appends to finished tasks, lost its links and disappeared from the graph.
+
+### Added
+
+- **Exclude tasks containing** in File Filters hides every task whose line contains one of the given comma-separated keywords, for example `archived on`. Keywords are saved in filter presets.
+- Filter settings are kept when the view is closed and reopened.
+
 ## 0.1.2
 
 ### Changed

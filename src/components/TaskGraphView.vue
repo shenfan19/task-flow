@@ -376,6 +376,10 @@ const restartLayoutTimer = () => {
   }
 };
 
+// Filters are edited in place by the filter panel's inputs rather than
+// through store actions, so they are saved from here whenever they change.
+watch(() => taskStore.filters, () => taskStore.saveState(), { deep: true });
+
 watch(
   () => [taskStore.viewSettings.autoRefreshEnabled, taskStore.viewSettings.autoRefreshInterval],
   restartRefreshTimer

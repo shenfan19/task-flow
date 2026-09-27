@@ -17,6 +17,19 @@
         <label class="form-check-label" for="onlyRelatedToggle">Only show tasks with a relation</label>
       </div>
 
+      <!-- Keyword exclusion, matched anywhere in the task line -->
+      <div class="mb-3">
+        <label class="form-label text-muted small fw-bold mb-1" for="excludeTextInput">Exclude tasks containing</label>
+        <input
+          id="excludeTextInput"
+          type="text"
+          class="form-control form-control-sm ft-exclude-input"
+          placeholder="e.g. archived on, #someday"
+          title="Comma-separated keywords. A task whose line contains any of them, in any case, is hidden."
+          v-model.trim="taskStore.filters.excludeText"
+        >
+      </div>
+
       <!-- Saved Presets -->
       <div class="mb-3">
         <label class="form-label text-muted small fw-bold mb-1">Presets</label>
@@ -238,6 +251,10 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.ft-exclude-input {
+  width: 100%;
+}
+
 .ft-tag-list {
   display: flex;
   flex-wrap: wrap;
