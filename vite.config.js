@@ -20,7 +20,7 @@ export default defineConfig({
   build: {
     lib: {
       entry: path.resolve(__dirname, 'main.ts'),
-      name: 'TaskFlow',
+      name: 'TasksFlowchart',
       fileName: () => 'main.js',
       formats: ['cjs']
     },
@@ -39,7 +39,7 @@ export default defineConfig({
         globals: {
           obsidian: 'obsidian'
         },
-        banner: '/* Task Flow Obsidian Plugin */',
+        banner: '/* Tasks Flowchart Obsidian Plugin */',
         // Obsidian loads a plugin's CSS from styles.css; library mode would
         // otherwise name it style.css.
         assetFileNames: (asset) => (asset.name === 'style.css' ? 'styles.css' : asset.name),

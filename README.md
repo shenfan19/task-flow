@@ -1,4 +1,4 @@
-# Task Flow
+# Tasks Flowchart
 
 [![Obsidian plugin](https://img.shields.io/badge/Obsidian-plugin-7C3AED?logo=obsidian&logoColor=white)](https://community.obsidian.md/plugins/task-flow)
 [![Downloads](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fcommunity.obsidian.md%2Fapi%2Fv1%2Fplugins%2Ftask-flow&query=%24.downloads&label=downloads&logo=obsidian&logoColor=white&color=7C3AED)](https://community.obsidian.md/plugins/task-flow)
@@ -6,7 +6,7 @@
 [![Minimum Obsidian version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fshenfan19%2Ftask-flow%2Fmain%2Fmanifest.json&query=%24.minAppVersion&label=min%20Obsidian&color=blue)](manifest.json)
 [![License](https://img.shields.io/github/license/shenfan19/task-flow)](LICENSE)
 
-**Task Flow** is a plugin for [Obsidian](https://obsidian.md) that turns your [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) into a dependency graph. See what blocks what, link and create tasks by dragging, and keep everything as plain Markdown.
+**Tasks Flowchart** is a plugin for [Obsidian](https://obsidian.md) that draws your [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) as a flowchart. Follow the flow of work along dependency chains, see what blocks what, link and create tasks by dragging, and keep everything as plain Markdown.
 
 [中文说明](README_zh.md)
 
@@ -20,11 +20,11 @@
 
 **Turn on the time axis to order tasks by date.**
 
-![Task Flow graph with the time axis turned on](images_ai/time-axis.png)
+![Tasks Flowchart graph with the time axis turned on](images_ai/time-axis.png)
 
-## Why Task Flow
+## Why Tasks Flowchart
 
-- **Your plan stays plain Markdown.** Every node is a task line in your notes and every arrow is a field on that line. There is no database and no hidden file format, so the plan works in any editor, with git and sync, with Dataview and the Tasks plugin's own queries, and it is all still there if you uninstall Task Flow.
+- **Your plan stays plain Markdown.** Every node is a task line in your notes and every arrow is a field on that line. There is no database and no hidden file format, so the plan works in any editor, with git and sync, with Dataview and the Tasks plugin's own queries, and it is all still there if you uninstall Tasks Flowchart.
 - **See what blocks what.** Upstream tasks come before the tasks that wait on them, and a task with nothing left above it is one you can start now.
 
 Three lines like these become three connected nodes:
@@ -37,9 +37,9 @@ Three lines like these become three connected nodes:
 
 ## Getting started
 
-1. Install and enable the [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) plugin. Task Flow reads its Dataview-style fields `[id:: ]` and `[dependsOn:: ]`. The emoji format `🆔` and `⛔` is not supported yet.
-2. Install Task Flow from **Settings → Community plugins → Browse**. To install manually, copy `main.js`, `manifest.json` and `styles.css` from the [latest release](https://github.com/shenfan19/task-flow/releases/latest) into `<your-vault>/.obsidian/plugins/task-flow/`.
-3. Click **Open task graph** in the left ribbon, or run **Task Flow: Open graph view**. In **View Control**, click **Layout**, then **Overview**.
+1. Install and enable the [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) plugin. Tasks Flowchart reads its Dataview-style fields `[id:: ]` and `[dependsOn:: ]`. The emoji format `🆔` and `⛔` is not supported yet.
+2. Install Tasks Flowchart from **Settings → Community plugins → Browse**. To install manually, copy `main.js`, `manifest.json` and `styles.css` from the [latest release](https://github.com/shenfan19/task-flow/releases/latest) into `<your-vault>/.obsidian/plugins/task-flow/`.
+3. Click **Open tasks flowchart** in the left ribbon, or run **Tasks Flowchart: Open flowchart**. In **View Control**, click **Layout**, then **Overview**.
 
 All settings live in the three panels on the left of the view, **File Filters**, **View Control** and **Node Style**.
 
@@ -59,7 +59,7 @@ All settings live in the three panels on the left of the view, **File Filters**,
 
 A task missing from the graph usually has no dependency link, and **Only show tasks with a relation** hides such tasks by default. Otherwise check the keyword, status, tag and folder filters, and check that the Tasks plugin indexes the line, which requires the Tasks global filter tag if you set one.
 
-Task Flow reads `[id:: ]`, `[dependsOn:: ]` and date fields anywhere on the line, so links survive text that archiving plugins append after them. The Tasks plugin only reads fields at the end of a line, so its own queries see no id, dependencies or dates on such a task.
+Tasks Flowchart reads `[id:: ]`, `[dependsOn:: ]` and date fields anywhere on the line, so links survive text that archiving plugins append after them. The Tasks plugin only reads fields at the end of a line, so its own queries see no id, dependencies or dates on such a task.
 
 ## Data
 

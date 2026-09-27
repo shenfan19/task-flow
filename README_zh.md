@@ -1,4 +1,4 @@
-# Task Flow
+# Tasks Flowchart
 
 [![Obsidian plugin](https://img.shields.io/badge/Obsidian-plugin-7C3AED?logo=obsidian&logoColor=white)](https://community.obsidian.md/plugins/task-flow)
 [![Downloads](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fcommunity.obsidian.md%2Fapi%2Fv1%2Fplugins%2Ftask-flow&query=%24.downloads&label=downloads&logo=obsidian&logoColor=white&color=7C3AED)](https://community.obsidian.md/plugins/task-flow)
@@ -6,7 +6,7 @@
 [![Minimum Obsidian version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fshenfan19%2Ftask-flow%2Fmain%2Fmanifest.json&query=%24.minAppVersion&label=min%20Obsidian&color=blue)](manifest.json)
 [![License](https://img.shields.io/github/license/shenfan19/task-flow)](LICENSE)
 
-**Task Flow** 是一款 [Obsidian](https://obsidian.md) 插件，把 [Tasks 插件](https://github.com/obsidian-tasks-group/obsidian-tasks) 里的任务画成依赖关系图。一眼看清谁卡着谁，拖一拖就能建立依赖或新建任务，一切都保存为明文 Markdown。
+**Tasks Flowchart** 是一款 [Obsidian](https://obsidian.md) 插件，把 [Tasks 插件](https://github.com/obsidian-tasks-group/obsidian-tasks) 里的任务画成流程图。沿着依赖链看清工作的来龙去脉和谁卡着谁，拖一拖就能建立依赖或新建任务，一切都保存为明文 Markdown。
 
 [English](README.md)
 
@@ -20,11 +20,11 @@
 
 **打开时间轴，按日期排布任务。**
 
-![打开时间轴后的 Task Flow 图谱](images_ai/time-axis.png)
+![打开时间轴后的 Tasks Flowchart 图谱](images_ai/time-axis.png)
 
-## 为什么用 Task Flow
+## 为什么用 Tasks Flowchart
 
-- **计划始终是明文 Markdown。** 每个节点就是笔记里的一行任务，每条箭头就是这行任务上的一个字段。没有数据库，也没有隐藏的文件格式，所以计划在任何编辑器里都能打开，能放进 git 和同步服务，Dataview 和 Tasks 插件自己的查询也都能读到，卸载 Task Flow 之后也一样都在。
+- **计划始终是明文 Markdown。** 每个节点就是笔记里的一行任务，每条箭头就是这行任务上的一个字段。没有数据库，也没有隐藏的文件格式，所以计划在任何编辑器里都能打开，能放进 git 和同步服务，Dataview 和 Tasks 插件自己的查询也都能读到，卸载 Tasks Flowchart 之后也一样都在。
 - **看清谁卡着谁。** 上游任务排在等待它的任务前面，上面已经没有未完成前置的任务，就是现在可以动手的任务。
 
 下面这三行会画成三个相连的节点：
@@ -37,9 +37,9 @@
 
 ## 快速上手
 
-1. 安装并启用 [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) 插件。Task Flow 读取它的 Dataview 风格字段 `[id:: ]` 和 `[dependsOn:: ]`，暂不支持 emoji 格式 `🆔` 和 `⛔`。
-2. 在 **设置 → 第三方插件 → 浏览** 里安装 Task Flow。也可以手动安装，把[最新版本](https://github.com/shenfan19/task-flow/releases/latest)的 `main.js`、`manifest.json`、`styles.css` 拷贝到 `<你的vault>/.obsidian/plugins/task-flow/`。
-3. 点击左侧功能区的 **Open task graph**，或者运行命令 **Task Flow: Open graph view**。在 **View Control** 里先点 **Layout**，再点 **Overview**。
+1. 安装并启用 [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) 插件。Tasks Flowchart 读取它的 Dataview 风格字段 `[id:: ]` 和 `[dependsOn:: ]`，暂不支持 emoji 格式 `🆔` 和 `⛔`。
+2. 在 **设置 → 第三方插件 → 浏览** 里安装 Tasks Flowchart。也可以手动安装，把[最新版本](https://github.com/shenfan19/task-flow/releases/latest)的 `main.js`、`manifest.json`、`styles.css` 拷贝到 `<你的vault>/.obsidian/plugins/task-flow/`。
+3. 点击左侧功能区的 **Open tasks flowchart**，或者运行命令 **Tasks Flowchart: Open flowchart**。在 **View Control** 里先点 **Layout**，再点 **Overview**。
 
 所有设置都在视图左侧的三个面板里，分别是 **File Filters**、**View Control** 和 **Node Style**。
 
@@ -59,7 +59,7 @@
 
 某个任务在图上不见了，通常是因为它没有任何依赖关系，而 **Only show tasks with a relation** 默认会隐藏这类任务。否则请检查关键字、状态、tag 和文件夹过滤，并确认 Tasks 插件识别了这一行，如果你设置了 Tasks 的全局过滤标签，这一行要带上它。
 
-Task Flow 在整行的任意位置读取 `[id:: ]`、`[dependsOn:: ]` 和日期字段，所以归档插件在字段后面追加文字时，连线照样有效。Tasks 插件只读取行尾的字段，因此它自己的查询功能读不到这类任务的 id、依赖和日期。
+Tasks Flowchart 在整行的任意位置读取 `[id:: ]`、`[dependsOn:: ]` 和日期字段，所以归档插件在字段后面追加文字时，连线照样有效。Tasks 插件只读取行尾的字段，因此它自己的查询功能读不到这类任务的 id、依赖和日期。
 
 ## 数据
 

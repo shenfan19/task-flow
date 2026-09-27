@@ -55,7 +55,7 @@ export class TasksPluginAPI {
             const data = (await plugin.loadData()) as { globalFilter?: unknown } | null;
             return typeof data?.globalFilter === 'string' ? data.globalFilter.trim() : '';
         } catch (error) {
-            console.error('Task Flow: Error reading Tasks plugin settings:', error);
+            console.error('Tasks Flowchart: Error reading Tasks plugin settings:', error);
             return '';
         }
     }
@@ -67,7 +67,7 @@ export class TasksPluginAPI {
     public getTasks(): unknown[] {
         const plugin = this.tasksPlugin;
         if (!plugin) {
-            console.warn('Task Flow: Obsidian Tasks plugin is not available.');
+            console.warn('Tasks Flowchart: Obsidian Tasks plugin is not available.');
             return [];
         }
 
@@ -76,10 +76,10 @@ export class TasksPluginAPI {
             if (typeof plugin.getTasks === 'function') {
                 return plugin.getTasks();
             }
-            console.error('Task Flow: Tasks plugin found, but getTasks() method is missing.');
+            console.error('Tasks Flowchart: Tasks plugin found, but getTasks() method is missing.');
             return [];
         } catch (error) {
-            console.error('Task Flow: Error fetching tasks from Tasks plugin:', error);
+            console.error('Tasks Flowchart: Error fetching tasks from Tasks plugin:', error);
             return [];
         }
     }

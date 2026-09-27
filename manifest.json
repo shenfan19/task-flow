@@ -1,9 +1,9 @@
 {
 	"id": "task-flow",
-	"name": "Task Flow",
-	"version": "0.1.3",
+	"name": "Tasks Flowchart",
+	"version": "0.1.4",
 	"minAppVersion": "1.7.2",
-	"description": "Dependency graph for the Tasks plugin. See what blocks what, link and create tasks by dragging, and keep everything as plain Markdown.",
+	"description": "Flowchart for the Tasks plugin. Follow dependency chains, see what blocks what, and link or create tasks by dragging, all in plain Markdown.",
 	"author": "Fan Shen",
 	"authorUrl": "https://github.com/shenfan19",
 	"isDesktopOnly": false

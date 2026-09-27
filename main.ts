@@ -18,15 +18,15 @@ export default class TaskFlowPlugin extends Plugin {
 			(leaf) => new TaskFlowView(leaf)
 		);
 
-		this.addRibbonIcon('workflow', 'Open task graph', () => {
+		this.addRibbonIcon('workflow', 'Open tasks flowchart', () => {
 			void this.activateView();
 		});
 
 		// Obsidian already prefixes the command with the plugin name, so it
-		// shows up as "Task Flow: Open graph view".
+		// shows up as "Tasks Flowchart: Open flowchart".
 		this.addCommand({
 			id: 'open-view',
-			name: 'Open graph view',
+			name: 'Open flowchart',
 			callback: () => {
 				void this.activateView();
 			}
@@ -69,7 +69,7 @@ class TaskFlowView extends ItemView {
 	}
 
 	getDisplayText() {
-		return "Task flow";
+		return "Tasks flowchart";
 	}
 
 	async onOpen() {

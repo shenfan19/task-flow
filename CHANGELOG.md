@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.4
+
+### Changed
+
+- The plugin is now called **Tasks Flowchart**. The plugin id stays `task-flow`, so it updates in place and keeps your node positions, filters and settings.
+- The view opens with the command **Tasks Flowchart: Open flowchart** or the ribbon icon **Open tasks flowchart**.
+
 ## 0.1.3
 
 ### Fixed

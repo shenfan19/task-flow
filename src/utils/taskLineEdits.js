@@ -99,7 +99,7 @@ const INLINE_FIELD = /[[(]([A-Za-z][\w-]*)::\s*([^\])]*?)\s*[\])]/g;
 // Tasks plugin only reads fields from the end of a line backwards and stops
 // at the first piece of plain text, so a line such as
 // "- [x] Write copy  [id:: copy]  archived on 2026-09-27" loses its id there.
-// Task Flow reads the fields wherever they are, so links survive text that
+// Tasks Flowchart reads the fields wherever they are, so links survive text that
 // other plugins append after them.
 export function readInlineFields(line) {
   const fields = {};
