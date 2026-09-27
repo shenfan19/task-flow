@@ -379,9 +379,14 @@ const onConnectEnd = async (event) => {
   const drag = pendingDrag;
   pendingDrag = null;
   if (!drag || drag.connected || drag.x === undefined) return;
-  if (event?.target?.closest?.('.vue-flow__node')) return;
   const end = eventPoint(event);
   if (!end || Math.hypot(end.x - drag.x, end.y - drag.y) < MIN_NEW_TASK_DRAG) return;
+  // What lies under the release point is looked up rather than taken from
+  // event.target: a touchend's target is where the touch began, which is
+  // the handle on the origin node, so on a phone every drag looked like it
+  // ended on a node and no task was created.
+  const dropTarget = activeDocument.elementFromPoint(end.x, end.y);
+  if (dropTarget?.closest?.('.vue-flow__node')) return;
 
   const drop = screenToFlowCoordinate(end);
   const created = await taskStore.createLinkedTask(drag.nodeId, {

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.8
+
+### Fixed
+
+- Dragging out of a node onto empty canvas creates a task on touch screens too. The end of a touch drag was always taken to be on the node it started from, so nothing was created on iPhone, iPad or Android.
+- On touch screens the handles around a node are easier to grab with a finger, instead of a missed touch moving the node.
+
 ## 0.1.7
 
 ### Added

@@ -119,6 +119,18 @@ watchEffect(() => {
   pointer-events: none;
 }
 
+/* On a touch screen the handle dots are too small to hit with a finger, and
+   a touch that misses them drags the node instead. An invisible ring around
+   each dot makes the area that starts a connection finger sized. */
+@media (pointer: coarse) {
+  .ft-node-handle:not(.ft-node-handle--hidden)::after {
+    content: '';
+    position: absolute;
+    inset: -14px;
+    border-radius: 50%;
+  }
+}
+
 .task-flow-node__tags {
   display: flex;
   flex-wrap: wrap;
