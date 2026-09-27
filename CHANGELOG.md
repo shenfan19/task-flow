@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.6
+
+### Added
+
+- Nodes follow edits to their task lines. The graph reloads whenever the Tasks plugin updates its task cache, a few seconds after a note is saved, instead of waiting for the periodic refresh.
+
+### Fixed
+
+- Renaming a task keeps its node where it was instead of moving it to a random spot.
+
 ## 0.1.5
 
 ### Added

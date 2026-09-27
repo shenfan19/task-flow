@@ -426,6 +426,28 @@ watch(
   restartLayoutTimer
 );
 
+// The Tasks plugin announces every change to its task cache, for example a
+// few seconds after a task line is edited and the note saved. Reloading on
+// that keeps node text in step with the notes without waiting for the
+// periodic refresh. Bursts of updates are collapsed, and a reload is put
+// off while a node or connection is being dragged.
+const TASKS_CACHE_UPDATE_EVENT = 'obsidian-tasks-plugin:cache-update';
+const CACHE_RELOAD_DELAY_MS = 300;
+let cacheUpdateRef = null;
+let cacheReloadTimer = null;
+
+const scheduleCacheReload = () => {
+  if (cacheReloadTimer) activeWindow.clearTimeout(cacheReloadTimer);
+  cacheReloadTimer = activeWindow.setTimeout(() => {
+    cacheReloadTimer = null;
+    if (isInteracting()) {
+      scheduleCacheReload();
+      return;
+    }
+    taskStore.fetchTasksFromObsidian();
+  }, CACHE_RELOAD_DELAY_MS);
+};
+
 onMounted(async () => {
   // Positions must load before tasks are built, since each task's starting
   // position is read from taskStore.positions at construction time.
@@ -434,9 +456,15 @@ onMounted(async () => {
 
   restartRefreshTimer();
   restartLayoutTimer();
+
+  const app = getApp();
+  if (app) cacheUpdateRef = app.workspace.on(TASKS_CACHE_UPDATE_EVENT, scheduleCacheReload);
 });
 
 onUnmounted(() => {
+  const app = getApp();
+  if (app && cacheUpdateRef) app.workspace.offref(cacheUpdateRef);
+  if (cacheReloadTimer) activeWindow.clearTimeout(cacheReloadTimer);
   if (refreshTimer) activeWindow.clearInterval(refreshTimer);
   if (layoutTimer) activeWindow.clearInterval(layoutTimer);
 });

@@ -53,7 +53,7 @@ All settings live in the three panels on the left of the view, **File Filters**,
 - **Time axis**: each task is placed by its done, scheduled or due date. Tasks sharing a date line up, undated tasks fall between their neighbors, and the ruler marks each task's date and stretches with the tasks in between. A red line marks today, a red arrow marks a task dated before one it depends on, and dated nodes can only be dragged sideways.
 - **Filter**: in **File Filters**, show only tasks with a dependency link, which is on by default, hide tasks containing keywords such as `archived on`, and filter by status, tag or folder. Filters are kept between sessions and can be saved as named presets.
 - **Style**: in **Node Style**, set colors and font size, render task text as Markdown, show tags as chips with automatic colors, and color and size nodes by priority.
-- **Refresh**: tasks reload every 30 seconds by default, or with **Refresh** in **View Control**. Refreshing and automatic layout wait while you drag.
+- **Refresh**: the graph follows your edits. A few seconds after you change a task line and the note is saved, its node shows the new text in the same place. Tasks also reload every 30 seconds by default, or with **Refresh** in **View Control**, and refreshing and automatic layout wait while you drag.
 
 ## Troubleshooting
 

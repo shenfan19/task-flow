@@ -273,6 +273,15 @@ export const useTaskStore = defineStore('task', {
       const api = new TasksPluginAPI(app);
       const allTasks = api.getTasks() || [];
 
+      // Editing a task's text changes its node id (path + name), so a node
+      // with no saved position takes over the position of whatever node was
+      // on the same line before; renaming a task then leaves it in place
+      // instead of jumping to a random spot.
+      const lineKey = (path, line) => `${path}:${line}`;
+      const positionByLine = new Map(
+        this.tasks.map((task) => [lineKey(task.path, task.originalTask?.taskLocation?.lineNumber), task.position])
+      );
+
       this.tasks = allTasks.map((t) => {
         // Fields are read from the whole line as well as taken from the Tasks
         // plugin, which misses any that have plain text after them.
@@ -280,7 +289,9 @@ export const useTaskStore = defineStore('task', {
         const name = stripInlineFields(t.descriptionWithoutTags || t.description || '') || 'Unnamed Task';
         const path = t.taskLocation?.path || t.path || '';
         const id = stableTaskId(path, name);
-        const pos = this.positions[id] || { x: Math.random() * 500, y: Math.random() * 500 };
+        const carried = positionByLine.get(lineKey(path, t.taskLocation?.lineNumber));
+        const pos = this.positions[id] || (carried && { ...carried }) || { x: Math.random() * 500, y: Math.random() * 500 };
+        if (!this.positions[id] && carried) this.positions[id] = pos;
         return {
           id, // stable across re-parses; independent of the Tasks plugin's own id field
           pluginId: t.id || fields.id || '', // the task's id field, used to match dependsOn references
