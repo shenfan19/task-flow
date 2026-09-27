@@ -49,7 +49,8 @@ import { VueFlow, MarkerType, useVueFlow } from '@vue-flow/core';
 import { Background } from '@vue-flow/background';
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
-import { useTaskStore } from '../store';
+import { useTaskStore, isPlaceholderTaskName } from '../store';
+import { MarkdownView } from 'obsidian';
 import { getApp } from '../pluginContext';
 import FilterPanel from './FilterPanel.vue';
 import ViewControlPanel from './ViewControlPanel.vue';
@@ -62,9 +63,10 @@ const taskStore = useTaskStore();
 const { fitView, findNode, screenToFlowCoordinate, viewport, dimensions, setViewport } = useVueFlow();
 
 // When the canvas changes size, most often because a note opens in a side
-// pane next to it, the view is rescaled around its center so that what was
-// visible stays visible instead of disappearing past the new edge.
-const MIN_RESIZE_PX = 20;
+// pane next to it, the view is shifted by half the change so that the point
+// at the center stays at the center. The zoom is left alone: closing the
+// pane shifts back by the same amount, so the view returns to where it was
+// even if the user zoomed or panned in between.
 let lastSize = null;
 watch(
   () => [dimensions.value.width, dimensions.value.height],
@@ -73,12 +75,12 @@ watch(
     if (!width || !height) return;
     lastSize = { width, height };
     if (!previous) return;
-    if (Math.abs(width - previous.width) < MIN_RESIZE_PX && Math.abs(height - previous.height) < MIN_RESIZE_PX) return;
     const { x, y, zoom } = viewport.value;
-    const centerX = (previous.width / 2 - x) / zoom;
-    const centerY = (previous.height / 2 - y) / zoom;
-    const nextZoom = zoom * Math.min(width / previous.width, height / previous.height);
-    setViewport({ x: width / 2 - centerX * nextZoom, y: height / 2 - centerY * nextZoom, zoom: nextZoom });
+    setViewport({
+      x: x + (width - previous.width) / 2,
+      y: y + (height - previous.height) / 2,
+      zoom
+    });
   }
 );
 
@@ -171,9 +173,12 @@ const edges = computed(() => {
 // a fresh split is created on the next click.
 let fileLeaf = null;
 
-// Opens `path` in the reused side split at `line`. With `selectText`, that
-// text on the line is selected in source mode, ready to be typed over.
-const openInSidePane = async (path, line, selectText) => {
+// Opens `path` in the reused side split at `line`, in source mode, and puts
+// the cursor on `text` in that line: with `select` the text is selected,
+// ready to be typed over, otherwise the cursor goes to its end. When `text`
+// is not on the line, the cursor goes to the end of the line instead.
+// `waitForText` is for a line that was just written, see below.
+const openInSidePane = async (path, line, { text, select = false, waitForText = false } = {}) => {
   const app = getApp();
   if (!app) return;
   const file = app.vault.getAbstractFileByPath(path);
@@ -184,39 +189,66 @@ const openInSidePane = async (path, line, selectText) => {
     fileLeaf = workspace.getLeaf('split', 'vertical');
   }
 
-  // For a freshly written line the jump is done below instead of through
-  // eState: if the note is already open, its editor picks up the new line a
+  // The jump to the line is done below instead of through eState: if the
+  // note is already open, its editor picks up a freshly written line a
   // moment after the write, and a jump by line number before that lands on
   // whatever line used to be there.
-  const openState = line !== undefined && !selectText ? { eState: { line } } : {};
-  if (selectText) openState.state = { mode: 'source' };
-  await fileLeaf.openFile(file, openState);
+  await fileLeaf.openFile(file, { state: { mode: 'source' } });
 
   const editor = fileLeaf.view?.editor;
-  if (!selectText || !editor || line === undefined) return;
+  if (!editor || line === undefined) return;
+  const attempts = waitForText ? EDITOR_SYNC_ATTEMPTS : 1;
   let ch = -1;
-  for (let attempt = 0; attempt < EDITOR_SYNC_ATTEMPTS && ch === -1; attempt++) {
-    if (line < editor.lineCount()) ch = editor.getLine(line).indexOf(selectText);
-    if (ch === -1) await new Promise((resolve) => activeWindow.setTimeout(resolve, EDITOR_SYNC_INTERVAL_MS));
+  for (let attempt = 0; attempt < attempts && ch === -1; attempt++) {
+    if (line < editor.lineCount() && text) ch = editor.getLine(line).indexOf(text);
+    if (ch === -1 && attempt + 1 < attempts) {
+      await new Promise((resolve) => activeWindow.setTimeout(resolve, EDITOR_SYNC_INTERVAL_MS));
+    }
   }
-  if (ch === -1) return;
-  const from = { line, ch };
-  const to = { line, ch: ch + selectText.length };
+  if (line >= editor.lineCount()) return;
+  if (ch === -1 && waitForText) return;
+
+  const end = ch === -1
+    ? { line, ch: editor.getLine(line).length }
+    : { line, ch: ch + text.length };
+  const from = select && ch !== -1 ? { line, ch } : end;
+  const to = end;
   workspace.setActiveLeaf(fileLeaf, { focus: true });
   editor.setSelection(from, to);
   editor.scrollIntoView({ from, to }, true);
   editor.focus();
+  // The pointer release that ended the click or drag, or the graph reacting
+  // to the side pane opening, can take focus back to the canvas a moment
+  // later. Focus is set again once things settle, unless the user has
+  // already moved to another pane or the selection changed.
+  activeWindow.setTimeout(() => {
+    if (workspace.getActiveViewOfType(MarkdownView) !== fileLeaf.view) return;
+    const selection = editor.listSelections()[0];
+    const unchanged = selection
+      && selection.anchor.line === from.line && selection.anchor.ch === from.ch
+      && selection.head.line === to.line && selection.head.ch === to.ch;
+    if (unchanged && !editor.hasFocus()) editor.focus();
+  }, REFOCUS_DELAY_MS);
 };
+
+const REFOCUS_DELAY_MS = 150;
 
 // How long openInSidePane waits for an already open editor to show a line
 // that was just written: 40 checks, 50 ms apart.
 const EDITOR_SYNC_ATTEMPTS = 40;
 const EDITOR_SYNC_INTERVAL_MS = 50;
 
+// Clicking a node opens its note with the cursor on the task's name, so the
+// user can type straight away. A name still left as the placeholder given
+// to new tasks is selected, to be typed over; any other name gets the
+// cursor at its end, so a stray key press cannot wipe it out.
 const onNodeClick = async (event) => {
   const task = taskStore.filteredTasks.find((t) => t.id === event.node.id);
   if (!task) return;
-  await openInSidePane(task.path, task.originalTask?.taskLocation?.lineNumber);
+  await openInSidePane(task.path, task.originalTask?.taskLocation?.lineNumber, {
+    text: task.name,
+    select: isPlaceholderTaskName(task.name)
+  });
 };
 
 // With the time axis on, a dated node's coordinate along the flow direction
@@ -341,7 +373,7 @@ const onConnect = (connection) => {
 const MIN_NEW_TASK_DRAG = 30;
 
 // A drag that ends on empty canvas instead of another node creates a blank
-// "new task" linked to the node it started from, placed where it was
+// "untitled" linked to the node it started from, placed where it was
 // dropped, and opens it in the side pane with its name selected for editing.
 const onConnectEnd = async (event) => {
   const drag = pendingDrag;
@@ -357,7 +389,7 @@ const onConnectEnd = async (event) => {
     position: { x: drop.x - 60, y: drop.y - 15 }
   });
   if (!created) return;
-  await openInSidePane(created.path, created.lineNumber, created.name);
+  await openInSidePane(created.path, created.lineNumber, { text: created.name, select: true, waitForText: true });
   // Picks up the Tasks plugin's own parse of the new line once it has
   // re-indexed the file; the node id is the same, so it stays where it is.
   activeWindow.setTimeout(() => taskStore.fetchTasksFromObsidian(), 1500);

@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.1.7
+
+### Added
+
+- Clicking a node puts the cursor at the end of the task's name in the note, so you can type right away. A name still left as `untitled` is selected, so typing replaces it.
+
+### Changed
+
+- A task created by dragging onto empty canvas is named `untitled`, numbered `untitled2`, `untitled3` and so on, instead of `new task`. Being one word, a double-click in the editor selects the whole name.
+- When the view changes size, for example when a note opens beside it, the graph is shifted to keep its center in place instead of being rescaled. The zoom stays as it is, and closing the pane moves the graph back to where it was.
+
+### Fixed
+
+- The plugin loads on iPhone, iPad and Android. The bundle referred to Node's `process`, which only the desktop app provides, so on mobile it failed before anything was shown.
+- The editor keeps focus on a newly created task's name, so typing replaces it straight away.
+
 ## 0.1.6
 
 ### Added

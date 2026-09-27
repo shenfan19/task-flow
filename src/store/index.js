@@ -50,8 +50,13 @@ async function editTaskLine(task, transform) {
 
 // Name for a task created by dragging out of a node; numbered when the
 // file already has one of that name, since the node id is derived from
-// path + name and two identical names would collide.
-const NEW_TASK_NAME = 'new task';
+// path + name and two identical names would collide. Kept to one word, with
+// the number joined on, so a double-click in the editor selects all of it.
+const NEW_TASK_NAME = 'untitled';
+
+// True for a name still left as given by createLinkedTask.
+export const isPlaceholderTaskName = (name) => /^untitled\d*$/.test(name ?? '');
+
 const UNINDEXED_GRACE_MS = 60000;
 
 // The one date a task is placed by on the time axis: done date for a
@@ -431,7 +436,7 @@ export const useTaskStore = defineStore('task', {
 
       const namesInFile = new Set(this.tasks.filter((t) => t.path === origin.path).map((t) => t.name));
       let name = NEW_TASK_NAME;
-      for (let n = 2; namesInFile.has(name); n++) name = `${NEW_TASK_NAME} ${n}`;
+      for (let n = 2; namesInFile.has(name); n++) name = `${NEW_TASK_NAME}${n}`;
       const description = globalFilter ? `${globalFilter} ${name}` : name;
 
       let created = null;

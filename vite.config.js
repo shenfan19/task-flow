@@ -6,6 +6,13 @@ import { builtinModules } from 'node:module';
 
 export default defineConfig({
   publicDir: false,
+  // Vue and Pinia check process.env.NODE_ENV all over, and library mode
+  // leaves those checks in the bundle as they are. Obsidian on iOS and
+  // Android has no `process`, so the first check threw and the plugin failed
+  // to load; the desktop app only worked because Electron provides it.
+  define: {
+    'process.env.NODE_ENV': JSON.stringify('production')
+  },
   plugins: [
     vue(),
     viteStaticCopy({
