@@ -173,6 +173,15 @@ Task Flow reads tasks from the Tasks plugin. Click **Refresh** in **View Control
 
 Task dependencies live only in your notes, as `[id:: ]` and `[dependsOn:: ]` fields. Node positions, filter presets and view settings are saved in `.obsidian/plugins/task-flow/data.json` inside your vault. Deleting that file resets the layout and settings but does not touch any task.
 
+## Troubleshooting
+
+### A task is missing from the graph
+
+- **It has no dependency link.** **Only show tasks with a relation** in **File Filters** is on by default and hides every task that neither depends on another task nor has another task depending on it. Turn it off to see all tasks.
+- **Its fields come after other text on the line.** The Tasks plugin reads fields such as `[id:: ]`, `[dependsOn:: ]` and `[completion:: ]` from the end of the line backwards and stops at the first piece of plain text. In `- [x] Write copy  [id:: copy]  archived on 2026-09-27` the words at the end hide the `id` from the Tasks plugin, so the task loses its links and the filter above hides it. Archiving plugins that append text to finished tasks cause this, for example the "additional metadata" option of Task Archiver. Keep plain text in front of the fields, or turn such options off.
+- **A filter hides it.** Check the folder, tag and status settings in **File Filters**.
+- **The Tasks plugin does not see it.** Task Flow shows exactly the tasks the Tasks plugin has indexed. If you set a global filter in the Tasks plugin, a line without it is not a task.
+
 ## Development
 
 The project requires Node.js 22 or later.

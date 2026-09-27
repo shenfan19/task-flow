@@ -173,6 +173,15 @@ Task Flow 从 Tasks 插件读取任务。点 **View Control** 里的 **Refresh**
 
 任务之间的依赖只存在笔记里，形式就是 `[id:: ]` 和 `[dependsOn:: ]` 字段。节点位置、过滤预设和视图设置保存在 vault 里的 `.obsidian/plugins/task-flow/data.json`。删掉这个文件会重置布局和设置，不会影响任何任务。
 
+## 常见问题
+
+### 某个任务在图上不见了
+
+- **它没有任何依赖关系**：**File Filters** 里的 **Only show tasks with a relation** 默认开启，会隐藏既不依赖其他任务、也没有被其他任务依赖的任务。关掉这一项就能看到所有任务。
+- **字段后面还跟着普通文字**：Tasks 插件从行尾往前读取 `[id:: ]`、`[dependsOn:: ]`、`[completion:: ]` 这类字段，遇到第一段普通文字就停下。像 `- [x] Write copy  [id:: copy]  archived on 2026-09-27` 这样，行尾的文字会让 Tasks 插件读不到 `id`，任务就失去了连线，接着被上面那条过滤隐藏。给已完成任务追加文字的归档插件会造成这种情况，例如 Task Archiver 的"附加信息"选项。请把普通文字写在字段前面，或者关掉这类选项。
+- **被过滤掉了**：检查 **File Filters** 里的文件夹、tag 和状态设置。
+- **Tasks 插件没有识别到它**：Task Flow 显示的正是 Tasks 插件已经索引的任务。如果你在 Tasks 插件里设置了全局过滤标签，不带这个标签的行不算任务。
+
 ## 开发
 
 需要 Node.js 22 或更高版本。
