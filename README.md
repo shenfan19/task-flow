@@ -6,60 +6,28 @@
 [![Minimum Obsidian version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fshenfan19%2Ftask-flow%2Fmain%2Fmanifest.json&query=%24.minAppVersion&label=min%20Obsidian&color=blue)](manifest.json)
 [![License](https://img.shields.io/github/license/shenfan19/task-flow)](LICENSE)
 
-**Task Flow** is a plugin for [Obsidian](https://obsidian.md) that shows your task dependencies as a graph, not a wall of checkboxes.
+**Task Flow** is a plugin for [Obsidian](https://obsidian.md) that turns your [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) into a dependency graph. See what blocks what, link and create tasks by dragging, and keep everything as plain Markdown.
 
 [中文说明](README_zh.md)
 
+**Drop a connection on empty canvas to create a linked task.** It is written into your note and opened with its name selected.
+
+![Dragging out of three nodes to create new tasks, each opening in the side pane](images_ai/drag-to-create.gif)
+
+**Drag between two tasks to link them. Select an arrow and press Delete to unlink.**
+
+![Connecting two tasks, then selecting the new arrow and deleting it](images_ai/connect-and-delete.gif)
+
+**Turn on the time axis to order tasks by date.**
+
 ![Task Flow graph with the time axis turned on](images_ai/time-axis.png)
 
-Task Flow draws the tasks in your vault as an interactive node graph, using the dependency links you already keep with the [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) plugin. Every arrow comes from a real `[id:: ]` and `[dependsOn:: ]` field in your notes, and every edit you make on the canvas is written back into those same notes, so there is no separate diagram to keep in sync.
+## Why Task Flow
 
-## Your plan stays plain Markdown
+- **Your plan stays plain Markdown.** Every node is a task line in your notes and every arrow is a field on that line. There is no database and no hidden file format, so the plan works in any editor, with git and sync, with Dataview and the Tasks plugin's own queries, and it is all still there if you uninstall Task Flow.
+- **See what blocks what.** Upstream tasks come before the tasks that wait on them, and a task with nothing left above it is one you can start now.
 
-Plenty of tools let you drag boxes around to plan a project. Most of them keep the result in their own database or in a file format only they can read. Task Flow keeps nothing of the kind. Every node is a task line in one of your notes, and every arrow is a short field on that line:
-
-```markdown
-- [ ] Design mockups  [id:: design]
-- [ ] Build pages  [dependsOn:: design]
-```
-
-When you draw an arrow, delete one, or drag out a new task, Task Flow edits these lines and nothing else. That means
-
-- you can read and edit the whole plan in any text editor, on any device, with or without the plugin,
-- the plan works with git, sync services and backups exactly like the rest of your notes,
-- the Tasks plugin, Dataview and your own queries all see the same dependencies, and
-- if you ever uninstall Task Flow, every task and every dependency is still there as plain text.
-
-The only thing Task Flow stores outside your notes is how the graph looks on screen, such as node positions and filter presets, see [Where Task Flow keeps its data](#where-task-flow-keeps-its-data).
-
-## Why Task Flow?
-
-A flat task list can't show you why something is stuck. Once a project has more than a handful of tasks blocking each other, scrolling a checklist stops answering the two questions that actually matter:
-
-- What's blocking what?
-- What's actually safe to start right now?
-
-Task Flow answers both at a glance. Upstream tasks sit before the tasks that wait on them, chains of work read in one direction, and a task with nothing left above it is one you can start.
-
-## Features
-
-- **Plain Markdown all the way**: nodes and arrows come straight from the Tasks plugin's `id` and `dependsOn` fields in your notes, and every edit on the canvas is an edit to those lines. No database and no hidden file format.
-- **Edit dependencies on the canvas**: drag from one node to another to add a dependency, select an arrow and press Delete to remove it. The change is written into the task lines in your notes.
-- **Drag out to create a task**: drop a connection on empty canvas and Task Flow adds a blank `new task` linked to the node you dragged from, writes it into the same note, and opens it in a side pane with its name selected so you can type the real name straight away.
-- **Time axis**: order the graph by date, with tasks that share a date lined up and a ruler along the edge of the view that marks each task's date and stretches to fit the tasks in between.
-- **Click a node to open its note**: the note opens in a side pane at the task's exact line.
-- **Auto layout in four directions**: top to bottom, bottom to top, left to right or right to left, with curved, straight or stepped arrows.
-- **Tags with automatic colors**: each task's tags show as colored chips on its node, every tag gets its own color without any setup, and you can filter the graph by tag.
-- **File filters with saved presets**: limit the graph to some folders or tags or hide them, show done or open tasks, hide tasks containing chosen keywords such as `archived on`, and save each combination under a name.
-- **Node style**: choose colors and font size, render task text as Markdown, and optionally color and size nodes by priority.
-- **Auto refresh and auto layout**: each on its own timer, so the graph keeps up with edits you make elsewhere in the vault.
-
-## Requirements
-
-- The [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) community plugin, installed and enabled.
-- Tasks that reference each other with the Tasks plugin's Dataview-style fields, `[id:: <id>]` and `[dependsOn:: <id1>,<id2>]`. Task Flow reads and writes this format only. The emoji format of the Tasks plugin, `🆔` and `⛔`, is not supported yet.
-
-A small example that Task Flow turns into three connected nodes:
+Three lines like these become three connected nodes:
 
 ```markdown
 - [ ] Write copy  [id:: copy]
@@ -67,151 +35,39 @@ A small example that Task Flow turns into three connected nodes:
 - [ ] Build pages  [dependsOn:: design,copy]
 ```
 
-## Installation
-
-Manual install for now, until Task Flow clears review and lands in Obsidian's Community Plugins browser:
-
-1. Download `main.js`, `manifest.json`, and `styles.css` from the [latest release](https://github.com/shenfan19/task-flow/releases).
-2. Copy them into `<your-vault>/.obsidian/plugins/task-flow/`.
-3. Reload Obsidian and enable **Task Flow** under Settings → Community plugins.
-
 ## Getting started
 
-1. Click the Task Flow icon in the left ribbon, or run **Task Flow: Open graph view** from the command palette. The graph opens in a new tab.
-2. Open **View Control** on the left and click **Layout** to arrange the nodes, then **Overview** to fit the whole graph on screen.
-3. Use **File Filters** to narrow the graph down to the project you are working on.
+1. Install and enable the [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) plugin. Task Flow reads its Dataview-style fields `[id:: ]` and `[dependsOn:: ]`. The emoji format `🆔` and `⛔` is not supported yet.
+2. Install Task Flow from **Settings → Community plugins → Browse**. To install manually, copy `main.js`, `manifest.json` and `styles.css` from the [latest release](https://github.com/shenfan19/task-flow/releases/latest) into `<your-vault>/.obsidian/plugins/task-flow/`.
+3. Click **Open task graph** in the left ribbon, or run **Task Flow: Open graph view**. In **View Control**, click **Layout**, then **Overview**.
 
-Everything is set from the three panels on the left side of the view, **File Filters**, **View Control** and **Node Style**. There is no separate settings page.
+All settings live in the three panels on the left of the view, **File Filters**, **View Control** and **Node Style**.
 
-## Working with the graph
+## Usage
 
-### Reading the graph
-
-Each node is one task and each arrow points from a task to the task that depends on it. Finished tasks are shown faded and struck through. The graph flows in the layout direction you choose, so in the default top to bottom layout the work that has to happen first is at the top.
-
-By default only tasks that have at least one dependency link are shown, since a vault can hold thousands of unrelated checkboxes. Turn off **Only show tasks with a relation** in **File Filters** to see every task.
-
-### Moving around
-
-- Drag the empty canvas to pan, and scroll to zoom.
-- Drag a node to move it. Task Flow remembers where every node is, also after you close and reopen Obsidian.
-- **Overview** fits the whole graph on screen without moving any node.
-- **Layout** rearranges all nodes. Tick **every** next to it to repeat the layout automatically at the interval you set, in seconds. This keeps the graph tidy but moves nodes you placed by hand.
-
-### Opening a task
-
-Click a node and its note opens in a side pane, scrolled to the task's line. Later clicks reuse the same pane, and you can drag that pane anywhere in your workspace like any other Obsidian tab.
-
-### Adding and removing dependencies
-
-Every node has a connection point on each of its four sides. Drag from one of them onto another node to make a dependency.
-
-- Dragging from the downstream side of node A, which is the bottom in a top to bottom layout, or from either side of it, onto node B makes B depend on A. The arrow points from A to B.
-- Dragging from the upstream side of node A, which is the top in a top to bottom layout, onto node B makes A depend on B. The arrow points back to A.
-
-Task Flow writes the link into your notes as a `[dependsOn:: ]` field on the dependent task. If the other task does not have an `[id:: ]` yet, a short random id is generated and added to it.
-
-To remove a dependency, click its arrow to select it and press Delete or Backspace. The id is removed from the `[dependsOn:: ]` field in the note.
-
-![Connecting two tasks, then selecting the new arrow and deleting it](images_ai/connect-and-delete.gif)
-
-### Creating a task by dragging out
-
-Drag from a connection point and let go on empty canvas instead of on another node. Task Flow then
-
-1. adds a new line `- [ ] new task` to the same note, right below the task you dragged from and below its subtasks, at the same indentation,
-2. links the two tasks, following the same rule as for existing nodes, so a drag from the downstream side or from either side creates a task that depends on the original one, and a drag from the upstream side creates a task that the original one depends on,
-3. places the new node where you let go, and
-4. opens the note in the side pane with the words `new task` selected, so typing replaces them with the real name.
-
-If the note already has a `new task`, the next one is called `new task 2`, then `new task 3`, and so on. If the Tasks plugin is set up with a global filter such as `#task`, the new line includes it, so the Tasks plugin recognizes it as a task. A very short drag is treated as a click and creates nothing.
-
-![Dragging out of three nodes to create new tasks, each opening in the side pane](images_ai/drag-to-create.gif)
-
-### Time axis
-
-Tick **Time axis** in **View Control** to lay the graph out by date. Each task is placed by its done date if it is finished, otherwise by its scheduled date, otherwise by its due date. Tasks without any of these dates are placed by their dependencies alone.
-
-- Tasks that share a date are lined up at the same height, or in the same column for a left to right layout.
-- A task with a later date always comes after a task with an earlier date.
-- A task comes after every task it depends on, unless their dates say otherwise. When undated tasks sit between two dated ones, they spread out evenly between them.
-- The ruler along the edge of the view marks only the dates that tasks on the graph actually have, so it stays quiet. It is elastic, so the distance between two dates depends on how many tasks lie between them, not on the number of days. A red line marks today. When the dates span more than one year, each label includes the year.
-- An arrow whose dependent task is dated earlier than the task it depends on is drawn in red, so a plan that contradicts its own dependencies stands out.
-- A dated node can only be dragged sideways, since its position along the axis is its date. Undated nodes can be dragged anywhere.
-
-With no dated task on the graph, the nodes are laid out by their dependencies and the ruler shows only today's line.
-
-The time axis layout is applied when you click **Layout**, and each time the automatic layout runs.
-
-![The same project laid out left to right without the time axis, using stepped arrows](images_ai/layout-lr.png)
-
-### Filtering
-
-**File Filters** decides which tasks appear on the graph.
-
-- **Only show tasks with a relation**: hide tasks that have no dependency link in either direction. On by default.
-- **Exclude tasks containing**: comma-separated keywords. A task whose line contains any of them, ignoring case, is hidden. For example `archived on` hides tasks an archiving plugin has marked, and `#someday` hides tasks with that tag.
-- **Status**: show open tasks, done tasks, or both. Cancelled tasks count as done.
-- **Tags**: click tag chips to check them, then choose **Include checked** to show only tasks that have at least one of those tags or **Exclude checked** to hide them. Unchecked chips are shown faded, and hovering a chip shows how many tasks use it. **Clear** unchecks all tags.
-- **Directory Path**: tick folders in the tree, then choose **Include checked** to show only tasks in those folders or **Exclude checked** to show everything except them.
-- **Presets**: type a name and click **Save** to store the current filter settings, then pick a preset from the list to switch back to it later. **Delete** removes the selected preset.
-
-### Node style
-
-**Node Style** sets the look of every node.
-
-- **Background**, **Border** and **Text Color** set the node colors.
-- **Font Size** sets the text size in pixels.
-- **Rich text** renders each task's text as Markdown, so links, tags and formatting show up as they do in your notes. It is off by default, since rendering is slower on large graphs.
-- **Show tags** shows each task's tags as colored chips under its text. It is on by default. Colors are assigned automatically so that different tags always look clearly different, and a tag has the same color on every node and in **File Filters**. The global filter tag of the Tasks plugin, if you use one, is not shown.
-- **Color/size by priority** gives tasks with a priority set in the Tasks plugin their own border color and a larger or smaller node, from red and largest for the highest priority to grey and smallest for the lowest. Tasks with normal priority keep the colors above.
-
-### Staying up to date
-
-Task Flow reads tasks from the Tasks plugin. Click **Refresh** in **View Control** to reload them, or tick **every** next to it to reload automatically at the interval you set, 30 seconds by default. Refreshing only updates the tasks and arrows and never moves nodes that are already on the graph. While you are dragging a node or drawing a connection, both the automatic refresh and the automatic layout wait, so they never interrupt what you are doing.
-
-### Fields after other text on the line
-
-Task Flow reads `[id:: ]`, `[dependsOn:: ]` and the date fields wherever they are on the task's line, so links keep working when an archiving plugin appends text such as `archived on 2026-09-27` after them. The Tasks plugin itself only reads fields at the end of a line, so for its own features, such as its queries, such a task has no id, dependencies or dates.
-
-## Where Task Flow keeps its data
-
-Task dependencies live only in your notes, as `[id:: ]` and `[dependsOn:: ]` fields. Node positions, filters, filter presets and view settings are saved in `.obsidian/plugins/task-flow/data.json` inside your vault. Deleting that file resets the layout and settings but does not touch any task.
+- **Link**: drag from a node's downstream side, the bottom in a top to bottom layout, or from its left or right side onto another node. That node now depends on the first one. Drag from the upstream side instead to make the first node depend on the other. A missing `[id:: ]` is generated for you.
+- **Unlink**: click an arrow and press Delete or Backspace.
+- **Create**: let go on empty canvas instead of on a node. A line `- [ ] new task` is added below the original task and its subtasks, linked by the same rule, and opened in a side pane with `new task` selected. Further ones are numbered, and the Tasks plugin's global filter tag is added if you use one.
+- **Open**: click a node to open its note at the task's line.
+- **Arrange**: drag nodes freely, and their positions are remembered. **Layout** arranges everything in the chosen direction with curved, straight or stepped arrows, once or on a timer, and **Overview** fits the graph on screen.
+- **Time axis**: each task is placed by its done, scheduled or due date. Tasks sharing a date line up, undated tasks fall between their neighbors, and the ruler marks each task's date and stretches with the tasks in between. A red line marks today, a red arrow marks a task dated before one it depends on, and dated nodes can only be dragged sideways.
+- **Filter**: in **File Filters**, show only tasks with a dependency link, which is on by default, hide tasks containing keywords such as `archived on`, and filter by status, tag or folder. Filters are kept between sessions and can be saved as named presets.
+- **Style**: in **Node Style**, set colors and font size, render task text as Markdown, show tags as chips with automatic colors, and color and size nodes by priority.
+- **Refresh**: tasks reload every 30 seconds by default, or with **Refresh** in **View Control**. Refreshing and automatic layout wait while you drag.
 
 ## Troubleshooting
 
-### A task is missing from the graph
+A task missing from the graph usually has no dependency link, and **Only show tasks with a relation** hides such tasks by default. Otherwise check the keyword, status, tag and folder filters, and check that the Tasks plugin indexes the line, which requires the Tasks global filter tag if you set one.
 
-- **It has no dependency link.** **Only show tasks with a relation** in **File Filters** is on by default and hides every task that neither depends on another task nor has another task depending on it. Turn it off to see all tasks.
-- **A filter hides it.** Check the folder, tag, keyword and status settings in **File Filters**.
-- **The Tasks plugin does not see it.** Task Flow shows exactly the tasks the Tasks plugin has indexed. If you set a global filter in the Tasks plugin, a line without it is not a task.
+Task Flow reads `[id:: ]`, `[dependsOn:: ]` and date fields anywhere on the line, so links survive text that archiving plugins append after them. The Tasks plugin only reads fields at the end of a line, so its own queries see no id, dependencies or dates on such a task.
+
+## Data
+
+Dependencies live only in your notes. Node positions, filters, presets and view settings are saved in `.obsidian/plugins/task-flow/data.json`. Deleting that file resets the layout and settings without touching any task.
 
 ## Development
 
-The project requires Node.js 22 or later.
-
-```bash
-npm install
-npm run build
-```
-
-The build writes `main.js`, `manifest.json` and `styles.css` to `dist/`. To try it in a vault, copy those three files into `<your-vault>/.obsidian/plugins/task-flow/`.
-
-### Releasing
-
-Releases are built and published by GitHub Actions, see `.github/workflows/release.yml`. Obsidian's community directory rebuilds every release from source and compares the result with the released `main.js`, so releases are not built locally, where line endings and installed dependency versions can differ.
-
-1. Add a `## <version>` section to `CHANGELOG.md` describing the changes. It becomes the release notes.
-2. Set the same version in `manifest.json` and `package.json`, and add it to `versions.json` together with the `minAppVersion` from `manifest.json`.
-3. Commit and push.
-4. Push a tag named exactly like the version, without a leading `v`:
-
-   ```bash
-   git tag 0.1.3
-   git push origin 0.1.3
-   ```
-
-The workflow checks that the tag matches `manifest.json`, builds the plugin on Linux, and publishes a release with `main.js`, `manifest.json` and `styles.css` and their artifact attestations. Obsidian offers the update to users automatically. To check the build without releasing, run the workflow by hand from the Actions tab.
+The project requires Node.js 22 or later. `npm install` and `npm run build` write `main.js`, `manifest.json` and `styles.css` to `dist/`. Releases are built and published by GitHub Actions from a version tag, and the steps are described at the top of `.github/workflows/release.yml`.
 
 ## License
 
