@@ -10,7 +10,7 @@ export default class TaskFlowPlugin extends Plugin {
 	async onload() {
 		// The Vue app reaches this.app and loadData/saveData (node positions and
 		// settings, stored as plain JSON in .obsidian/plugins/task-flow/data.json)
-		// through this, see src/pluginContext.js.
+		// through this, see src/pluginContext.ts.
 		setPlugin(this);
 
 		this.registerView(
