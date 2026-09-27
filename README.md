@@ -12,7 +12,7 @@
 
 **Drop a connection on empty canvas to create a linked task.** It is written into your note and opened with its name selected.
 
-![Dragging out of three nodes to create new tasks, each opening in the side pane](images_ai/drag-to-create.gif)
+![Dragging out of two nodes to create new tasks, each selected in the note beside the graph](images_ai/drag-to-create.gif)
 
 **Drag between two tasks to link them. Select an arrow and press Delete to unlink.**
 

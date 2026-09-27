@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.5
+
+### Added
+
+- When the view changes size, for example when a note opens beside it, the graph is rescaled around its center so that everything that was visible stays visible.
+
+### Fixed
+
+- The File Filters, View Control and Node Style buttons stay inside the graph instead of overlapping the view header.
+- Creating a task while its note is already open next to the graph now selects the new task's name, rather than highlighting the line that used to be there.
+
 ## 0.1.4
 
 ### Changed

@@ -59,7 +59,28 @@ import TimeAxisRuler from './TimeAxisRuler.vue';
 import { layoutWithDagre, layoutWithTimeAxis } from '../utils/layout';
 
 const taskStore = useTaskStore();
-const { fitView, findNode, screenToFlowCoordinate } = useVueFlow();
+const { fitView, findNode, screenToFlowCoordinate, viewport, dimensions, setViewport } = useVueFlow();
+
+// When the canvas changes size, most often because a note opens in a side
+// pane next to it, the view is rescaled around its center so that what was
+// visible stays visible instead of disappearing past the new edge.
+const MIN_RESIZE_PX = 20;
+let lastSize = null;
+watch(
+  () => [dimensions.value.width, dimensions.value.height],
+  ([width, height]) => {
+    const previous = lastSize;
+    if (!width || !height) return;
+    lastSize = { width, height };
+    if (!previous) return;
+    if (Math.abs(width - previous.width) < MIN_RESIZE_PX && Math.abs(height - previous.height) < MIN_RESIZE_PX) return;
+    const { x, y, zoom } = viewport.value;
+    const centerX = (previous.width / 2 - x) / zoom;
+    const centerY = (previous.height / 2 - y) / zoom;
+    const nextZoom = zoom * Math.min(width / previous.width, height / previous.height);
+    setViewport({ x: width / 2 - centerX * nextZoom, y: height / 2 - centerY * nextZoom, zoom: nextZoom });
+  }
+);
 
 // Vue Flow only listens for Backspace by default; Delete is what most
 // people reach for first to remove a selected edge.
@@ -163,18 +184,34 @@ const openInSidePane = async (path, line, selectText) => {
     fileLeaf = workspace.getLeaf('split', 'vertical');
   }
 
-  const openState = line !== undefined ? { eState: { line } } : {};
+  // For a freshly written line the jump is done below instead of through
+  // eState: if the note is already open, its editor picks up the new line a
+  // moment after the write, and a jump by line number before that lands on
+  // whatever line used to be there.
+  const openState = line !== undefined && !selectText ? { eState: { line } } : {};
   if (selectText) openState.state = { mode: 'source' };
   await fileLeaf.openFile(file, openState);
 
   const editor = fileLeaf.view?.editor;
   if (!selectText || !editor || line === undefined) return;
-  const ch = editor.getLine(line).indexOf(selectText);
+  let ch = -1;
+  for (let attempt = 0; attempt < EDITOR_SYNC_ATTEMPTS && ch === -1; attempt++) {
+    if (line < editor.lineCount()) ch = editor.getLine(line).indexOf(selectText);
+    if (ch === -1) await new Promise((resolve) => activeWindow.setTimeout(resolve, EDITOR_SYNC_INTERVAL_MS));
+  }
   if (ch === -1) return;
+  const from = { line, ch };
+  const to = { line, ch: ch + selectText.length };
   workspace.setActiveLeaf(fileLeaf, { focus: true });
-  editor.setSelection({ line, ch }, { line, ch: ch + selectText.length });
+  editor.setSelection(from, to);
+  editor.scrollIntoView({ from, to }, true);
   editor.focus();
 };
+
+// How long openInSidePane waits for an already open editor to show a line
+// that was just written: 40 checks, 50 ms apart.
+const EDITOR_SYNC_ATTEMPTS = 40;
+const EDITOR_SYNC_INTERVAL_MS = 50;
 
 const onNodeClick = async (event) => {
   const task = taskStore.filteredTasks.find((t) => t.id === event.node.id);
@@ -413,6 +450,13 @@ onUnmounted(() => {
 .ft-graph-container {
   height: 100%;
   width: 100%;
+}
+
+/* The button rail is positioned against the graph root; without this it is
+   positioned against an outer Obsidian container instead and ends up over
+   the view header (Bootstrap's position-relative class isn't loaded). */
+.ft-graph-root {
+  position: relative;
 }
 
 .ft-left-rail {
