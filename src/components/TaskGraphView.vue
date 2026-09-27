@@ -323,7 +323,7 @@ const onConnectEnd = async (event) => {
   await openInSidePane(created.path, created.lineNumber, created.name);
   // Picks up the Tasks plugin's own parse of the new line once it has
   // re-indexed the file; the node id is the same, so it stays where it is.
-  setTimeout(() => taskStore.fetchTasksFromObsidian(), 1500);
+  activeWindow.setTimeout(() => taskStore.fetchTasksFromObsidian(), 1500);
 };
 
 // Selecting an edge and pressing Delete/Backspace (Vue Flow's built-in
@@ -350,10 +350,10 @@ const onOverviewClick = () => {
 let refreshTimer = null;
 
 const restartRefreshTimer = () => {
-  if (refreshTimer) clearInterval(refreshTimer);
+  if (refreshTimer) activeWindow.clearInterval(refreshTimer);
   refreshTimer = null;
   if (taskStore.viewSettings.autoRefreshEnabled) {
-    refreshTimer = setInterval(() => {
+    refreshTimer = activeWindow.setInterval(() => {
       if (isInteracting()) return;
       taskStore.fetchTasksFromObsidian();
     }, taskStore.viewSettings.autoRefreshInterval * 1000);
@@ -366,10 +366,10 @@ const restartRefreshTimer = () => {
 let layoutTimer = null;
 
 const restartLayoutTimer = () => {
-  if (layoutTimer) clearInterval(layoutTimer);
+  if (layoutTimer) activeWindow.clearInterval(layoutTimer);
   layoutTimer = null;
   if (taskStore.viewSettings.autoLayoutEnabled) {
-    layoutTimer = setInterval(() => {
+    layoutTimer = activeWindow.setInterval(() => {
       if (isInteracting()) return;
       runAutoLayout();
     }, taskStore.viewSettings.autoLayoutInterval * 1000);
@@ -396,8 +396,8 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
-  if (refreshTimer) clearInterval(refreshTimer);
-  if (layoutTimer) clearInterval(layoutTimer);
+  if (refreshTimer) activeWindow.clearInterval(refreshTimer);
+  if (layoutTimer) activeWindow.clearInterval(layoutTimer);
 });
 </script>
 

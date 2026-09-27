@@ -71,7 +71,7 @@ Task Flow 一眼就能回答这两个问题。上游任务排在等待它的任�
 
 ## 快速上手
 
-1. 点击左侧功能区的 Task Flow 图标，或者在命令面板里运行 **Task Flow: Open Task Flow view**，图谱会在新标签页里打开。
+1. 点击左侧功能区的 Task Flow 图标，或者在命令面板里运行 **Task Flow: Open graph view**，图谱会在新标签页里打开。
 2. 展开左侧的 **View Control**，点 **Layout** 自动排布节点，再点 **Overview** 让整张图显示在屏幕内。
 3. 用 **File Filters** 把范围缩小到你正在做的项目。
 

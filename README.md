@@ -75,7 +75,7 @@ Manual install for now, until Task Flow clears review and lands in Obsidian's Co
 
 ## Getting started
 
-1. Click the Task Flow icon in the left ribbon, or run **Task Flow: Open Task Flow view** from the command palette. The graph opens in a new tab.
+1. Click the Task Flow icon in the left ribbon, or run **Task Flow: Open graph view** from the command palette. The graph opens in a new tab.
 2. Open **View Control** on the left and click **Layout** to arrange the nodes, then **Overview** to fit the whole graph on screen.
 3. Use **File Filters** to narrow the graph down to the project you are working on.
 

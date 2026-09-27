@@ -1,19 +1,45 @@
+import type { App } from 'obsidian';
+
+/**
+ * The parts of the Tasks plugin instance used here. Its task objects are
+ * passed through as they are and read field by field in the store.
+ */
+interface TasksPluginInstance {
+    getTasks?: () => unknown[];
+    loadData: () => Promise<unknown>;
+}
+
+/**
+ * `app.plugins` is not part of Obsidian's public typings, so it is described
+ * here as far as it is used.
+ */
+interface AppWithPlugins extends App {
+    plugins: {
+        plugins: Record<string, TasksPluginInstance | undefined>;
+    };
+}
+
+const TASKS_PLUGIN_ID = 'obsidian-tasks-plugin';
+
 /**
  * Utility to communicate with the Obsidian Tasks plugin.
  */
-
 export class TasksPluginAPI {
-    private app: any;
+    private app: AppWithPlugins;
 
-    constructor(app: any) {
-        this.app = app;
+    constructor(app: App) {
+        this.app = app as AppWithPlugins;
+    }
+
+    private get tasksPlugin(): TasksPluginInstance | undefined {
+        return this.app.plugins.plugins[TASKS_PLUGIN_ID];
     }
 
     /**
      * Check if the Tasks plugin is enabled and accessible.
      */
     public isTasksPluginAvailable(): boolean {
-        return !!this.app.plugins.plugins['obsidian-tasks-plugin'];
+        return !!this.tasksPlugin;
     }
 
     /**
@@ -23,10 +49,11 @@ export class TasksPluginAPI {
      * plugin's data.json, since the parsed settings aren't exposed.
      */
     public async getGlobalFilter(): Promise<string> {
-        if (!this.isTasksPluginAvailable()) return '';
+        const plugin = this.tasksPlugin;
+        if (!plugin) return '';
         try {
-            const data = await this.app.plugins.plugins['obsidian-tasks-plugin'].loadData();
-            return (data?.globalFilter || '').trim();
+            const data = (await plugin.loadData()) as { globalFilter?: unknown } | null;
+            return typeof data?.globalFilter === 'string' ? data.globalFilter.trim() : '';
         } catch (error) {
             console.error('Task Flow: Error reading Tasks plugin settings:', error);
             return '';
@@ -37,21 +64,20 @@ export class TasksPluginAPI {
      * Fetch all cached tasks from the Obsidian Tasks plugin.
      * Returns an empty array if the plugin is not available.
      */
-    public getTasks(): any[] {
-        if (!this.isTasksPluginAvailable()) {
+    public getTasks(): unknown[] {
+        const plugin = this.tasksPlugin;
+        if (!plugin) {
             console.warn('Task Flow: Obsidian Tasks plugin is not available.');
             return [];
         }
 
         try {
-            const tasksPlugin = this.app.plugins.plugins['obsidian-tasks-plugin'];
             // Tasks plugin exposes getTasks() on its main class instance
-            if (typeof tasksPlugin.getTasks === 'function') {
-                return tasksPlugin.getTasks();
-            } else {
-                console.error('Task Flow: Tasks plugin found, but getTasks() method is missing.');
-                return [];
+            if (typeof plugin.getTasks === 'function') {
+                return plugin.getTasks();
             }
+            console.error('Task Flow: Tasks plugin found, but getTasks() method is missing.');
+            return [];
         } catch (error) {
             console.error('Task Flow: Error fetching tasks from Tasks plugin:', error);
             return [];

@@ -18,21 +18,19 @@ export default class TaskFlowPlugin extends Plugin {
 			(leaf) => new TaskFlowView(leaf)
 		);
 
-		this.addRibbonIcon('dice', 'Activate Task Flow', (evt: MouseEvent) => {
-			this.activateView();
+		this.addRibbonIcon('workflow', 'Open task graph', () => {
+			void this.activateView();
 		});
 
+		// Obsidian already prefixes the command with the plugin name, so it
+		// shows up as "Task Flow: Open graph view".
 		this.addCommand({
-			id: 'open-task-flow-view',
-			name: 'Open Task Flow view',
+			id: 'open-view',
+			name: 'Open graph view',
 			callback: () => {
-				this.activateView();
+				void this.activateView();
 			}
 		});
-	}
-
-	async onunload() {
-
 	}
 
 	async activateView() {
@@ -54,7 +52,7 @@ export default class TaskFlowPlugin extends Plugin {
 		}
 
 		if (leaf) {
-			workspace.revealLeaf(leaf);
+			await workspace.revealLeaf(leaf);
 		}
 	}
 }
@@ -71,7 +69,7 @@ class TaskFlowView extends ItemView {
 	}
 
 	getDisplayText() {
-		return "Task Flow";
+		return "Task flow";
 	}
 
 	async onOpen() {

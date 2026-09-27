@@ -2,9 +2,10 @@ import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 import path from 'path';
-import builtins from 'builtin-modules';
+import { builtinModules } from 'node:module';
 
 export default defineConfig({
+  publicDir: false,
   plugins: [
     vue(),
     viteStaticCopy({
@@ -23,19 +24,25 @@ export default defineConfig({
       fileName: () => 'main.js',
       formats: ['cjs']
     },
-    outDir: 'task-flow',
+    // dist/ is one of the folders Obsidian's community directory checks for
+    // main.js when it verifies a release against the source. It holds a
+    // complete plugin folder: main.js, styles.css and manifest.json.
+    outDir: 'dist',
     emptyOutDir: true,
     rollupOptions: {
       external: [
         'obsidian',
         'electron',
-        ...builtins
+        ...builtinModules
       ],
       output: {
         globals: {
           obsidian: 'obsidian'
         },
         banner: '/* Task Flow Obsidian Plugin */',
+        // Obsidian loads a plugin's CSS from styles.css; library mode would
+        // otherwise name it style.css.
+        assetFileNames: (asset) => (asset.name === 'style.css' ? 'styles.css' : asset.name),
       }
     }
   }
