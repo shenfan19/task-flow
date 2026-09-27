@@ -1,0 +1,10 @@
+{
+	"id": "task-flow",
+	"name": "Task Flow",
+	"version": "0.1.0",
+	"minAppVersion": "1.0.0",
+	"description": "Requires the Tasks plugin. Visualizes Tasks' id/dependsOn dependencies as an interactive, drag-and-drop node graph, so you can see task blockers, dependency chains, and what's ready to work on at a glance.",
+	"author": "Fan Shen",
+	"authorUrl": "https://github.com/shenfan19",
+	"isDesktopOnly": false
+}

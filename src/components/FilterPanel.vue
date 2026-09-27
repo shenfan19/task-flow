@@ -158,6 +158,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { useTaskStore } from '../store';
+import { getApp } from '../pluginContext';
 import TreeNode from './TreeNode.vue';
 
 const taskStore = useTaskStore();
@@ -215,8 +216,9 @@ const buildTree = (paths) => {
 };
 
 onMounted(() => {
-  if (window.app && window.app.vault) {
-    const files = window.app.vault.getAllLoadedFiles();
+  const app = getApp();
+  if (app) {
+    const files = app.vault.getAllLoadedFiles();
     const dirs = files
       .filter(f => f.children) // Is directory
       .filter(f => f.path !== '/') // Skip root usually

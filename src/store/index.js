@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { TasksPluginAPI } from '../api/TasksPluginAPI';
+import { getApp, getPlugin } from '../pluginContext';
 import { stableTaskId } from '../utils/hash';
 import { assignTagHues } from '../utils/tagColor';
 import {
@@ -30,11 +31,12 @@ function locateTaskLine(lines, task) {
 // Rewrites one line of a task's source file in place. Only appends/adjusts
 // trailing inline text, never inserts or removes whole lines.
 async function editTaskLine(task, transform) {
-  if (!window.app) return;
-  const file = window.app.vault.getAbstractFileByPath(task.path);
+  const app = getApp();
+  if (!app) return;
+  const file = app.vault.getAbstractFileByPath(task.path);
   if (!file) return;
 
-  await window.app.vault.process(file, (content) => {
+  await app.vault.process(file, (content) => {
     const lines = content.split('\n');
     const index = locateTaskLine(lines, task);
     if (index === -1) return content;
@@ -205,8 +207,9 @@ export const useTaskStore = defineStore('task', {
   },
   actions: {
     async loadState() {
-      if (!window.taskFlowPlugin) return;
-      const data = await window.taskFlowPlugin.loadData();
+      const plugin = getPlugin();
+      if (!plugin) return;
+      const data = await plugin.loadData();
       // data.json used to be a flat {id: {x,y}} positions map; fall back to
       // treating the whole object as positions if it isn't in the new shape.
       this.positions = data?.positions ?? data ?? {};
@@ -224,9 +227,10 @@ export const useTaskStore = defineStore('task', {
       }
     },
     fetchTasksFromObsidian() {
-      if (!window.app) return;
+      const app = getApp();
+      if (!app) return;
 
-      const api = new TasksPluginAPI(window.app);
+      const api = new TasksPluginAPI(app);
       const allTasks = api.getTasks() || [];
 
       this.tasks = allTasks.map((t) => {
@@ -357,11 +361,12 @@ export const useTaskStore = defineStore('task', {
     // file. Returns {path, lineNumber, name} of the new line, or null.
     async createLinkedTask(originTaskId, { upstream, position }) {
       const origin = this.tasks.find((t) => t.id === originTaskId);
-      if (!origin || !window.app) return null;
-      const file = window.app.vault.getAbstractFileByPath(origin.path);
+      const app = getApp();
+      if (!origin || !app) return null;
+      const file = app.vault.getAbstractFileByPath(origin.path);
       if (!file) return null;
 
-      const api = new TasksPluginAPI(window.app);
+      const api = new TasksPluginAPI(app);
       const globalFilter = await api.getGlobalFilter();
       const existingIds = new Set(this.tasks.map((t) => t.pluginId).filter(Boolean));
       const newPluginId = generateTaskId(existingIds);
@@ -374,7 +379,7 @@ export const useTaskStore = defineStore('task', {
       const description = globalFilter ? `${globalFilter} ${name}` : name;
 
       let created = null;
-      await window.app.vault.process(file, (content) => {
+      await app.vault.process(file, (content) => {
         const lines = content.split('\n');
         const originIndex = locateTaskLine(lines, origin);
         if (originIndex === -1) return content;
@@ -427,8 +432,9 @@ export const useTaskStore = defineStore('task', {
       return { path: origin.path, lineNumber: created.lineNumber, name };
     },
     async saveState() {
-      if (!window.taskFlowPlugin) return;
-      await window.taskFlowPlugin.saveData({
+      const plugin = getPlugin();
+      if (!plugin) return;
+      await plugin.saveData({
         positions: this.positions,
         appearance: this.appearance,
         viewSettings: this.viewSettings,

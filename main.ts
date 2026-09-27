@@ -2,16 +2,16 @@ import { Plugin, WorkspaceLeaf, ItemView } from 'obsidian';
 import { createApp, App as VueApp } from 'vue';
 import { createPinia } from 'pinia';
 import App from './src/App.vue';
+import { setPlugin } from './src/pluginContext';
 
 const VIEW_TYPE_TASK_FLOW = "task-flow-view";
 
 export default class TaskFlowPlugin extends Plugin {
 	async onload() {
-		// Ensure app is available globally for Vue components (Tasks plugin API needs it)
-		(window as any).app = this.app;
-		// Vue store uses this to persist node positions via loadData/saveData,
-		// which writes plain JSON to .obsidian/plugins/task-flow/data.json
-		(window as any).taskFlowPlugin = this;
+		// The Vue app reaches this.app and loadData/saveData (node positions and
+		// settings, stored as plain JSON in .obsidian/plugins/task-flow/data.json)
+		// through this, see src/pluginContext.js.
+		setPlugin(this);
 
 		this.registerView(
 			VIEW_TYPE_TASK_FLOW,

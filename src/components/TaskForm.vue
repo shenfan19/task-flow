@@ -52,6 +52,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useTaskStore } from '../store';
+import { getApp } from '../pluginContext';
 
 const taskStore = useTaskStore();
 const availableDirectories = ref([]);
@@ -66,8 +67,9 @@ const form = ref({
 
 onMounted(() => {
   // Fetch directories from Obsidian vault or use fallback
-  if (window.app && window.app.vault) {
-    const files = window.app.vault.getAllLoadedFiles();
+  const app = getApp();
+  if (app) {
+    const files = app.vault.getAllLoadedFiles();
     availableDirectories.value = files
       .filter(f => f.children && f.path !== '/') 
       .map(f => ({ name: f.name, path: f.path }));
@@ -96,4 +98,4 @@ const addTask = () => {
     alert(error.message);
   }
 };
-</script>
+</script>

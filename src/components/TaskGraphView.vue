@@ -50,6 +50,7 @@ import { Background } from '@vue-flow/background';
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
 import { useTaskStore } from '../store';
+import { getApp } from '../pluginContext';
 import FilterPanel from './FilterPanel.vue';
 import ViewControlPanel from './ViewControlPanel.vue';
 import AppearancePanel from './AppearancePanel.vue';
@@ -152,11 +153,12 @@ let fileLeaf = null;
 // Opens `path` in the reused side split at `line`. With `selectText`, that
 // text on the line is selected in source mode, ready to be typed over.
 const openInSidePane = async (path, line, selectText) => {
-  if (!window.app) return;
-  const file = window.app.vault.getAbstractFileByPath(path);
+  const app = getApp();
+  if (!app) return;
+  const file = app.vault.getAbstractFileByPath(path);
   if (!file) return;
 
-  const workspace = window.app.workspace;
+  const workspace = app.workspace;
   if (!fileLeaf || !workspace.getLeafById(fileLeaf.id)) {
     fileLeaf = workspace.getLeaf('split', 'vertical');
   }

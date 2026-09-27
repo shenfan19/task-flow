@@ -42,6 +42,7 @@ import { computed, ref, watchEffect, onBeforeUnmount } from 'vue';
 import { Handle, Position } from '@vue-flow/core';
 import { Component, MarkdownRenderer } from 'obsidian';
 import { useTaskStore } from '../store';
+import { getApp } from '../pluginContext';
 
 const props = defineProps({
   data: {
@@ -85,10 +86,11 @@ onBeforeUnmount(() => mdComponent.unload());
 const richTextEl = ref(null);
 
 watchEffect(() => {
-  if (!taskStore.appearance.richText || !richTextEl.value || !window.app) return;
-  richTextEl.value.innerHTML = '';
+  const app = getApp();
+  if (!taskStore.appearance.richText || !richTextEl.value || !app) return;
+  richTextEl.value.empty();
   MarkdownRenderer.render(
-    window.app,
+    app,
     props.data.task.name,
     richTextEl.value,
     props.data.task.path,
