@@ -1,10 +1,11 @@
 # Task Flow
 
-![GitHub release](https://img.shields.io/github/v/release/shenfan19/task-flow?sort=semver)
-![License](https://img.shields.io/github/license/shenfan19/task-flow)
-![Obsidian downloads](https://img.shields.io/badge/dynamic/json?logo=obsidian&color=%23483699&label=downloads&query=%24%5B%22task-flow%22%5D.downloads&url=https%3A%2F%2Fraw.githubusercontent.com%2Fobsidianmd%2Fobsidian-releases%2Fmaster%2Fcommunity-plugin-stats.json)
+[![Obsidian plugin](https://img.shields.io/badge/Obsidian-plugin-7C3AED?logo=obsidian&logoColor=white)](https://community.obsidian.md/plugins/task-flow)
+[![Latest release](https://img.shields.io/github/v/release/shenfan19/task-flow?sort=semver)](https://github.com/shenfan19/task-flow/releases/latest)
+[![Minimum Obsidian version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fshenfan19%2Ftask-flow%2Fmain%2Fmanifest.json&query=%24.minAppVersion&label=min%20Obsidian&color=blue)](manifest.json)
+[![License](https://img.shields.io/github/license/shenfan19/task-flow)](LICENSE)
 
-See your task dependencies as a graph, not a wall of checkboxes.
+**Task Flow** is a plugin for [Obsidian](https://obsidian.md) that shows your task dependencies as a graph, not a wall of checkboxes.
 
 [中文说明](README_zh.md)
 
@@ -170,6 +171,33 @@ Task Flow reads tasks from the Tasks plugin. Click **Refresh** in **View Control
 ## Where Task Flow keeps its data
 
 Task dependencies live only in your notes, as `[id:: ]` and `[dependsOn:: ]` fields. Node positions, filter presets and view settings are saved in `.obsidian/plugins/task-flow/data.json` inside your vault. Deleting that file resets the layout and settings but does not touch any task.
+
+## Development
+
+The project requires Node.js 22 or later.
+
+```bash
+npm install
+npm run build
+```
+
+The build writes `main.js`, `manifest.json` and `styles.css` to `dist/`. To try it in a vault, copy those three files into `<your-vault>/.obsidian/plugins/task-flow/`.
+
+### Releasing
+
+Releases are built and published by GitHub Actions, see `.github/workflows/release.yml`. Obsidian's community directory rebuilds every release from source and compares the result with the released `main.js`, so releases are not built locally, where line endings and installed dependency versions can differ.
+
+1. Add a `## <version>` section to `CHANGELOG.md` describing the changes. It becomes the release notes.
+2. Set the same version in `manifest.json` and `package.json`, and add it to `versions.json` together with the `minAppVersion` from `manifest.json`.
+3. Commit and push.
+4. Push a tag named exactly like the version, without a leading `v`:
+
+   ```bash
+   git tag 0.1.3
+   git push origin 0.1.3
+   ```
+
+The workflow checks that the tag matches `manifest.json`, builds the plugin on Linux, and publishes a release with `main.js`, `manifest.json` and `styles.css` and their artifact attestations. Obsidian offers the update to users automatically. To check the build without releasing, run the workflow by hand from the Actions tab.
 
 ## License
 

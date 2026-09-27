@@ -2,17 +2,23 @@
 # release with artifact attestations. Obsidian's community directory rebuilds
 # every release from source and compares it with the released main.js, so
 # releases are built here instead of on a local machine, where line endings
-# and installed dependency versions can differ.
+# and installed dependency versions can differ. The release notes are the
+# section of CHANGELOG.md headed with the version.
 #
-# To release: bump the version in manifest.json, package.json and
-# versions.json, commit, then push a tag with exactly that version (no "v"):
-#   git tag 0.1.2 && git push origin 0.1.2
+# To release: add a "## <version>" section to CHANGELOG.md, set the same
+# version in manifest.json, package.json and versions.json, commit and push,
+# then push a tag with exactly that version (no "v"):
+#   git tag 0.1.3 && git push origin 0.1.3
+
 name: Release
 
 on:
   push:
     tags:
       - "*"
+  # Run it by hand from the Actions tab to check that the build works
+  # without publishing anything.
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -31,6 +37,7 @@ jobs:
           cache: npm
 
       - name: Check that the tag matches manifest.json
+        if: github.ref_type == 'tag'
         run: |
           version=$(node -p "require('./manifest.json').version")
           if [ "$version" != "$GITHUB_REF_NAME" ]; then
@@ -42,6 +49,7 @@ jobs:
       - run: npm run build
 
       - uses: actions/attest-build-provenance@v2
+        if: github.ref_type == 'tag'
         with:
           subject-path: |
             dist/main.js
@@ -49,12 +57,13 @@ jobs:
             dist/styles.css
 
       - name: Create release
+        if: github.ref_type == 'tag'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          notes=".github/release-notes/$GITHUB_REF_NAME.md"
-          if [ -f "$notes" ]; then
-            gh release create "$GITHUB_REF_NAME" dist/main.js dist/manifest.json dist/styles.css --title "$GITHUB_REF_NAME" --notes-file "$notes"
+          awk -v heading="## $GITHUB_REF_NAME" '$0 == heading { found = 1; next } /^## / { if (found) exit } found' CHANGELOG.md > release-notes.md
+          if [ -s release-notes.md ]; then
+            gh release create "$GITHUB_REF_NAME" dist/main.js dist/manifest.json dist/styles.css --title "$GITHUB_REF_NAME" --notes-file release-notes.md
           else
             gh release create "$GITHUB_REF_NAME" dist/main.js dist/manifest.json dist/styles.css --title "$GITHUB_REF_NAME" --generate-notes
           fi

@@ -1,6 +1,11 @@
 # Task Flow
 
-**Task Flow 把 [Tasks 插件](https://github.com/obsidian-tasks-group/obsidian-tasks) 里的任务依赖关系画成一张可交互的节点图**，让你一眼看清任务之间的依赖链、卡在哪里、现在能立刻动手做什么，不用在一长串扁平的勾选列表里翻找。
+[![Obsidian plugin](https://img.shields.io/badge/Obsidian-plugin-7C3AED?logo=obsidian&logoColor=white)](https://community.obsidian.md/plugins/task-flow)
+[![Latest release](https://img.shields.io/github/v/release/shenfan19/task-flow?sort=semver)](https://github.com/shenfan19/task-flow/releases/latest)
+[![Minimum Obsidian version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fshenfan19%2Ftask-flow%2Fmain%2Fmanifest.json&query=%24.minAppVersion&label=min%20Obsidian&color=blue)](manifest.json)
+[![License](https://img.shields.io/github/license/shenfan19/task-flow)](LICENSE)
+
+**Task Flow** 是一款 [Obsidian](https://obsidian.md) 插件，把 [Tasks 插件](https://github.com/obsidian-tasks-group/obsidian-tasks) 里的任务依赖关系画成一张可交互的节点图，让你一眼看清任务之间的依赖链、卡在哪里、现在能立刻动手做什么，不用在一长串扁平的勾选列表里翻找。
 
 [English](README.md)
 
@@ -166,6 +171,33 @@ Task Flow 从 Tasks 插件读取任务。点 **View Control** 里的 **Refresh**
 ## 数据存放位置
 
 任务之间的依赖只存在笔记里，形式就是 `[id:: ]` 和 `[dependsOn:: ]` 字段。节点位置、过滤预设和视图设置保存在 vault 里的 `.obsidian/plugins/task-flow/data.json`。删掉这个文件会重置布局和设置，不会影响任何任务。
+
+## 开发
+
+需要 Node.js 22 或更高版本。
+
+```bash
+npm install
+npm run build
+```
+
+构建产物 `main.js`、`manifest.json`、`styles.css` 输出到 `dist/`。想在某个 vault 里试用，把这三个文件拷贝到 `<你的vault>/.obsidian/plugins/task-flow/`。
+
+### 发布新版本
+
+发版由 GitHub Actions 自动构建和发布，流程定义在 `.github/workflows/release.yml`。Obsidian 社区目录会用源码重新构建每个版本，并与发布的 `main.js` 逐字节比对，而本地构建会因换行符和依赖版本不同而对不上，所以不在本地构建发版。
+
+1. 在 `CHANGELOG.md` 里新增一节 `## <版本号>`，写明改动，这一节会成为发布说明。
+2. 在 `manifest.json` 和 `package.json` 里写上同一个版本号，并在 `versions.json` 里加上这个版本号及 `manifest.json` 里的 `minAppVersion`。
+3. 提交并推送。
+4. 推送一个与版本号完全一致的 tag，前面不加 `v`：
+
+   ```bash
+   git tag 0.1.3
+   git push origin 0.1.3
+   ```
+
+流程会先检查 tag 和 `manifest.json` 的版本号是否一致，然后在 Linux 上构建，发布带构建来源证明的 `main.js`、`manifest.json`、`styles.css`。Obsidian 会自动向用户推送更新。只想检查构建是否正常而不发版时，可以在 Actions 页面手动运行这个流程。
 
 ## 许可证
 
