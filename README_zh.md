@@ -69,6 +69,12 @@ Tasks Flowchart 在整行的任意位置读取 `[id:: ]`、`[dependsOn:: ]` 和�
 
 依赖关系只存在笔记里。节点位置、过滤条件、预设和视图设置保存在 `.obsidian/plugins/task-flow/data.json`。删掉这个文件会重置布局和设置，不会影响任何任务。
 
+## 对笔记的修改
+
+Tasks Flowchart 会直接修改你的笔记。连接两个任务时，会给一行任务加上 `[id:: ]` 字段，给另一行加上 `[dependsOn:: ]` 字段；删除依赖时，从 `[dependsOn:: ]` 里去掉对应的一项；把连线拖到空白处松开时，会在出发任务下面插入一行新的 `- [ ] untitled`。插件只改涉及的任务行，笔记里的其他内容保持原样。流程图里没有撤销功能：笔记在编辑器中打开时，可以用 Obsidian 自带的撤销；Obsidian 的核心插件"文件恢复"也会保存快照，可以回退到之前的版本。在重要的笔记上使用之前，请先备份 vault，或者用 git、Obsidian Sync 的版本历史做版本管理。
+
+本插件按原样提供，不作任何形式的担保，详见 [MIT 许可证](LICENSE)。
+
 ## 开发
 
 需要 Node.js 22 或更高版本。运行 `npm install` 和 `npm run build`，构建产物 `main.js`、`manifest.json`、`styles.css` 输出到 `dist/`。发版由 GitHub Actions 根据版本 tag 自动构建和发布，具体步骤写在 `.github/workflows/release.yml` 开头的注释里。
