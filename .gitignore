@@ -4,3 +4,6 @@ task-flow/
 obsidian-tasks-reference/
 
 c_task/
+
+# Local scratch and backups, never committed
+temp_*/

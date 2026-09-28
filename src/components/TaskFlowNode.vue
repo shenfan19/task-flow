@@ -38,7 +38,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watchEffect, onBeforeUnmount } from 'vue';
+import { computed, ref, watch, onBeforeUnmount } from 'vue';
 import { Handle, Position } from '@vue-flow/core';
 import { Component, MarkdownRenderer } from 'obsidian';
 import { useTaskStore } from '../store';
@@ -53,27 +53,21 @@ const props = defineProps({
 
 const taskStore = useTaskStore();
 
-// Tasks plugin's Priority enum string values; '3' (None) is intentionally
-// absent so a normal-priority task just falls back to the uniform appearance
-// settings instead of getting its own color.
-const PRIORITY_STYLES = {
-  '0': { color: '#d32f2f', scale: 1.3 }, // Highest
-  '1': { color: '#f57c00', scale: 1.15 }, // High
-  '2': { color: '#fbc02d', scale: 1.05 }, // Medium
-  '4': { color: '#1976d2', scale: 0.9 }, // Low
-  '5': { color: '#757575', scale: 0.8 } // Lowest
-};
+// The Tasks plugin's six priorities ('0' Highest .. '5' Lowest, '3' None)
+// in three tiers, each with its own font size and background from the Node
+// Style panel. Medium and None share the normal tier.
+const PRIORITY_TIER = { '0': 'high', '1': 'high', '4': 'low', '5': 'low' };
 
 const nodeStyle = computed(() => {
-  const priorityStyle = taskStore.appearance.priorityStyling
-    ? PRIORITY_STYLES[props.data.task.priority]
-    : undefined;
-
+  const a = taskStore.appearance;
+  const tier = PRIORITY_TIER[props.data.task.priority];
+  const background = tier === 'high' ? a.highBg : tier === 'low' ? a.lowBg : a.nodeBg;
+  const fontSize = tier === 'high' ? a.highFontSize : tier === 'low' ? a.lowFontSize : a.fontSize;
   return {
-    background: taskStore.appearance.nodeBg,
-    border: `1px solid ${priorityStyle?.color ?? taskStore.appearance.nodeBorder}`,
-    color: taskStore.appearance.nodeText,
-    fontSize: `${taskStore.appearance.fontSize * (priorityStyle?.scale ?? 1)}px`
+    background,
+    border: `1px solid ${a.nodeBorder}`,
+    color: a.nodeText,
+    fontSize: `${fontSize}px`
   };
 });
 
@@ -85,18 +79,30 @@ onBeforeUnmount(() => mdComponent.unload());
 
 const richTextEl = ref(null);
 
-watchEffect(() => {
-  const app = getApp();
-  if (!taskStore.appearance.richText || !richTextEl.value || !app) return;
-  richTextEl.value.empty();
-  MarkdownRenderer.render(
-    app,
-    props.data.task.name,
-    richTextEl.value,
-    props.data.task.path,
-    mdComponent
-  );
-}, { flush: 'post' });
+// Renders only when the text, its note or the setting actually changes. The
+// graph hands every node a fresh data object whenever anything on it
+// changes, a highlight for instance; re-rendering on that replaced the
+// node's inner elements between the two clicks of a double click, so the
+// browser never reported the double click, and it redrew every node on
+// every click besides.
+// Each value is its own watch source, so Vue compares them one by one; a
+// single getter returning an array would count as changed on every
+// evaluation, since the array is new each time.
+watch(
+  [
+    () => taskStore.appearance.richText,
+    richTextEl,
+    () => props.data.task.name,
+    () => props.data.task.path
+  ],
+  ([richText, el, name, path]) => {
+    const app = getApp();
+    if (!richText || !el || !app) return;
+    el.empty();
+    MarkdownRenderer.render(app, name, el, path, mdComponent);
+  },
+  { flush: 'post', immediate: true }
+);
 </script>
 
 <style scoped>

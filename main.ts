@@ -3,6 +3,7 @@ import { createApp, App as VueApp } from 'vue';
 import { createPinia } from 'pinia';
 import App from './src/App.vue';
 import { setPlugin } from './src/pluginContext';
+import { hasOpenGraph, runViewCommand } from './src/viewCommands';
 
 const VIEW_TYPE_TASK_FLOW = "task-flow-view";
 
@@ -31,6 +32,38 @@ export default class TaskFlowPlugin extends Plugin {
 				void this.activateView();
 			}
 		});
+
+		// The two buttons at the top of the view, as commands so they can
+		// get hotkeys. Offered only while a flowchart is open.
+		this.addCommand({
+			id: 'layout',
+			name: 'Layout',
+			checkCallback: (checking) => {
+				if (!hasOpenGraph()) return false;
+				if (!checking) runViewCommand('layout');
+				return true;
+			}
+		});
+
+		this.addCommand({
+			id: 'overview',
+			name: 'Overview, fit the graph in the view',
+			checkCallback: (checking) => {
+				if (!hasOpenGraph()) return false;
+				if (!checking) runViewCommand('overview');
+				return true;
+			}
+		});
+	}
+
+	// Stops the graph in every open view before this copy of the plugin goes
+	// away, on disable or on update. A view left running kept its refresh
+	// and layout timers, and went on writing data.json alongside the new
+	// copy. The tabs themselves stay open, as Obsidian's guidelines ask.
+	onunload() {
+		for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE_TASK_FLOW)) {
+			if (leaf.view instanceof TaskFlowView) leaf.view.unmountApp();
+		}
 	}
 
 	async activateView() {
@@ -58,7 +91,7 @@ export default class TaskFlowPlugin extends Plugin {
 }
 
 class TaskFlowView extends ItemView {
-	vueApp: VueApp;
+	vueApp: VueApp | null = null;
 
 	constructor(leaf: WorkspaceLeaf) {
 		super(leaf);
@@ -82,8 +115,13 @@ class TaskFlowView extends ItemView {
 	}
 
 	async onClose() {
+		this.unmountApp();
+	}
+
+	unmountApp() {
 		if (this.vueApp) {
 			this.vueApp.unmount();
+			this.vueApp = null;
 		}
 	}
 }

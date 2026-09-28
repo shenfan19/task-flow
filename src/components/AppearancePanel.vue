@@ -1,84 +1,131 @@
 <template>
-  <div class="appearance-panel-wrapper">
-    <button
-      class="btn btn-sm btn-outline-secondary bg-white shadow-sm d-flex align-items-center"
-      @click="isCollapsed = !isCollapsed"
-    >
-      <span class="me-2">Node Style</span>
-      <span>{{ isCollapsed ? '▼' : '▲' }}</span>
-    </button>
-
-    <div v-show="!isCollapsed" class="appearance-panel-content bg-white border rounded shadow-sm p-3 mt-2">
-      <div class="mb-2">
-        <label class="form-label text-muted small fw-bold mb-1 d-block">Background</label>
-        <input type="color" :value="taskStore.appearance.nodeBg" @input="onColorChange('nodeBg', $event)">
-      </div>
-      <div class="mb-2">
-        <label class="form-label text-muted small fw-bold mb-1 d-block">Border</label>
-        <input type="color" :value="taskStore.appearance.nodeBorder" @input="onColorChange('nodeBorder', $event)">
-      </div>
-      <div class="mb-2">
-        <label class="form-label text-muted small fw-bold mb-1 d-block">Text Color</label>
-        <input type="color" :value="taskStore.appearance.nodeText" @input="onColorChange('nodeText', $event)">
-      </div>
-      <div class="mb-2">
-        <label class="form-label text-muted small fw-bold mb-1 d-block">Font Size (px)</label>
-        <input
-          type="number"
-          min="10"
-          max="24"
-          :value="taskStore.appearance.fontSize"
-          @input="taskStore.updateAppearance({ fontSize: Number($event.target.value) })"
-        >
-      </div>
-      <div class="form-check">
-        <input
-          class="form-check-input"
-          type="checkbox"
-          id="richTextToggle"
-          :checked="taskStore.appearance.richText"
-          @change="taskStore.updateAppearance({ richText: $event.target.checked })"
-        >
-        <label class="form-check-label" for="richTextToggle">Rich text</label>
-      </div>
-      <div class="form-check">
-        <input
-          class="form-check-input"
-          type="checkbox"
-          id="priorityStylingToggle"
-          :checked="taskStore.appearance.priorityStyling"
-          @change="taskStore.updateAppearance({ priorityStyling: $event.target.checked })"
-        >
-        <label class="form-check-label" for="priorityStylingToggle">Color/size by priority</label>
-      </div>
-      <div class="form-check">
-        <input
-          class="form-check-input"
-          type="checkbox"
-          id="showTagsToggle"
-          :checked="taskStore.appearance.showTags"
-          @change="taskStore.updateAppearance({ showTags: $event.target.checked })"
-        >
-        <label class="form-check-label" for="showTagsToggle">Show tags</label>
-      </div>
+  <RailCard title="Node Style">
+    <div class="ft-style-row">
+      <label for="nodeBorderColor">Border</label>
+      <input id="nodeBorderColor" type="color" :value="taskStore.appearance.nodeBorder" @input="setValue('nodeBorder', $event)">
+      <label for="nodeTextColor">Text</label>
+      <input id="nodeTextColor" type="color" :value="taskStore.appearance.nodeText" @input="setValue('nodeText', $event)">
+      <label for="highlightColor">Highlight</label>
+      <input id="highlightColor" type="color" :value="taskStore.appearance.highlightColor" @input="setValue('highlightColor', $event)">
     </div>
-  </div>
+
+    <!-- Font size and background by priority. The Tasks plugin's six
+         priorities fall into three tiers, see PRIORITY_TIER in
+         TaskFlowNode.vue; the normal tier covers tasks with no priority. -->
+    <div class="ft-tier-grid">
+      <span></span>
+      <span class="ft-tier-head">Font size</span>
+      <span class="ft-tier-head">Background</span>
+      <template v-for="tier in TIERS" :key="tier.label">
+        <span class="ft-tier-label">{{ tier.label }}</span>
+        <span class="ft-tier-size">
+          <input
+            type="number"
+            min="8"
+            max="32"
+            :value="taskStore.appearance[tier.size]"
+            @input="setNumber(tier.size, $event)"
+          >
+          <span>px</span>
+        </span>
+        <input type="color" :value="taskStore.appearance[tier.bg]" @input="setValue(tier.bg, $event)">
+      </template>
+    </div>
+
+    <div class="form-check">
+      <input
+        class="form-check-input"
+        type="checkbox"
+        id="richTextToggle"
+        :checked="taskStore.appearance.richText"
+        @change="taskStore.updateAppearance({ richText: $event.target.checked })"
+      >
+      <label class="form-check-label" for="richTextToggle">Rich text</label>
+    </div>
+    <div class="form-check">
+      <input
+        class="form-check-input"
+        type="checkbox"
+        id="showTagsToggle"
+        :checked="taskStore.appearance.showTags"
+        @change="taskStore.updateAppearance({ showTags: $event.target.checked })"
+      >
+      <label class="form-check-label" for="showTagsToggle">Show tags</label>
+    </div>
+  </RailCard>
 </template>
 
 <script setup>
-import { ref } from 'vue';
 import { useTaskStore } from '../store';
+import RailCard from './RailCard.vue';
 
 const taskStore = useTaskStore();
-const isCollapsed = ref(true);
 
-const onColorChange = (key, event) => {
+// Appearance keys of each priority tier. The normal tier keeps the original
+// fontSize / nodeBg keys, so settings saved before tiers existed still apply.
+const TIERS = [
+  { label: 'High', size: 'highFontSize', bg: 'highBg' },
+  { label: 'Normal', size: 'fontSize', bg: 'nodeBg' },
+  { label: 'Low', size: 'lowFontSize', bg: 'lowBg' }
+];
+
+const setValue = (key, event) => {
   taskStore.updateAppearance({ [key]: event.target.value });
+};
+
+const setNumber = (key, event) => {
+  const value = Number(event.target.value);
+  if (value > 0) taskStore.updateAppearance({ [key]: value });
 };
 </script>
 
 <style scoped>
-.appearance-panel-content {
-  width: 220px;
+.ft-style-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  row-gap: 4px;
+}
+
+.ft-style-row label + input {
+  margin-right: 10px;
+}
+
+.ft-tier-grid {
+  display: grid;
+  grid-template-columns: auto auto auto;
+  align-items: center;
+  justify-content: start;
+  column-gap: 12px;
+  row-gap: 4px;
+}
+
+.ft-tier-head {
+  color: var(--text-muted, #666);
+  font-size: 11px;
+}
+
+.ft-tier-label {
+  font-weight: 600;
+}
+
+.ft-tier-size {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.ft-tier-size input {
+  width: 48px;
+}
+
+input[type='color'] {
+  width: 28px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
 }
 </style>

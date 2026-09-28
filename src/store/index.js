@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia';
+import { Notice } from 'obsidian';
 import { TasksPluginAPI } from '../api/TasksPluginAPI';
 import { getApp, getPlugin } from '../pluginContext';
 import { stableTaskId } from '../utils/hash';
@@ -87,6 +88,45 @@ function taskDay(t, fields) {
   return null;
 }
 
+// The filter settings a preset stores, copied so later edits to the live
+// filters do not reach into the preset.
+const filterSnapshot = (f) => ({
+  directories: [...f.directories],
+  directoryMode: f.directoryMode,
+  status: { ...f.status },
+  onlyRelated: f.onlyRelated,
+  tags: [...f.tags],
+  tagMode: f.tagMode,
+  excludeText: f.excludeText
+});
+
+// data.json holds every node position, so it runs to hundreds of KB in a
+// large vault. Saves requested within this window are merged into one
+// write, and writes run one after another: many overlapping writes of a file
+// that size left it empty or cut short, and the next load then failed.
+const SAVE_DELAY_MS = 500;
+let saveTimer = null;
+let writing = Promise.resolve();
+
+// Keeps a copy of a data.json that could not be parsed, so the next save
+// does not destroy whatever can still be recovered from it by hand.
+async function setAsideUnreadableData(plugin) {
+  const adapter = plugin.app.vault.adapter;
+  const dir = plugin.manifest.dir;
+  if (!dir) return null;
+  try {
+    const raw = await adapter.read(`${dir}/data.json`);
+    const copy = `${dir}/data-unreadable-${Date.now()}.json`;
+    await adapter.write(copy, raw);
+    return copy;
+  } catch {
+    return null;
+  }
+}
+
+// The preset that always exists and cannot be deleted.
+export const DEFAULT_PRESET_ID = 'default';
+
 // Ids listed in a dependsOn field value, e.g. "abc123,def456".
 const splitIds = (value) => (value ?? '').split(',').map((s) => s.trim()).filter(Boolean);
 
@@ -107,23 +147,30 @@ export const useTaskStore = defineStore('task', {
         tagMode: 'include', // 'include': only tasks with any checked tag; 'exclude': hide tasks with any checked tag
         excludeText: '' // comma-separated keywords; a task whose line contains any of them is hidden
       },
-      filterPresets: [], // [{id, name, directories, directoryMode, status}], persisted via saveState
+      filterPresets: [], // [{id, name, ...filterSnapshot}], always starting with the Default preset, see loadState
+      selectedPresetId: DEFAULT_PRESET_ID, // the preset shown in the Presets card; Save writes the filters into it
       appearance: {
         nodeBg: '#ffffff',
         nodeBorder: '#0d6efd',
         nodeText: '#212529',
         fontSize: 12,
-        richText: false, // off by default: skips the MarkdownRenderer call entirely, not just hides its output
-        priorityStyling: false, // off by default: when on, priority overrides border color + node size (see TaskFlowNode.vue)
+        // Font size and background of the high and low priority tiers; the
+        // normal tier uses fontSize and nodeBg above (see TaskFlowNode.vue).
+        highFontSize: 15,
+        highBg: '#fff1e0',
+        lowFontSize: 11,
+        lowBg: '#eef0f3',
+        highlightColor: '#f59e0b', // glow around a clicked node and its links
+        richText: true, // task text rendered as Markdown; off skips the MarkdownRenderer call entirely
         showTags: true // colored tag chips under each node's text
       },
       viewSettings: {
         layoutDirection: 'TB', // dagre rankdir: TB/BT/LR/RL
         edgeType: 'default', // vue-flow edge type: default(bezier)/straight/smoothstep
-        autoLayoutEnabled: false, // off by default: re-running dagre on a timer repositions every node, which visibly jumps
-        autoLayoutInterval: 30, // seconds
         autoRefreshEnabled: true, // preserves the previous always-on behavior
         autoRefreshInterval: 30, // seconds
+        clickAction: 'highlight', // what a single click on a node does: 'highlight', 'focus' or 'open' (see runNodeAction)
+        doubleClickAction: 'open', // the same choice for a double click
         timeAxis: false // when on, nodes are ordered along the flow direction by date (see layoutWithTimeAxis)
       },
       // {direction, anchors} from the last time-axis layout, which is what
@@ -161,6 +208,17 @@ export const useTaskStore = defineStore('task', {
         const hasIncoming = task.pluginId && this.referencedPluginIds.has(task.pluginId);
         return hasOutgoing || hasIncoming;
       });
+    },
+    selectedPreset() {
+      return this.filterPresets.find((p) => p.id === this.selectedPresetId) ?? null;
+    },
+    // True when the filters differ from the selected preset, i.e. there is
+    // something for Save to store.
+    presetModified() {
+      const preset = this.selectedPreset;
+      if (!preset) return false;
+      const { id, name, ...saved } = preset;
+      return JSON.stringify(filterSnapshot({ ...this.filters, ...saved })) !== JSON.stringify(filterSnapshot(this.filters));
     },
     // tag -> hue for every tag in the vault, see utils/tagColor.js.
     tagHues() {
@@ -247,7 +305,14 @@ export const useTaskStore = defineStore('task', {
     async loadState() {
       const plugin = getPlugin();
       if (!plugin) return;
-      const data = await plugin.loadData();
+      let data = null;
+      try {
+        data = await plugin.loadData();
+      } catch (error) {
+        console.error('Tasks Flowchart: could not read data.json', error);
+        const copy = await setAsideUnreadableData(plugin);
+        new Notice(`Tasks Flowchart: saved positions and settings could not be read${copy ? ` and were copied to ${copy}` : ''}. Starting with defaults.`);
+      }
       // data.json used to be a flat {id: {x,y}} positions map; fall back to
       // treating the whole object as positions if it isn't in the new shape.
       this.positions = data?.positions ?? data ?? {};
@@ -255,10 +320,19 @@ export const useTaskStore = defineStore('task', {
         this.appearance = { ...this.appearance, ...data.appearance };
       }
       if (data?.viewSettings) {
-        this.viewSettings = { ...this.viewSettings, ...data.viewSettings };
+        // clickToOpen, autoLayoutEnabled and autoLayoutInterval belong to
+        // settings that no longer exist and are dropped here.
+        // eslint-disable-next-line no-unused-vars
+        const { clickToOpen, autoLayoutEnabled, autoLayoutInterval, ...saved } = data.viewSettings;
+        this.viewSettings = { ...this.viewSettings, ...saved };
+        // The earlier "Click to open" checkbox, carried over to Click.
+        if (clickToOpen && !saved.clickAction) this.viewSettings.clickAction = 'open';
       }
       if (data?.filterPresets) {
         this.filterPresets = data.filterPresets;
+      }
+      if (data?.selectedPresetId) {
+        this.selectedPresetId = data.selectedPresetId;
       }
       if (data?.filters) {
         this.filters = {
@@ -270,6 +344,12 @@ export const useTaskStore = defineStore('task', {
       if (data?.timeAxisInfo) {
         this.timeAxisInfo = data.timeAxisInfo;
       }
+      // Default is made from the filters in use when it first appears, so
+      // upgrading does not change what anyone sees.
+      if (!this.filterPresets.some((p) => p.id === DEFAULT_PRESET_ID)) {
+        this.filterPresets.unshift({ id: DEFAULT_PRESET_ID, name: 'Default', ...filterSnapshot(this.filters) });
+      }
+      if (!this.selectedPreset) this.selectedPresetId = DEFAULT_PRESET_ID;
     },
     fetchTasksFromObsidian() {
       const app = getApp();
@@ -347,38 +427,41 @@ export const useTaskStore = defineStore('task', {
       this.timeAxisInfo = info;
       this.saveState();
     },
+    // View settings change one click at a time, so they are written at once
+    // rather than after SAVE_DELAY_MS: a choice made just before Obsidian
+    // closes is not lost.
     updateViewSettings(partial) {
       this.viewSettings = { ...this.viewSettings, ...partial };
+      void this.flushState();
+    },
+    // A new preset holding the current filters, which becomes the selected one.
+    createFilterPreset(name) {
+      const id = Date.now().toString(36);
+      this.filterPresets.push({ id, name, ...filterSnapshot(this.filters) });
+      this.selectedPresetId = id;
       this.saveState();
     },
-    saveFilterPreset(name) {
-      this.filterPresets.push({
-        id: Date.now().toString(36),
-        name,
-        directories: [...this.filters.directories],
-        directoryMode: this.filters.directoryMode,
-        status: { ...this.filters.status },
-        onlyRelated: this.filters.onlyRelated,
-        tags: [...this.filters.tags],
-        tagMode: this.filters.tagMode,
-        excludeText: this.filters.excludeText
-      });
+    // Stores the current filters in the selected preset.
+    saveFilterPreset() {
+      const preset = this.selectedPreset;
+      if (!preset) return;
+      Object.assign(preset, filterSnapshot(this.filters));
       this.saveState();
     },
+    // Selects a preset and loads its filters.
     applyFilterPreset(id) {
       const preset = this.filterPresets.find((p) => p.id === id);
       if (!preset) return;
-      this.filters.directories = [...preset.directories];
-      this.filters.directoryMode = preset.directoryMode;
-      this.filters.status = { ...preset.status };
-      if (preset.onlyRelated !== undefined) this.filters.onlyRelated = preset.onlyRelated;
-      this.filters.tags = [...(preset.tags ?? [])];
-      this.filters.tagMode = preset.tagMode ?? 'include';
-      this.filters.excludeText = preset.excludeText ?? '';
-    },
-    deleteFilterPreset(id) {
-      this.filterPresets = this.filterPresets.filter((p) => p.id !== id);
+      this.selectedPresetId = id;
+      const defaults = { onlyRelated: this.filters.onlyRelated, tags: [], tagMode: 'include', excludeText: '' };
+      Object.assign(this.filters, filterSnapshot({ ...defaults, ...preset }));
       this.saveState();
+    },
+    // Deletes a preset other than Default, then goes back to Default.
+    deleteFilterPreset(id) {
+      if (id === DEFAULT_PRESET_ID) return;
+      this.filterPresets = this.filterPresets.filter((p) => p.id !== id);
+      this.applyFilterPreset(DEFAULT_PRESET_ID);
     },
     // Drawing an edge from `source` to `target` on the canvas means "target
     // depends on source" — writes real 🆔/⛔ tags back to both files (giving
@@ -492,7 +575,27 @@ export const useTaskStore = defineStore('task', {
 
       return { path: origin.path, lineNumber: created.lineNumber, name };
     },
-    async saveState() {
+    // Asks for a save; see SAVE_DELAY_MS.
+    saveState() {
+      if (saveTimer) activeWindow.clearTimeout(saveTimer);
+      saveTimer = activeWindow.setTimeout(() => {
+        saveTimer = null;
+        void this.flushState();
+      }, SAVE_DELAY_MS);
+    },
+    // Writes a pending save now, e.g. when the view closes. Resolves once
+    // every write asked for so far has finished.
+    flushState() {
+      if (saveTimer) {
+        activeWindow.clearTimeout(saveTimer);
+        saveTimer = null;
+      }
+      writing = writing
+        .then(() => this.writeState())
+        .catch((error) => console.error('Tasks Flowchart: could not save data.json', error));
+      return writing;
+    },
+    async writeState() {
       const plugin = getPlugin();
       if (!plugin) return;
       await plugin.saveData({
@@ -500,6 +603,7 @@ export const useTaskStore = defineStore('task', {
         appearance: this.appearance,
         viewSettings: this.viewSettings,
         filterPresets: this.filterPresets,
+        selectedPresetId: this.selectedPresetId,
         filters: this.filters,
         timeAxisInfo: this.timeAxisInfo
       });

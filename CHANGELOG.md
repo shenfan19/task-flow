@@ -1,5 +1,41 @@
 # Changelog
 
+## 0.2.0
+
+### Added
+
+- Clicking a node gives it and its arrows a glowing outline, and clicking an arrow lights up that arrow, without changing anything else. The color is set with **Highlight** in Node Style.
+- **Focus chain** in a node's right-click menu keeps the node's whole chain, every task it depends on and every task that depends on it, at full strength and fades the rest. Clicking empty canvas clears the highlight and the focus.
+- Right-click menus. A node offers the same three actions as a click, **Highlight**, **Focus chain** and **Open task**, plus clearing the highlight and focus; an arrow offers opening the task at either end and **Delete link**.
+- **Layout** and **Overview** commands, so both can be given hotkeys.
+- **Click** and **Double-click** in View Control set what each does to a node: **Highlight**, **Focus chain**, or **Open task**, which opens it and highlights it. By default a click highlights and a double click opens.
+- **Presets** is a card of its own at the top of the left rail and always open. Choosing a preset loads its filters, **Save** stores the current filters in it, and **New…** in the list asks for a name and saves the current filters as a new preset. A `*` after the name shows that the filters were changed since the last save.
+- A **Default** preset that is always there and cannot be deleted. It starts from the filters in use when you update, so nothing changes on screen.
+- **Node Style** sets a font size and a background for three priority tiers: High for highest and high priority, Normal for medium and no priority, Low for low and lowest priority.
+
+### Changed
+
+- Double-clicking the canvas no longer zooms in, since a double click on a node now has its own action. Zoom with the mouse wheel or a pinch.
+- A task opens with a double click or from its right-click menu. A single click only highlights, so looking around the graph no longer opens notes.
+- **Layout** and **Overview** are two highlighted buttons at the top of the rail, always in sight.
+- **View Control** comes right after **Presets** and starts unfolded.
+- The panels on the left are framed cards of the same width, each folded and unfolded from its title bar, and a long card scrolls inside itself.
+- The layout direction and arrow style lists show a dropdown arrow, so they no longer look like buttons.
+- **Time axis** sits below **Refresh** in View Control.
+- In Node Style, each color and font size sits on the same line as its label.
+- Rich text and tags are on by default.
+
+### Removed
+
+- Layout on a timer. Layout runs when you click **Layout**, so the graph no longer jumps every few seconds.
+- **Color/size by priority**, replaced by the priority tiers. Priority no longer changes the border color.
+
+### Fixed
+
+- Positions and settings are saved at most once every half second, one write at a time. A layout used to save once per node, so a large vault could have hundreds of writes of `data.json` running at once, which left the file empty or cut short.
+- The view opens even when `data.json` cannot be read. The unreadable file is copied to `data-unreadable-<time>.json` next to it, and the view starts with default settings instead of showing nothing.
+- Disabling or updating the plugin stops the graph in open views. Before, a view could keep refreshing and saving from the old copy of the plugin until Obsidian was restarted.
+
 ## 0.1.8
 
 ### Fixed

@@ -39,21 +39,25 @@ Three lines like these become three connected nodes:
 
 1. Install and enable the [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) plugin. Tasks Flowchart reads its Dataview-style fields `[id:: ]` and `[dependsOn:: ]`. The emoji format `🆔` and `⛔` is not supported yet.
 2. Install Tasks Flowchart from **Settings → Community plugins → Browse**. To install manually, copy `main.js`, `manifest.json` and `styles.css` from the [latest release](https://github.com/shenfan19/task-flow/releases/latest) into `<your-vault>/.obsidian/plugins/task-flow/`.
-3. Click **Open tasks flowchart** in the left ribbon, or run **Tasks Flowchart: Open flowchart**. In **View Control**, click **Layout**, then **Overview**.
+3. Click **Open tasks flowchart** in the left ribbon, or run **Tasks Flowchart: Open flowchart**. Click **Layout** at the top left, then **Overview**.
 
-All settings live in the three panels on the left of the view, **File Filters**, **View Control** and **Node Style**.
+All settings live in the cards on the left of the view, **Presets**, **View Control**, **File Filters** and **Node Style**, below the **Layout** and **Overview** buttons.
 
 ## Usage
 
 - **Link**: drag from a node's downstream side, the bottom in a top to bottom layout, or from its left or right side onto another node. That node now depends on the first one. Drag from the upstream side instead to make the first node depend on the other. A missing `[id:: ]` is generated for you.
-- **Unlink**: click an arrow and press Delete or Backspace.
+- **Unlink**: right-click an arrow and choose **Delete link**, or click it and press Delete or Backspace.
 - **Create**: let go on empty canvas instead of on a node. A line `- [ ] untitled` is added below the original task and its subtasks, linked by the same rule, and opened in a side pane with `untitled` selected, so you can type the name right away. Further ones are numbered `untitled2`, `untitled3` and so on, one word each so a double-click selects the whole name, and the Tasks plugin's global filter tag is added if you use one.
-- **Open**: click a node to open its note in a side pane with the cursor at the end of the task's name, ready to type. A name still left as `untitled` is selected instead, so typing replaces it.
-- **Arrange**: drag nodes freely, and their positions are remembered. **Layout** arranges everything in the chosen direction with curved, straight or stepped arrows, once or on a timer, and **Overview** fits the graph on screen.
+- **Highlight**: click a node to give it and its arrows a glowing outline, or click an arrow to light up just that arrow. Nothing else on the graph changes. The color is **Highlight** in Node Style.
+- **Focus**: right-click a node and choose **Focus chain** to keep its whole chain, every task it depends on and every task that depends on it, at full strength while the rest of the graph fades. Click empty canvas to clear the highlight and the focus.
+- **Open**: double-click a node, or right-click it and choose **Open task**, to open its note in a side pane with the cursor at the end of the task's name, ready to type. A name still left as `untitled` is selected instead, so typing replaces it. **Click** and **Double-click** in View Control set what each does to a node, **Highlight**, **Focus chain** or **Open task**. By default a click highlights and a double click opens. Right-click an arrow to open the task at either end.
+- **Commands**: **Tasks Flowchart: Layout** and **Tasks Flowchart: Overview, fit the graph in the view** do the same as the two buttons and can be given hotkeys in **Settings → Hotkeys**.
+- **Arrange**: drag nodes freely, and their positions are remembered. **Layout** arranges everything in the chosen direction with curved, straight or stepped arrows, and **Overview** fits the graph on screen. Both buttons sit at the top of the rail on the left.
 - **Time axis**: each task is placed by its done, scheduled or due date. Tasks sharing a date line up, undated tasks fall between their neighbors, and the ruler marks each task's date and stretches with the tasks in between. A red line marks today, a red arrow marks a task dated before one it depends on, and dated nodes can only be dragged sideways.
-- **Filter**: in **File Filters**, show only tasks with a dependency link, which is on by default, hide tasks containing keywords such as `archived on`, and filter by status, tag or folder. Filters are kept between sessions and can be saved as named presets.
-- **Style**: in **Node Style**, set colors and font size, render task text as Markdown, show tags as chips with automatic colors, and color and size nodes by priority.
-- **Refresh**: the graph follows your edits. A few seconds after you change a task line and the note is saved, its node shows the new text in the same place. Tasks also reload every 30 seconds by default, or with **Refresh** in **View Control**, and refreshing and automatic layout wait while you drag.
+- **Filter**: in **File Filters**, show only tasks with a dependency link, which is on by default, hide tasks containing keywords such as `archived on`, and filter by status, tag or folder. Filters are kept between sessions.
+- **Presets**: pick a saved set of filters in **Presets** to load it. **Save** stores the current filters in the selected preset, and **New…** saves them as a new one. **Default** is always there.
+- **Style**: in **Node Style**, set the border and text colors, give high, normal and low priority tasks their own font size and background, render task text as Markdown, and show tags as chips with automatic colors.
+- **Refresh**: the graph follows your edits. A few seconds after you change a task line and the note is saved, its node shows the new text in the same place. Tasks also reload every 30 seconds by default, or with **Refresh** in **View Control**, and refreshing waits while you drag.
 
 ## Troubleshooting
 

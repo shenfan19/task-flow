@@ -1,27 +1,35 @@
 <template>
   <div class="position-relative w-100 h-100 ft-graph-root">
-    <!-- Left button rail: filters, view controls, node appearance -->
+    <!-- Left rail: the Layout and Overview buttons, then filter presets,
+         view controls, filters and node appearance -->
     <div class="ft-left-rail">
-      <FilterPanel />
+      <ActionBar @layout="onLayoutClick" @overview="onOverviewClick" />
+      <PresetPanel />
       <ViewControlPanel
-        @overview="onOverviewClick"
-        @layout="onLayoutClick"
         @direction-change="onLayoutDirectionChange"
         @edge-type-change="onEdgeTypeChange"
         @time-axis-change="onTimeAxisChange"
       />
+      <FilterPanel />
       <AppearancePanel />
     </div>
 
     <!-- Graph Container (Full Size) -->
-    <div class="w-100 h-100 bg-white ft-graph-container">
+    <div class="w-100 h-100 bg-white ft-graph-container" :style="{ '--ft-highlight': taskStore.appearance.highlightColor }">
       <VueFlow
         :nodes="nodes"
         :edges="edges"
         :default-edge-options="defaultEdgeOptions"
         :delete-key-code="DELETE_KEYS"
+        :zoom-on-double-click="false"
+        :node-types="NODE_TYPES"
         class="w-100 h-100"
         @node-click="onNodeClick"
+        @node-double-click="onNodeDoubleClick"
+        @node-context-menu="onNodeContextMenu"
+        @edge-click="onEdgeClick"
+        @edge-context-menu="onEdgeContextMenu"
+        @pane-click="clearAll"
         @node-drag-start="onNodeDragStart"
         @node-drag="onNodeDrag"
         @node-drag-stop="onNodeDragStop"
@@ -30,9 +38,6 @@
         @connect-end="onConnectEnd"
         @edges-change="onEdgesChange"
       >
-        <template #node-task="taskNodeProps">
-          <TaskFlowNode v-bind="taskNodeProps" />
-        </template>
         <Background />
         <TimeAxisRuler
           v-if="taskStore.viewSettings.timeAxis && taskStore.timeAxisInfo?.anchors"
@@ -44,14 +49,17 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, watch } from 'vue';
+import { computed, markRaw, onMounted, onUnmounted, ref, watch } from 'vue';
 import { VueFlow, MarkerType, useVueFlow } from '@vue-flow/core';
 import { Background } from '@vue-flow/background';
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
 import { useTaskStore, isPlaceholderTaskName } from '../store';
-import { MarkdownView } from 'obsidian';
+import { MarkdownView, Menu } from 'obsidian';
 import { getApp } from '../pluginContext';
+import { onViewCommand } from '../viewCommands';
+import ActionBar from './ActionBar.vue';
+import PresetPanel from './PresetPanel.vue';
 import FilterPanel from './FilterPanel.vue';
 import ViewControlPanel from './ViewControlPanel.vue';
 import AppearancePanel from './AppearancePanel.vue';
@@ -88,16 +96,86 @@ watch(
 // people reach for first to remove a selected edge.
 const DELETE_KEYS = ['Backspace', 'Delete'];
 
+// Node components are registered here rather than through a
+// <template #node-task> slot. A slot is a new function each time this view
+// renders, and Vue Flow took each new one for a different component, so
+// every render, a click's highlight included, unmounted and remounted every
+// node. That replaced the element under the pointer between the two clicks
+// of a double click, so the browser never reported a double click.
+const NODE_TYPES = { task: markRaw(TaskFlowNode) };
+
 const defaultEdgeOptions = {
   markerEnd: MarkerType.ArrowClosed
 };
+
+// Highlight: what a click has picked out, {nodeIds, edgeIds} drawn with a
+// glowing outline in the Highlight color while the rest of the graph stays
+// as it is. A clicked node lights up with its own links; a clicked edge
+// lights up alone. Null for nothing picked.
+const highlight = ref(null);
+
+// Focus: a node's whole chain, everything it depends on and everything that
+// depends on it, {nodeIds, edgeIds} kept at full strength while the rest
+// fades. Chosen from a node's menu. Null for no focus.
+const focus = ref(null);
+
+const clearAll = () => {
+  highlight.value = null;
+  focus.value = null;
+};
+
+const highlightNode = (id) => {
+  const edgeIds = new Set(
+    taskStore.filteredEdges.filter((e) => e.source === id || e.target === id).map((e) => e.id)
+  );
+  highlight.value = { nodeIds: new Set([id]), edgeIds };
+};
+
+const highlightEdge = (edge) => {
+  highlight.value = { nodeIds: new Set(), edgeIds: new Set([edge.id]) };
+};
+
+// Walks the visible edges from `id` both ways.
+const chainOf = (id) => {
+  const nodeIds = new Set([id]);
+  const edgeIds = new Set();
+  const walk = (from, forward) => {
+    const stack = [from];
+    while (stack.length) {
+      const current = stack.pop();
+      for (const edge of taskStore.filteredEdges) {
+        const [here, there] = forward ? [edge.source, edge.target] : [edge.target, edge.source];
+        if (here !== current) continue;
+        edgeIds.add(edge.id);
+        if (!nodeIds.has(there)) {
+          nodeIds.add(there);
+          stack.push(there);
+        }
+      }
+    }
+  };
+  walk(id, true);
+  walk(id, false);
+  return { nodeIds, edgeIds };
+};
+
+const focusChain = (id) => {
+  focus.value = chainOf(id);
+};
+
+// Class names for a node or edge from the current highlight and focus.
+const markClasses = (set, id) => [
+  highlight.value?.[set].has(id) ? 'ft-glow' : '',
+  focus.value && !focus.value[set].has(id) ? 'ft-faded' : ''
+].filter(Boolean).join(' ');
 
 const nodes = computed(() =>
   taskStore.filteredTasks.map((task) => ({
     id: task.id,
     type: 'task',
     position: task.position,
-    data: { task }
+    data: { task },
+    class: markClasses('nodeIds', task.id)
   }))
 );
 
@@ -151,11 +229,15 @@ const edges = computed(() => {
       ? pickHandles(source.position, target.position, layoutDirection)
       : HANDLES_BY_DIRECTION.bottom;
     const backward = timeAxis && source?.day != null && target?.day != null && target.day < source.day;
+    // A highlighted edge takes the Highlight color, arrowhead included;
+    // otherwise a backward edge on the time axis is red.
+    const glow = highlight.value?.edgeIds.has(edge.id);
+    const color = glow ? taskStore.appearance.highlightColor : backward ? BACKWARD_EDGE_COLOR : null;
     return {
       ...edge,
-      ...(backward && {
-        style: { stroke: BACKWARD_EDGE_COLOR },
-        markerEnd: { type: MarkerType.ArrowClosed, color: BACKWARD_EDGE_COLOR }
+      ...(color && {
+        style: { stroke: color },
+        markerEnd: { type: MarkerType.ArrowClosed, color }
       }),
       sourceHandle: handles.source,
       targetHandle: handles.target,
@@ -163,7 +245,8 @@ const edges = computed(() => {
       // Flow only applies default-edge-options the first time an edge id is
       // created; switching the dropdown afterwards would otherwise silently
       // do nothing to edges that already exist.
-      type: taskStore.viewSettings.edgeType
+      type: taskStore.viewSettings.edgeType,
+      class: markClasses('edgeIds', edge.id)
     };
   });
 });
@@ -242,13 +325,61 @@ const EDITOR_SYNC_INTERVAL_MS = 50;
 // user can type straight away. A name still left as the placeholder given
 // to new tasks is selected, to be typed over; any other name gets the
 // cursor at its end, so a stray key press cannot wipe it out.
-const onNodeClick = async (event) => {
-  const task = taskStore.filteredTasks.find((t) => t.id === event.node.id);
+const openTask = async (id) => {
+  const task = taskStore.filteredTasks.find((t) => t.id === id);
   if (!task) return;
   await openInSidePane(task.path, task.originalTask?.taskLocation?.lineNumber, {
     text: task.name,
     select: isPlaceholderTaskName(task.name)
   });
+};
+
+// Click and Double-click in View Control each pick one of: highlight the
+// node, focus its chain, or open it, which also highlights it so the open
+// task is easy to find. By default a click highlights, so looking around
+// the graph never pulls notes open, and a double click opens. The browser
+// sends two clicks before every double click, so the click action always
+// runs first.
+const runNodeAction = async (action, id) => {
+  if (action === 'focus') {
+    focusChain(id);
+    return;
+  }
+  highlightNode(id);
+  if (action === 'open') await openTask(id);
+};
+
+const onNodeClick = (event) => runNodeAction(taskStore.viewSettings.clickAction, event.node.id);
+
+const onNodeDoubleClick = (event) => runNodeAction(taskStore.viewSettings.doubleClickAction, event.node.id);
+
+const onEdgeClick = ({ edge }) => highlightEdge(edge);
+
+const onNodeContextMenu = ({ event, node }) => {
+  event.preventDefault();
+  const menu = new Menu();
+  // The same three actions as Click and Double-click in View Control.
+  menu.addItem((item) => item.setTitle('Highlight').setIcon('sparkles').onClick(() => runNodeAction('highlight', node.id)));
+  menu.addItem((item) => item.setTitle('Focus chain').setIcon('focus').onClick(() => runNodeAction('focus', node.id)));
+  menu.addItem((item) => item.setTitle('Open task').setIcon('file-text').onClick(() => runNodeAction('open', node.id)));
+  if (highlight.value || focus.value) {
+    menu.addSeparator();
+    menu.addItem((item) => item.setTitle('Clear highlight and focus').setIcon('eraser').onClick(clearAll));
+  }
+  menu.showAtMouseEvent(event);
+};
+
+const onEdgeContextMenu = ({ event, edge }) => {
+  event.preventDefault();
+  const menu = new Menu();
+  menu.addItem((item) => item.setTitle('Open upstream task').setIcon('arrow-up').onClick(() => openTask(edge.source)));
+  menu.addItem((item) => item.setTitle('Open downstream task').setIcon('arrow-down').onClick(() => openTask(edge.target)));
+  menu.addSeparator();
+  menu.addItem((item) => item.setTitle('Delete link').setIcon('trash').onClick(() => {
+    if (highlight.value?.edgeIds.has(edge.id)) highlight.value = null;
+    taskStore.disconnectTasks(edge.source, edge.target);
+  }));
+  menu.showAtMouseEvent(event);
 };
 
 // With the time axis on, a dated node's coordinate along the flow direction
@@ -307,11 +438,10 @@ const runAutoLayout = () => {
   taskStore.setTimeAxisInfo(timed ? timed.info : null);
 };
 
-// The manual button also re-centers the view, since a fresh layout can move
-// nodes outside what's currently visible. The periodic auto-layout timer
-// deliberately skips this — yanking the camera every interval would be its
-// own kind of jarring — so Overview stays as the non-destructive, layout-only
-// way to re-center.
+// Layout also re-centers the view, since a fresh layout can move nodes
+// outside what's currently visible. Layout only runs when asked for: a
+// layout on a timer made the whole graph jump every few seconds, and saved
+// every node's position each time.
 const onLayoutClick = () => {
   runAutoLayout();
   fitView({ padding: 0.2 });
@@ -434,22 +564,6 @@ const restartRefreshTimer = () => {
   }
 };
 
-// Off by default: unlike the refresh above, this genuinely repositions every
-// node on each tick, so enabling it trades a live-tidying graph for visible
-// jumps at whatever interval is set.
-let layoutTimer = null;
-
-const restartLayoutTimer = () => {
-  if (layoutTimer) activeWindow.clearInterval(layoutTimer);
-  layoutTimer = null;
-  if (taskStore.viewSettings.autoLayoutEnabled) {
-    layoutTimer = activeWindow.setInterval(() => {
-      if (isInteracting()) return;
-      runAutoLayout();
-    }, taskStore.viewSettings.autoLayoutInterval * 1000);
-  }
-};
-
 // Filters are edited in place by the filter panel's inputs rather than
 // through store actions, so they are saved from here whenever they change.
 watch(() => taskStore.filters, () => taskStore.saveState(), { deep: true });
@@ -457,10 +571,6 @@ watch(() => taskStore.filters, () => taskStore.saveState(), { deep: true });
 watch(
   () => [taskStore.viewSettings.autoRefreshEnabled, taskStore.viewSettings.autoRefreshInterval],
   restartRefreshTimer
-);
-watch(
-  () => [taskStore.viewSettings.autoLayoutEnabled, taskStore.viewSettings.autoLayoutInterval],
-  restartLayoutTimer
 );
 
 // The Tasks plugin announces every change to its task cache, for example a
@@ -485,6 +595,12 @@ const scheduleCacheReload = () => {
   }, CACHE_RELOAD_DELAY_MS);
 };
 
+// The Layout and Overview commands, see main.ts.
+const stopViewCommands = onViewCommand((name) => {
+  if (name === 'layout') onLayoutClick();
+  else if (name === 'overview') onOverviewClick();
+});
+
 onMounted(async () => {
   // Positions must load before tasks are built, since each task's starting
   // position is read from taskStore.positions at construction time.
@@ -492,18 +608,18 @@ onMounted(async () => {
   taskStore.fetchTasksFromObsidian();
 
   restartRefreshTimer();
-  restartLayoutTimer();
 
   const app = getApp();
   if (app) cacheUpdateRef = app.workspace.on(TASKS_CACHE_UPDATE_EVENT, scheduleCacheReload);
 });
 
 onUnmounted(() => {
+  stopViewCommands();
+  void taskStore.flushState();
   const app = getApp();
   if (app && cacheUpdateRef) app.workspace.offref(cacheUpdateRef);
   if (cacheReloadTimer) activeWindow.clearTimeout(cacheReloadTimer);
   if (refreshTimer) activeWindow.clearInterval(refreshTimer);
-  if (layoutTimer) activeWindow.clearInterval(layoutTimer);
 });
 </script>
 
@@ -533,5 +649,27 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: flex-start;
   gap: 8px;
+}
+
+/* Focus: everything outside the focused chain fades. Vue Flow puts a
+   node's or edge's class on its own wrapper, outside this component, hence
+   :deep. */
+.ft-graph-container :deep(.vue-flow__node.ft-faded) {
+  opacity: 0.25;
+}
+
+.ft-graph-container :deep(.vue-flow__edge.ft-faded) {
+  opacity: 0.15;
+}
+
+/* Highlight: a glowing outline in the Highlight color from Node Style,
+   passed in as --ft-highlight; nothing else changes. */
+.ft-graph-container :deep(.vue-flow__node.ft-glow .task-flow-node) {
+  box-shadow: 0 0 0 2px var(--ft-highlight), 0 0 12px 2px var(--ft-highlight);
+}
+
+.ft-graph-container :deep(.vue-flow__edge.ft-glow .vue-flow__edge-path) {
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 3px var(--ft-highlight));
 }
 </style>

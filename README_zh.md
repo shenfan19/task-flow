@@ -39,21 +39,25 @@
 
 1. 安装并启用 [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) 插件。Tasks Flowchart 读取它的 Dataview 风格字段 `[id:: ]` 和 `[dependsOn:: ]`，暂不支持 emoji 格式 `🆔` 和 `⛔`。
 2. 在 **设置 → 第三方插件 → 浏览** 里安装 Tasks Flowchart。也可以手动安装，把[最新版本](https://github.com/shenfan19/task-flow/releases/latest)的 `main.js`、`manifest.json`、`styles.css` 拷贝到 `<你的vault>/.obsidian/plugins/task-flow/`。
-3. 点击左侧功能区的 **Open tasks flowchart**，或者运行命令 **Tasks Flowchart: Open flowchart**。在 **View Control** 里先点 **Layout**，再点 **Overview**。
+3. 点击左侧功能区的 **Open tasks flowchart**，或者运行命令 **Tasks Flowchart: Open flowchart**。先点左上角的 **Layout**，再点 **Overview**。
 
-所有设置都在视图左侧的三个面板里，分别是 **File Filters**、**View Control** 和 **Node Style**。
+所有设置都在视图左侧的几张卡片里，分别是 **Presets**、**View Control**、**File Filters** 和 **Node Style**，上方是 **Layout** 和 **Overview** 两个按钮。
 
 ## 使用说明
 
 - **建立依赖**：从节点的下游一侧拖到另一个节点上，从上到下排布时下游一侧就是底边，左右两侧也一样，被拖到的节点就依赖出发节点。从上游一侧拖出则方向相反，出发节点依赖被拖到的节点。缺少的 `[id:: ]` 会自动生成。
-- **删除依赖**：点击箭头，按 Delete 或 Backspace。
+- **删除依赖**：右键点击箭头，选 **Delete link**；也可以点击箭头后按 Delete 或 Backspace。
 - **新建任务**：不落在节点上，而是在画布空白处松开。原任务和它的子任务下面会新增一行 `- [ ] untitled`，按同样的规则建立依赖，并在右侧分栏打开、选中 `untitled`，可以直接输入任务名。后续新建的任务依次编号为 `untitled2`、`untitled3` 等，每个都是一个单词，双击就能选中整个名字；如果你设置了 Tasks 插件的全局过滤标签，也会自动带上。
-- **打开任务**：点击节点，在右侧分栏打开笔记，光标放在任务名末尾，可以直接输入。如果任务名还是 `untitled`，则直接选中它，输入即可替换。
-- **排布**：节点可以随意拖动，位置会记住。**Layout** 按选定方向排布全部节点，箭头可选曲线、直线或阶梯线，可以只排一次，也可以定时排布；**Overview** 让整张图显示在屏幕内。
+- **高亮**：单击节点，它和连在它上面的箭头会发光凸显；单击箭头则只有这条箭头发光。图上其余部分保持不变。颜色在 Node Style 的 **Highlight** 里设置。
+- **聚焦**：右键节点选 **Focus chain**，它的整条链路，也就是它依赖的所有任务和依赖它的所有任务，保持原样，其余部分变淡。单击空白处同时取消高亮和聚焦。
+- **打开任务**：双击节点，或者右键节点选 **Open task**，在右侧分栏打开笔记，光标放在任务名末尾，可以直接输入。如果任务名还是 `untitled`，则直接选中它，输入即可替换。View Control 里的 **Click** 和 **Double-click** 分别决定单击和双击节点的效果，都可选 **Highlight**、**Focus chain** 或 **Open task**，默认单击高亮、双击打开。右键箭头可以打开它两端的任务。
+- **命令**：**Tasks Flowchart: Layout** 和 **Tasks Flowchart: Overview, fit the graph in the view** 与两个按钮作用相同，可以在 **设置 → 快捷键** 里绑定快捷键。
+- **排布**：节点可以随意拖动，位置会记住。**Layout** 按选定方向排布全部节点，箭头可选曲线、直线或阶梯线；**Overview** 让整张图显示在屏幕内。这两个按钮在左侧最上方。
 - **时间轴**：每个任务按完成日期、计划日期或截止日期排布。同一天的任务对齐，没有日期的任务排在前后任务之间，标尺标出各任务的日期，并随中间任务的多少伸缩。红线表示今天，红色箭头表示依赖方的日期早于被依赖的任务，有日期的节点只能横向拖动。
-- **过滤**：在 **File Filters** 里可以只显示有依赖关系的任务，这一项默认开启；可以隐藏含有关键字的任务，比如 `archived on`；还可以按状态、tag、文件夹过滤。过滤条件会一直保留，也可以存成命名预设。
-- **样式**：在 **Node Style** 里设置颜色和字号，把任务文字按 Markdown 渲染，把 tag 显示成自动配色的标签，按优先级给节点变色变大。
-- **刷新**：图谱会跟着你的编辑更新。修改任务行、笔记保存后几秒内，对应节点就会显示新的文字，位置不变。任务默认还会每 30 秒重新读取一次，也可以点 **View Control** 里的 **Refresh**。拖动时，自动刷新和自动排布都会暂停。
+- **过滤**：在 **File Filters** 里可以只显示有依赖关系的任务，这一项默认开启；可以隐藏含有关键字的任务，比如 `archived on`；还可以按状态、tag、文件夹过滤。过滤条件会一直保留。
+- **预设**：在 **Presets** 里选中一个预设就载入它的过滤条件。**Save** 把当前过滤条件存进选中的预设，下拉里的 **New…** 把当前过滤条件存成一个新预设。**Default** 始终存在，不能删除。
+- **样式**：在 **Node Style** 里设置边框和文字颜色，给高、普通、低三档优先级的任务各设字号和底色，把任务文字按 Markdown 渲染，把 tag 显示成自动配色的标签。
+- **刷新**：图谱会跟着你的编辑更新。修改任务行、笔记保存后几秒内，对应节点就会显示新的文字，位置不变。任务默认还会每 30 秒重新读取一次，也可以点 **View Control** 里的 **Refresh**。拖动时，自动刷新会暂停。
 
 ## 常见问题
 
