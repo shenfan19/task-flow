@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.4.1
+
+### Added
+
+- An empty canvas says why nothing is showing: the Tasks plugin is missing, there are no tasks yet, no task is linked yet, or the filters hide every task. Where it helps, it offers **Show all tasks** and **Create sample note**.
+- **Create sample note**, on the empty canvas and as a command, writes a small linked plan into the vault with ids, dependencies, dates, priorities and tags, opens it beside the graph and lays out its tasks.
+- **New task** in View Control sets what happens to a task made by dragging onto empty canvas: **Edit task** fills it in with the Tasks edit dialog, and **Open note** opens the note with `untitled` selected, as before.
+
+### Changed
+
+- A task made by dragging onto empty canvas opens in the Tasks edit dialog by default.
+
 ## 0.4.0
 
 ### Added

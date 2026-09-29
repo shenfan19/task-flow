@@ -62,6 +62,21 @@
         <option value="edit">Edit task</option>
       </select>
     </div>
+
+    <!-- What happens to a task made by dragging onto empty canvas; see
+         onConnectEnd in TaskGraphView.vue. -->
+    <div class="ft-interval-row">
+      <label class="ft-click-label" for="newTaskAction">New task</label>
+      <select
+        id="newTaskAction"
+        class="dropdown ft-click-select"
+        :value="taskStore.viewSettings.newTaskAction"
+        @change="taskStore.updateViewSettings({ newTaskAction: $event.target.value })"
+      >
+        <option value="edit">Edit task</option>
+        <option value="open">Open note</option>
+      </select>
+    </div>
   </RailCard>
 </template>
 

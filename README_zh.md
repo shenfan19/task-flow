@@ -40,6 +40,7 @@
 1. 安装并启用 [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) 插件。Tasks Flowchart 读取它的 Dataview 风格字段 `[id:: ]` 和 `[dependsOn:: ]`，暂不支持 emoji 格式 `🆔` 和 `⛔`。
 2. 在 **设置 → 第三方插件 → 浏览** 里安装 Tasks Flowchart。也可以手动安装，把[最新版本](https://github.com/shenfan19/task-flow/releases/latest)的 `main.js`、`manifest.json`、`styles.css` 拷贝到 `<你的vault>/.obsidian/plugins/task-flow/`。
 3. 点击左侧功能区的 **Open tasks flowchart**，或者运行命令 **Tasks Flowchart: Open flowchart**。先点左上角的 **Layout**，再点 **Overview**。
+4. 第一次用任务依赖？在空白画布上点 **Create sample note**，或者运行命令 **Tasks Flowchart: Create sample note**，会生成一篇带依赖的小计划，可以拿来试。
 
 所有设置都在视图左侧的几张卡片里，分别是 **Presets**、**View Control**、**File Filters** 和 **Node Style**，上方是 **Layout**、**Overview** 和 **Reset** 三个按钮。
 
@@ -47,7 +48,7 @@
 
 - **建立依赖**：从节点的下游一侧拖到另一个节点上，从上到下排布时下游一侧就是底边，左右两侧也一样，被拖到的节点就依赖出发节点。从上游一侧拖出则方向相反，出发节点依赖被拖到的节点。缺少的 `[id:: ]` 会自动生成。
 - **删除依赖**：右键点击箭头，选 **Delete link**；也可以点击箭头后按 Delete 或 Backspace。
-- **新建任务**：不落在节点上，而是在画布空白处松开。原任务和它的子任务下面会新增一行 `- [ ] untitled`，按同样的规则建立依赖，并在右侧分栏打开、选中 `untitled`，可以直接输入任务名。后续新建的任务依次编号为 `untitled2`、`untitled3` 等，每个都是一个单词，双击就能选中整个名字；如果你设置了 Tasks 插件的全局过滤标签，也会自动带上。
+- **新建任务**：不落在节点上，而是在画布空白处松开。原任务和它的子任务下面会新增一行 `- [ ] untitled`，按同样的规则建立依赖，并弹出 Tasks 编辑框来填写。把 View Control 里的 **New task** 设成 **Open note**，则改为在右侧分栏打开笔记并选中 `untitled`，可以直接输入任务名。后续新建的任务依次编号为 `untitled2`、`untitled3` 等，每个都是一个单词，双击就能选中整个名字；如果你设置了 Tasks 插件的全局过滤标签，也会自动带上。
 - **选中**：单击节点或箭头即选中，单击空白处取消选中。按住 Shift 在空白处拖动，可以框选框内的所有节点；按住 Ctrl，Mac 上是 Cmd，再单击，可以逐个加选。选中的节点可以一起拖动。不按 Shift 直接在空白处拖动是平移视图。
 - **高亮**：右键节点或箭头选 **Highlight**，给它加上发光标记，选 **Remove highlight** 去掉标记。高亮节点时只有节点本身发光，连在它上面的箭头不变。标记在单击、拖动、打开任务时都保持不变，右键菜单里的 **Clear all highlights** 一次清除全部标记，空白处的右键菜单里也有。颜色在 Node Style 的 **Highlight** 里设置。
 - **聚焦**：右键节点选 **Focus chain**，它的整条链路，也就是它依赖的所有任务和依赖它的所有任务，保持原样，其余部分变淡。单击空白处取消聚焦。

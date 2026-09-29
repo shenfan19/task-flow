@@ -40,6 +40,12 @@
         @edges-change="onEdgesChange"
       >
         <Background />
+        <EmptyState
+          v-if="emptyReason"
+          :reason="emptyReason"
+          @show-all="taskStore.filters.onlyRelated = false"
+          @sample="openSampleNote"
+        />
         <TimeAxisRuler
           v-if="taskStore.viewSettings.timeAxis && taskStore.timeAxisInfo?.anchors"
           :info="taskStore.timeAxisInfo"
@@ -66,6 +72,9 @@ import ViewControlPanel from './ViewControlPanel.vue';
 import AppearancePanel from './AppearancePanel.vue';
 import TaskFlowNode from './TaskFlowNode.vue';
 import TimeAxisRuler from './TimeAxisRuler.vue';
+import EmptyState from './EmptyState.vue';
+import { createSampleNote, takePendingSampleLayout } from '../utils/sampleNote';
+import { TasksPluginAPI } from '../api/TasksPluginAPI';
 import { layoutWithDagre, layoutWithTimeAxis } from '../utils/layout';
 import { promptName } from '../utils/promptName';
 import { isValidTaskId } from '../utils/taskLineEdits';
@@ -621,7 +630,10 @@ const onConnectEnd = async (event) => {
     position: { x: drop.x - 60, y: drop.y - 15 }
   });
   if (!created) return;
-  await openInSidePane(created.path, created.lineNumber, { text: created.name, select: true, waitForText: true });
+  // New task in View Control: open the note with the placeholder name
+  // selected, ready to be typed over, or edit the task in the Tasks dialog.
+  if (taskStore.viewSettings.newTaskAction === 'edit') await taskStore.editTaskInModal(created.id);
+  else await openInSidePane(created.path, created.lineNumber, { text: created.name, select: true, waitForText: true });
   // Picks up the Tasks plugin's own parse of the new line once it has
   // re-indexed the file; the node id is the same, so it stays where it is.
   activeWindow.setTimeout(() => taskStore.fetchTasksFromObsidian(), 1500);
@@ -710,10 +722,49 @@ const scheduleCacheReload = () => {
 };
 
 // The Layout, Overview and Reset commands, see main.ts.
+// Empty canvas: why nothing is on the graph, for EmptyState. Decided only
+// a moment after the view opens, since the Tasks plugin may still be
+// reading the vault then and the panel would flash up for nothing.
+const EMPTY_STATE_DELAY_MS = 1500;
+const settled = ref(false);
+const emptyReason = computed(() => {
+  if (!settled.value || taskStore.filteredTasks.length > 0) return null;
+  const app = getApp();
+  if (!app || !new TasksPluginAPI(app).isTasksPluginAvailable()) return 'no-plugin';
+  if (taskStore.tasks.length === 0) return 'no-tasks';
+  if (taskStore.filters.onlyRelated && !taskStore.tasks.some((t) => t.dependsOn.length > 0)) return 'no-links';
+  return 'filtered';
+});
+
+// Writes the sample note, or finds the one already there, and opens it
+// beside the graph. Its tasks are laid out once they show up, see below.
+const openSampleNote = async () => {
+  const app = getApp();
+  if (!app) return;
+  const file = await createSampleNote(app);
+  await openInSidePane(file.path);
+};
+
+// A freshly written sample note's tasks arrive with no saved positions, so
+// they are laid out and fitted in the view once the graph has drawn and
+// measured them.
+const SAMPLE_LAYOUT_DELAY_MS = 300;
+watch(
+  () => taskStore.tasks,
+  (tasks) => {
+    if (!takePendingSampleLayout(tasks)) return;
+    activeWindow.setTimeout(() => {
+      runAutoLayout();
+      fitView({ padding: 0.2 });
+    }, SAMPLE_LAYOUT_DELAY_MS);
+  }
+);
+
 const stopViewCommands = onViewCommand((name) => {
   if (name === 'layout') onLayoutClick();
   else if (name === 'overview') onOverviewClick();
   else if (name === 'reset') resetMarks();
+  else if (name === 'sample') void openSampleNote();
 });
 
 onMounted(async () => {
@@ -727,6 +778,9 @@ onMounted(async () => {
   refreshTimer = activeWindow.setInterval(() => {
     if (!isInteracting()) taskStore.fetchTasksFromObsidian();
   }, REFRESH_INTERVAL_MS);
+  activeWindow.setTimeout(() => {
+    settled.value = true;
+  }, EMPTY_STATE_DELAY_MS);
 
   const app = getApp();
   if (app) cacheUpdateRef = app.workspace.on(TASKS_CACHE_UPDATE_EVENT, scheduleCacheReload);

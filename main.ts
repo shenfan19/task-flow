@@ -11,6 +11,11 @@ const VIEW_TYPE_TASK_FLOW = "task-flow-view";
 // into one, like tasks that a later task depends on.
 const VIEW_ICON = "merge";
 
+// How long Create sample note waits for a flowchart it just opened to be
+// ready: 20 checks, 100 ms apart.
+const SAMPLE_WAIT_ATTEMPTS = 20;
+const SAMPLE_WAIT_INTERVAL_MS = 100;
+
 export default class TaskFlowPlugin extends Plugin {
 	async onload() {
 		// The Vue app reaches this.app and loadData/saveData (node positions and
@@ -56,6 +61,20 @@ export default class TaskFlowPlugin extends Plugin {
 				if (!hasOpenGraph()) return false;
 				if (!checking) runViewCommand('reset');
 				return true;
+			}
+		});
+
+		// Writes a sample note of linked tasks, or opens the one written
+		// before, and shows it beside the flowchart, which opens if needed.
+		this.addCommand({
+			id: 'create-sample',
+			name: 'Create sample note',
+			callback: async () => {
+				await this.activateView();
+				for (let i = 0; i < SAMPLE_WAIT_ATTEMPTS && !hasOpenGraph(); i++) {
+					await new Promise((resolve) => activeWindow.setTimeout(resolve, SAMPLE_WAIT_INTERVAL_MS));
+				}
+				runViewCommand('sample');
 			}
 		});
 

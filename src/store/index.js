@@ -174,6 +174,7 @@ export const useTaskStore = defineStore('task', {
         edgeType: 'default', // vue-flow edge type: default(bezier)/straight/smoothstep
         clickAction: 'select', // what a single click on a node does: 'select', 'focus' or 'open' (see runNodeAction)
         doubleClickAction: 'edit', // the same choice for a double click, plus 'edit'
+        newTaskAction: 'edit', // a task made by dragging onto empty canvas: 'edit' it in the Tasks dialog or 'open' its note
         settingsVersion: 4, // the plugin's minor version when these settings were last carried over, see loadState
         timeAxis: false // when on, nodes are ordered along the flow direction by date (see layoutWithTimeAxis)
       },
@@ -550,7 +551,15 @@ export const useTaskStore = defineStore('task', {
         written = true;
         return current.join('\n');
       });
-      if (!written) new Notice('Tasks Flowchart: the task changed in its note while the dialog was open, so the edit was not saved.');
+      if (!written) {
+        new Notice('Tasks Flowchart: the task changed in its note while the dialog was open, so the edit was not saved.');
+        return;
+      }
+      // A task just created by dragging is kept on the graph by hand until
+      // the Tasks plugin indexes it. Renamed here, it would come back under
+      // its new name while the kept copy stayed under the old one, so it is
+      // left to the next reload, which carries its position over by line.
+      this.unindexedTasks = this.unindexedTasks.filter((u) => u.task !== task);
     },
     // Gives a task a new id, or its first one, and changes every
     // dependsOn that names the old id to match, like renaming a note
@@ -661,7 +670,7 @@ export const useTaskStore = defineStore('task', {
       this.unindexedTasks.push({ task, createdAt: Date.now() });
       this.saveState();
 
-      return { path: origin.path, lineNumber: created.lineNumber, name };
+      return { id, path: origin.path, lineNumber: created.lineNumber, name };
     },
     // Asks for a save; see SAVE_DELAY_MS.
     saveState() {
