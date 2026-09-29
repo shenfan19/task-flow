@@ -15,7 +15,7 @@
     </div>
 
     <!-- Graph Container (Full Size) -->
-    <div class="w-100 h-100 bg-white ft-graph-container" :style="{ '--ft-highlight': taskStore.appearance.highlightColor }">
+    <div class="w-100 h-100 bg-white ft-graph-container" :style="{ '--ft-highlight': taskStore.appearance.highlightColor, '--ft-select': taskStore.appearance.nodeBorder }">
       <VueFlow
         :nodes="nodes"
         :edges="edges"
@@ -27,9 +27,9 @@
         @node-click="onNodeClick"
         @node-double-click="onNodeDoubleClick"
         @node-context-menu="onNodeContextMenu"
-        @edge-click="onEdgeClick"
         @edge-context-menu="onEdgeContextMenu"
-        @pane-click="clearAll"
+        @pane-click="clearFocus"
+        @pane-context-menu="onPaneContextMenu"
         @node-drag-start="onNodeDragStart"
         @node-drag="onNodeDrag"
         @node-drag-stop="onNodeDragStop"
@@ -68,7 +68,7 @@ import TimeAxisRuler from './TimeAxisRuler.vue';
 import { layoutWithDagre, layoutWithTimeAxis } from '../utils/layout';
 
 const taskStore = useTaskStore();
-const { fitView, findNode, screenToFlowCoordinate, viewport, dimensions, setViewport } = useVueFlow();
+const { fitView, findNode, getSelectedNodes, setCenter, screenToFlowCoordinate, viewport, dimensions, setViewport } = useVueFlow();
 
 // When the canvas changes size, most often because a note opens in a side
 // pane next to it, the view is shifted by half the change so that the point
@@ -108,31 +108,38 @@ const defaultEdgeOptions = {
   markerEnd: MarkerType.ArrowClosed
 };
 
-// Highlight: what a click has picked out, {nodeIds, edgeIds} drawn with a
-// glowing outline in the Highlight color while the rest of the graph stays
-// as it is. A clicked node lights up with its own links; a clicked edge
-// lights up alone. Null for nothing picked.
-const highlight = ref(null);
+// Highlight: nodes and edges the user has marked, {nodeIds, edgeIds}, drawn
+// with a glowing outline in the Highlight color. A mark stays until it is
+// removed from a right-click menu, whatever else is clicked in between, and
+// marking a node lights up that node only, not its links. Selection is
+// separate: a click selects, and clicking empty canvas deselects.
+const highlight = ref({ nodeIds: new Set(), edgeIds: new Set() });
+
+const hasHighlight = () => highlight.value.nodeIds.size > 0 || highlight.value.edgeIds.size > 0;
 
 // Focus: a node's whole chain, everything it depends on and everything that
 // depends on it, {nodeIds, edgeIds} kept at full strength while the rest
-// fades. Chosen from a node's menu. Null for no focus.
+// fades. Chosen from a node's menu, cleared by clicking empty canvas. Null
+// for no focus.
 const focus = ref(null);
 
-const clearAll = () => {
-  highlight.value = null;
+const clearFocus = () => {
   focus.value = null;
 };
 
-const highlightNode = (id) => {
-  const edgeIds = new Set(
-    taskStore.filteredEdges.filter((e) => e.source === id || e.target === id).map((e) => e.id)
-  );
-  highlight.value = { nodeIds: new Set([id]), edgeIds };
+const clearHighlight = () => {
+  highlight.value = { nodeIds: new Set(), edgeIds: new Set() };
 };
 
-const highlightEdge = (edge) => {
-  highlight.value = { nodeIds: new Set(), edgeIds: new Set([edge.id]) };
+// Marks or unmarks one node (set 'nodeIds') or edge (set 'edgeIds').
+const setHighlight = (set, id, on) => {
+  const next = {
+    nodeIds: new Set(highlight.value.nodeIds),
+    edgeIds: new Set(highlight.value.edgeIds)
+  };
+  if (on) next[set].add(id);
+  else next[set].delete(id);
+  highlight.value = next;
 };
 
 // Walks the visible edges from `id` both ways.
@@ -165,7 +172,7 @@ const focusChain = (id) => {
 
 // Class names for a node or edge from the current highlight and focus.
 const markClasses = (set, id) => [
-  highlight.value?.[set].has(id) ? 'ft-glow' : '',
+  highlight.value[set].has(id) ? 'ft-glow' : '',
   focus.value && !focus.value[set].has(id) ? 'ft-faded' : ''
 ].filter(Boolean).join(' ');
 
@@ -231,14 +238,15 @@ const edges = computed(() => {
     const backward = timeAxis && source?.day != null && target?.day != null && target.day < source.day;
     // A highlighted edge takes the Highlight color, arrowhead included;
     // otherwise a backward edge on the time axis is red.
-    const glow = highlight.value?.edgeIds.has(edge.id);
+    const glow = highlight.value.edgeIds.has(edge.id);
     const color = glow ? taskStore.appearance.highlightColor : backward ? BACKWARD_EDGE_COLOR : null;
     return {
       ...edge,
-      ...(color && {
-        style: { stroke: color },
-        markerEnd: { type: MarkerType.ArrowClosed, color }
-      }),
+      // Both are always set, the plain values included: Vue Flow merges an
+      // updated edge into the one it already has, so a property left out
+      // keeps its old value, and an edge once drawn in a color kept it.
+      style: color ? { stroke: color } : {},
+      markerEnd: color ? { type: MarkerType.ArrowClosed, color } : MarkerType.ArrowClosed,
       sourceHandle: handles.source,
       targetHandle: handles.target,
       // Set directly on the edge (not via default-edge-options) because Vue
@@ -334,51 +342,71 @@ const openTask = async (id) => {
   });
 };
 
-// Click and Double-click in View Control each pick one of: highlight the
-// node, focus its chain, or open it, which also highlights it so the open
-// task is easy to find. By default a click highlights, so looking around
-// the graph never pulls notes open, and a double click opens. The browser
-// sends two clicks before every double click, so the click action always
-// runs first.
+// Click and Double-click in View Control each pick one of: select only,
+// focus the node's chain, or open it. Every click also selects, which Vue
+// Flow does on its own. By default a click only selects and a double click
+// opens. The browser sends two clicks before every double click, so the
+// click action always runs first. Highlight is not among them: it is a
+// mark that stays, set from the right-click menu.
 const runNodeAction = async (action, id) => {
-  if (action === 'focus') {
-    focusChain(id);
-    return;
-  }
-  highlightNode(id);
-  if (action === 'open') await openTask(id);
+  if (action === 'focus') focusChain(id);
+  else if (action === 'open') await openTask(id);
 };
 
 const onNodeClick = (event) => runNodeAction(taskStore.viewSettings.clickAction, event.node.id);
 
 const onNodeDoubleClick = (event) => runNodeAction(taskStore.viewSettings.doubleClickAction, event.node.id);
 
-const onEdgeClick = ({ edge }) => highlightEdge(edge);
+// Clearing entries at the end of the node, edge and canvas menus, shown
+// only when there is something to clear.
+const addClearItems = (menu, separate = true) => {
+  if (!hasHighlight() && !focus.value) return;
+  if (separate) menu.addSeparator();
+  if (hasHighlight()) menu.addItem((item) => item.setTitle('Clear all highlights').setIcon('eraser').onClick(clearHighlight));
+  if (focus.value) menu.addItem((item) => item.setTitle('Clear focus').setIcon('eraser').onClick(clearFocus));
+};
+
+// Highlight, or Remove highlight on a node or edge that is already lit.
+const addHighlightItem = (menu, set, id) => {
+  const on = highlight.value[set].has(id);
+  menu.addItem((item) => item
+    .setTitle(on ? 'Remove highlight' : 'Highlight')
+    .setIcon('sparkles')
+    .onClick(() => setHighlight(set, id, !on)));
+};
 
 const onNodeContextMenu = ({ event, node }) => {
   event.preventDefault();
   const menu = new Menu();
-  // The same three actions as Click and Double-click in View Control.
-  menu.addItem((item) => item.setTitle('Highlight').setIcon('sparkles').onClick(() => runNodeAction('highlight', node.id)));
+  addHighlightItem(menu, 'nodeIds', node.id);
   menu.addItem((item) => item.setTitle('Focus chain').setIcon('focus').onClick(() => runNodeAction('focus', node.id)));
   menu.addItem((item) => item.setTitle('Open task').setIcon('file-text').onClick(() => runNodeAction('open', node.id)));
-  if (highlight.value || focus.value) {
-    menu.addSeparator();
-    menu.addItem((item) => item.setTitle('Clear highlight and focus').setIcon('eraser').onClick(clearAll));
-  }
+  addClearItems(menu);
   menu.showAtMouseEvent(event);
 };
 
 const onEdgeContextMenu = ({ event, edge }) => {
   event.preventDefault();
   const menu = new Menu();
+  addHighlightItem(menu, 'edgeIds', edge.id);
+  menu.addSeparator();
   menu.addItem((item) => item.setTitle('Open upstream task').setIcon('arrow-up').onClick(() => openTask(edge.source)));
   menu.addItem((item) => item.setTitle('Open downstream task').setIcon('arrow-down').onClick(() => openTask(edge.target)));
   menu.addSeparator();
   menu.addItem((item) => item.setTitle('Delete link').setIcon('trash').onClick(() => {
-    if (highlight.value?.edgeIds.has(edge.id)) highlight.value = null;
+    setHighlight('edgeIds', edge.id, false);
     taskStore.disconnectTasks(edge.source, edge.target);
   }));
+  addClearItems(menu);
+  menu.showAtMouseEvent(event);
+};
+
+// Right-clicking empty canvas offers only the clearing entries.
+const onPaneContextMenu = (event) => {
+  event.preventDefault();
+  if (!hasHighlight() && !focus.value) return;
+  const menu = new Menu();
+  addClearItems(menu, false);
   menu.showAtMouseEvent(event);
 };
 
@@ -438,13 +466,20 @@ const runAutoLayout = () => {
   taskStore.setTimeAxisInfo(timed ? timed.info : null);
 };
 
-// Layout also re-centers the view, since a fresh layout can move nodes
-// outside what's currently visible. Layout only runs when asked for: a
-// layout on a timer made the whole graph jump every few seconds, and saved
-// every node's position each time.
+// Layout only arranges the nodes and leaves the zoom alone; fitting the
+// graph in the view is Overview's job. The view keeps its center, unless a
+// task is selected: then it pans to put that task in the middle, so the
+// task being worked on stays in sight after the nodes move. Layout only
+// runs when asked for, a changed date included: a layout on a timer made
+// the whole graph jump every few seconds, and saved every node's position
+// each time.
 const onLayoutClick = () => {
   runAutoLayout();
-  fitView({ padding: 0.2 });
+  const selected = getSelectedNodes.value[0];
+  const task = selected && taskStore.tasks.find((t) => t.id === selected.id);
+  if (!task) return;
+  const { width = 0, height = 0 } = selected.dimensions ?? {};
+  void setCenter(task.position.x + width / 2, task.position.y + height / 2, { zoom: viewport.value.zoom });
 };
 
 const onLayoutDirectionChange = (value) => {
@@ -546,32 +581,17 @@ const onOverviewClick = () => {
   fitView({ padding: 0.2 });
 };
 
-// Periodically re-reads the Tasks plugin's cache so edits made outside this
-// view (checking off a task, editing dependsOn) show up without reopening
-// it. Only refetches data, never re-runs layout — redoing dagre on every
-// poll would jump/reflow the whole graph; existing node ids keep their
-// stored position, so an unaffected task doesn't visibly change.
+// Tasks reload as soon as the Tasks plugin reports a change, see
+// scheduleCacheReload below. This timer re-reads its cache every so often
+// as well, for any change that event misses. A reload only replaces the
+// data: nodes keep their stored positions, so a task that did not change
+// does not move or redraw.
+const REFRESH_INTERVAL_MS = 30000;
 let refreshTimer = null;
-
-const restartRefreshTimer = () => {
-  if (refreshTimer) activeWindow.clearInterval(refreshTimer);
-  refreshTimer = null;
-  if (taskStore.viewSettings.autoRefreshEnabled) {
-    refreshTimer = activeWindow.setInterval(() => {
-      if (isInteracting()) return;
-      taskStore.fetchTasksFromObsidian();
-    }, taskStore.viewSettings.autoRefreshInterval * 1000);
-  }
-};
 
 // Filters are edited in place by the filter panel's inputs rather than
 // through store actions, so they are saved from here whenever they change.
 watch(() => taskStore.filters, () => taskStore.saveState(), { deep: true });
-
-watch(
-  () => [taskStore.viewSettings.autoRefreshEnabled, taskStore.viewSettings.autoRefreshInterval],
-  restartRefreshTimer
-);
 
 // The Tasks plugin announces every change to its task cache, for example a
 // few seconds after a task line is edited and the note saved. Reloading on
@@ -607,7 +627,9 @@ onMounted(async () => {
   await taskStore.loadState();
   taskStore.fetchTasksFromObsidian();
 
-  restartRefreshTimer();
+  refreshTimer = activeWindow.setInterval(() => {
+    if (!isInteracting()) taskStore.fetchTasksFromObsidian();
+  }, REFRESH_INTERVAL_MS);
 
   const app = getApp();
   if (app) cacheUpdateRef = app.workspace.on(TASKS_CACHE_UPDATE_EVENT, scheduleCacheReload);
@@ -660,6 +682,22 @@ onUnmounted(() => {
 
 .ft-graph-container :deep(.vue-flow__edge.ft-faded) {
   opacity: 0.15;
+}
+
+/* Selection: Vue Flow draws a selected edge in dark gray, and a selected
+   task node gets an outline in the Border color. Vue Flow also draws a
+   focused edge dark, but an edge keeps focus after a click until something
+   else takes it, so it stayed dark after being deselected; only selection
+   counts here. An edge with its own color, red on the time axis or the
+   Highlight color, sets it inline and is not affected. */
+.ft-graph-container :deep(.vue-flow__edge:not(.selected):focus .vue-flow__edge-path),
+.ft-graph-container :deep(.vue-flow__edge:not(.selected):focus-visible .vue-flow__edge-path) {
+  stroke: #b1b1b7;
+}
+
+.ft-graph-container :deep(.vue-flow__node.selected .task-flow-node) {
+  outline: 2px solid var(--ft-select);
+  outline-offset: 2px;
 }
 
 /* Highlight: a glowing outline in the Highlight color from Node Style,

@@ -21,32 +21,10 @@
       <option value="smoothstep">Step</option>
     </select>
 
-    <div class="ft-interval-row">
-      <button class="btn btn-sm btn-outline-primary" @click="taskStore.fetchTasksFromObsidian()">
-        Refresh
-      </button>
-      <div class="form-check">
-        <input
-          class="form-check-input"
-          type="checkbox"
-          id="autoRefreshToggle"
-          :checked="taskStore.viewSettings.autoRefreshEnabled"
-          @change="taskStore.updateViewSettings({ autoRefreshEnabled: $event.target.checked })"
-        >
-        <label class="form-check-label" for="autoRefreshToggle">every</label>
-      </div>
-      <input
-        type="number"
-        min="1"
-        class="ft-interval-input"
-        :value="taskStore.viewSettings.autoRefreshInterval"
-        @change="taskStore.updateViewSettings({ autoRefreshInterval: Math.max(1, Number($event.target.value)) })"
-      >
-      <span>s</span>
-    </div>
+    <hr class="ft-sep">
 
     <!-- Orders tasks along the flow direction by date (done, else
-         scheduled, else due); see layoutWithTimeAxis in utils/layout.js. -->
+         due, else scheduled, else start); see layoutWithTimeAxis in utils/layout.js. -->
     <div class="ft-interval-row">
       <div class="form-check">
         <input
@@ -58,10 +36,17 @@
         >
         <label class="form-check-label" for="timeAxisToggle">Time axis</label>
       </div>
+      <!-- Tasks reload on their own when a note changes; this is for
+           reloading by hand. -->
+      <button class="btn btn-sm btn-outline-primary ft-refresh" @click="taskStore.fetchTasksFromObsidian()">
+        Refresh
+      </button>
     </div>
 
+    <hr class="ft-sep">
+
     <!-- What a click and a double click on a node do; see runNodeAction in
-         TaskGraphView.vue. By default a click only highlights, so clicking
+         TaskGraphView.vue. By default a click only selects, so clicking
          around the graph never opens notes, and a double click opens. -->
     <div v-for="row in CLICK_ROWS" :key="row.key" class="ft-interval-row">
       <label class="ft-click-label" :for="row.key">{{ row.label }}</label>
@@ -71,7 +56,7 @@
         :value="taskStore.viewSettings[row.key]"
         @change="taskStore.updateViewSettings({ [row.key]: $event.target.value })"
       >
-        <option value="highlight">Highlight</option>
+        <option value="select">Select</option>
         <option value="focus">Focus chain</option>
         <option value="open">Open task</option>
       </select>
@@ -98,6 +83,10 @@ const CLICK_ROWS = [
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+.ft-refresh {
+  margin-left: auto;
 }
 
 .ft-click-label {

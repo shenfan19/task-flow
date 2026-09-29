@@ -55,19 +55,26 @@ const taskStore = useTaskStore();
 
 // The Tasks plugin's six priorities ('0' Highest .. '5' Lowest, '3' None)
 // in three tiers, each with its own font size and background from the Node
-// Style panel. Medium and None share the normal tier.
-const PRIORITY_TIER = { '0': 'high', '1': 'high', '4': 'low', '5': 'low' };
+// Style panel. None, and any value not listed, uses the panel's Size and
+// Background.
+const PRIORITY_TIER = { '0': 'high', '1': 'high', '2': 'medium', '4': 'low', '5': 'low' };
+
+// Appearance keys of each tier; see TIERS in AppearancePanel.vue.
+const TIER_KEYS = {
+  high: { size: 'highFontSize', bg: 'highBg' },
+  medium: { size: 'mediumFontSize', bg: 'mediumBg' },
+  none: { size: 'fontSize', bg: 'nodeBg' },
+  low: { size: 'lowFontSize', bg: 'lowBg' }
+};
 
 const nodeStyle = computed(() => {
   const a = taskStore.appearance;
-  const tier = PRIORITY_TIER[props.data.task.priority];
-  const background = tier === 'high' ? a.highBg : tier === 'low' ? a.lowBg : a.nodeBg;
-  const fontSize = tier === 'high' ? a.highFontSize : tier === 'low' ? a.lowFontSize : a.fontSize;
+  const keys = TIER_KEYS[PRIORITY_TIER[props.data.task.priority] ?? 'none'];
   return {
-    background,
+    background: a[keys.bg],
     border: `1px solid ${a.nodeBorder}`,
     color: a.nodeText,
-    fontSize: `${fontSize}px`
+    fontSize: `${a[keys.size]}px`
   };
 });
 

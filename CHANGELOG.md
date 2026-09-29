@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.3.0
+
+### Added
+
+- Right-clicking a node or an arrow offers **Highlight**, or **Remove highlight** when it is already lit.
+- **Clear all highlights** and **Clear focus** in the right-click menus of nodes, arrows and empty canvas, when there is something to clear.
+- **Select** for **Click** and **Double-click** in View Control, and the default for Click. A selected node has an outline in the Border color.
+
+### Fixed
+
+- An arrow kept the Highlight color after its highlight was removed, and kept a dark gray after being deselected.
+
+### Changed
+
+- Highlight is a mark that stays until it is removed. Clicking empty canvas no longer clears it, and opening a task no longer highlights it.
+- Highlighting a node lights up the node only, not its arrows.
+- **Highlight** is no longer a choice for Click and Double-click, since it is now a mark set from the right-click menu. A click saved as Highlight becomes Select.
+- **Layout** keeps the zoom and leaves fitting the graph to **Overview**. The view stays where it is, or pans to put the selected task in the middle.
+- On the time axis, a task that is not done is placed by its due date first, then its scheduled date, then its start date. Due used to come after scheduled, and start dates were not read.
+- Tasks always reload when a note changes and every 30 seconds, so the auto refresh checkbox and interval are gone from View Control. **Refresh** is still there for reloading by hand.
+- **Node Style** puts **Border** with **Highlight**, **Text** with **Background**, and **Size** on its own line, all applying to every node, and below them a **Priority** table with High for highest and high priority, Medium, and Low for low and lowest priority. Medium used to share the look of tasks with no priority.
+- The cards separate their groups of controls with lines, and **Layout** and **Overview** no longer sit in a frame.
+- The ribbon button has a new icon, and the flowchart tab shows the same icon instead of the default one.
+
 ## 0.2.0
 
 ### Added

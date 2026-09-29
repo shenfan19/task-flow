@@ -7,6 +7,10 @@ import { hasOpenGraph, runViewCommand } from './src/viewCommands';
 
 const VIEW_TYPE_TASK_FLOW = "task-flow-view";
 
+// Lucide icon for the ribbon button and the view tab: several lines joining
+// into one, like tasks that a later task depends on.
+const VIEW_ICON = "merge";
+
 export default class TaskFlowPlugin extends Plugin {
 	async onload() {
 		// The Vue app reaches this.app and loadData/saveData (node positions and
@@ -19,7 +23,7 @@ export default class TaskFlowPlugin extends Plugin {
 			(leaf) => new TaskFlowView(leaf)
 		);
 
-		this.addRibbonIcon('workflow', 'Open tasks flowchart', () => {
+		this.addRibbonIcon(VIEW_ICON, 'Open tasks flowchart', () => {
 			void this.activateView();
 		});
 
@@ -103,6 +107,10 @@ class TaskFlowView extends ItemView {
 
 	getDisplayText() {
 		return "Tasks flowchart";
+	}
+
+	getIcon() {
+		return VIEW_ICON;
 	}
 
 	async onOpen() {

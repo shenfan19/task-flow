@@ -61,14 +61,19 @@ export const isPlaceholderTaskName = (name) => /^untitled\d*$/.test(name ?? '');
 const UNINDEXED_GRACE_MS = 60000;
 
 // The one date a task is placed by on the time axis: done date for a
-// finished task (when it actually happened), otherwise scheduled, then due
-// (when it is meant to happen). Returned as a whole-day number counted in
-// UTC so time zones can never shift a task onto a neighboring day.
-const DATE_FIELDS = ['doneDate', 'scheduledDate', 'dueDate'];
-
-// Inline field names of the same three dates, used when the Tasks plugin
-// could not read them (see readInlineFields).
-const INLINE_DATE_FIELDS = ['completion', 'scheduled', 'due'];
+// finished task (when it actually happened), otherwise due, then scheduled,
+// then start (when it is meant to happen). Returned as a whole-day number
+// counted in UTC so time zones can never shift a task onto a neighboring day.
+// Each date is the Tasks plugin's field paired with its inline field name,
+// read when the plugin could not read it (see readInlineFields). Both are
+// tried before moving to the next date, so a due date the plugin missed
+// still wins over a scheduled date it found.
+const DATE_FIELDS = [
+  ['doneDate', 'completion'],
+  ['dueDate', 'due'],
+  ['scheduledDate', 'scheduled'],
+  ['startDate', 'start']
+];
 
 function dayFromIso(text) {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(text ?? '');
@@ -76,13 +81,10 @@ function dayFromIso(text) {
 }
 
 function taskDay(t, fields) {
-  for (const field of DATE_FIELDS) {
+  for (const [field, inline] of DATE_FIELDS) {
     const m = t[field];
-    if (!m || typeof m.isValid !== 'function' || !m.isValid()) continue;
-    return dayFromIso(m.format('YYYY-MM-DD'));
-  }
-  for (const field of INLINE_DATE_FIELDS) {
-    const day = dayFromIso(fields[field]);
+    if (m && typeof m.isValid === 'function' && m.isValid()) return dayFromIso(m.format('YYYY-MM-DD'));
+    const day = dayFromIso(fields[inline]);
     if (day !== null) return day;
   }
   return null;
@@ -154,22 +156,22 @@ export const useTaskStore = defineStore('task', {
         nodeBorder: '#0d6efd',
         nodeText: '#212529',
         fontSize: 12,
-        // Font size and background of the high and low priority tiers; the
-        // normal tier uses fontSize and nodeBg above (see TaskFlowNode.vue).
+        // Font size and background of the high, medium and low priority tiers; the
+        // no-priority row uses fontSize and nodeBg above (see TaskFlowNode.vue).
         highFontSize: 15,
         highBg: '#fff1e0',
+        mediumFontSize: 13,
+        mediumBg: '#fdf8e1',
         lowFontSize: 11,
         lowBg: '#eef0f3',
-        highlightColor: '#f59e0b', // glow around a clicked node and its links
+        highlightColor: '#f59e0b', // glow around a highlighted node or link
         richText: true, // task text rendered as Markdown; off skips the MarkdownRenderer call entirely
         showTags: true // colored tag chips under each node's text
       },
       viewSettings: {
         layoutDirection: 'TB', // dagre rankdir: TB/BT/LR/RL
         edgeType: 'default', // vue-flow edge type: default(bezier)/straight/smoothstep
-        autoRefreshEnabled: true, // preserves the previous always-on behavior
-        autoRefreshInterval: 30, // seconds
-        clickAction: 'highlight', // what a single click on a node does: 'highlight', 'focus' or 'open' (see runNodeAction)
+        clickAction: 'select', // what a single click on a node does: 'select', 'focus' or 'open' (see runNodeAction)
         doubleClickAction: 'open', // the same choice for a double click
         timeAxis: false // when on, nodes are ordered along the flow direction by date (see layoutWithTimeAxis)
       },
@@ -320,13 +322,20 @@ export const useTaskStore = defineStore('task', {
         this.appearance = { ...this.appearance, ...data.appearance };
       }
       if (data?.viewSettings) {
-        // clickToOpen, autoLayoutEnabled and autoLayoutInterval belong to
-        // settings that no longer exist and are dropped here.
+        // clickToOpen, autoLayoutEnabled, autoLayoutInterval,
+        // autoRefreshEnabled and autoRefreshInterval belong to settings that
+        // no longer exist and are dropped here.
         // eslint-disable-next-line no-unused-vars
-        const { clickToOpen, autoLayoutEnabled, autoLayoutInterval, ...saved } = data.viewSettings;
+        const { clickToOpen, autoLayoutEnabled, autoLayoutInterval, autoRefreshEnabled, autoRefreshInterval, ...saved } = data.viewSettings;
         this.viewSettings = { ...this.viewSettings, ...saved };
         // The earlier "Click to open" checkbox, carried over to Click.
         if (clickToOpen && !saved.clickAction) this.viewSettings.clickAction = 'open';
+        // Highlight was a click action up to 0.2.0, the default for Click.
+        // It is now a mark set from the right-click menu, so a click saved
+        // as Highlight becomes Select.
+        for (const key of ['clickAction', 'doubleClickAction']) {
+          if (this.viewSettings[key] === 'highlight') this.viewSettings[key] = 'select';
+        }
       }
       if (data?.filterPresets) {
         this.filterPresets = data.filterPresets;

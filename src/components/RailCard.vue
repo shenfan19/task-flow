@@ -93,6 +93,16 @@ const toggle = () => {
   overflow-y: auto;
 }
 
+/* A line between groups of controls inside a card. It stays within the
+   padding and is fainter than the line under the title, so it reads as a
+   step below the card's own frame. */
+.ft-card__body :deep(.ft-sep) {
+  border: none;
+  border-top: 1px solid var(--background-modifier-border, #d0d4da);
+  margin: 0;
+  opacity: 0.5;
+}
+
 /* The panels were written with Bootstrap class names, but bootstrap.css is
    never loaded (see App.vue). These few rules give those names the spacing
    they were meant to have, inside the card only. */

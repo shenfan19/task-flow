@@ -11,6 +11,8 @@
       <label class="form-check-label" for="onlyRelatedToggle">Only show tasks with a relation</label>
     </div>
 
+    <hr class="ft-sep">
+
     <!-- Keyword exclusion, matched anywhere in the task line -->
     <div class="mb-3">
       <label class="form-label text-muted small fw-bold mb-1" for="excludeTextInput">Exclude tasks containing</label>
@@ -23,6 +25,8 @@
         v-model.trim="taskStore.filters.excludeText"
       >
     </div>
+
+    <hr class="ft-sep">
 
     <!-- Status Filter -->
     <div class="mb-3">
@@ -38,6 +42,8 @@
         </div>
       </div>
     </div>
+
+    <hr class="ft-sep">
 
     <!-- Tag Filter: click a chip to check/uncheck it -->
     <div class="mb-3">
@@ -88,6 +94,8 @@
         @click="taskStore.filters.tags = []"
       >Clear</button>
     </div>
+
+    <hr class="ft-sep">
 
     <!-- Directory Tree Filter -->
     <div>

@@ -1,19 +1,31 @@
 <template>
   <RailCard title="Node Style">
-    <div class="ft-style-row">
+    <!-- Outline colors, content colors, then the font size. Size and
+         Background apply to every node; a task with a priority takes those
+         of its tier below instead. -->
+    <div class="ft-style-grid">
       <label for="nodeBorderColor">Border</label>
       <input id="nodeBorderColor" type="color" :value="taskStore.appearance.nodeBorder" @input="setValue('nodeBorder', $event)">
-      <label for="nodeTextColor">Text</label>
-      <input id="nodeTextColor" type="color" :value="taskStore.appearance.nodeText" @input="setValue('nodeText', $event)">
       <label for="highlightColor">Highlight</label>
       <input id="highlightColor" type="color" :value="taskStore.appearance.highlightColor" @input="setValue('highlightColor', $event)">
+      <label for="nodeTextColor">Text</label>
+      <input id="nodeTextColor" type="color" :value="taskStore.appearance.nodeText" @input="setValue('nodeText', $event)">
+      <label for="nodeBgColor">Background</label>
+      <input id="nodeBgColor" type="color" :value="taskStore.appearance.nodeBg" @input="setValue('nodeBg', $event)">
+      <label for="nodeFontSize">Size</label>
+      <span class="ft-tier-size">
+        <input id="nodeFontSize" type="number" min="8" max="32" :value="taskStore.appearance.fontSize" @input="setNumber('fontSize', $event)">
+        <span>px</span>
+      </span>
     </div>
 
-    <!-- Font size and background by priority. The Tasks plugin's six
-         priorities fall into three tiers, see PRIORITY_TIER in
-         TaskFlowNode.vue; the normal tier covers tasks with no priority. -->
+    <hr class="ft-sep">
+
+    <!-- Font size and background by priority. The Tasks plugin's five
+         priority levels fall into three tiers, see PRIORITY_TIER in
+         TaskFlowNode.vue. -->
     <div class="ft-tier-grid">
-      <span></span>
+      <span class="ft-tier-head">Priority</span>
       <span class="ft-tier-head">Font size</span>
       <span class="ft-tier-head">Background</span>
       <template v-for="tier in TIERS" :key="tier.label">
@@ -31,6 +43,8 @@
         <input type="color" :value="taskStore.appearance[tier.bg]" @input="setValue(tier.bg, $event)">
       </template>
     </div>
+
+    <hr class="ft-sep">
 
     <div class="form-check">
       <input
@@ -61,11 +75,11 @@ import RailCard from './RailCard.vue';
 
 const taskStore = useTaskStore();
 
-// Appearance keys of each priority tier. The normal tier keeps the original
-// fontSize / nodeBg keys, so settings saved before tiers existed still apply.
+// Appearance keys of each priority tier. A task with no priority uses Size
+// and Background above, the original fontSize / nodeBg keys.
 const TIERS = [
   { label: 'High', size: 'highFontSize', bg: 'highBg' },
-  { label: 'Normal', size: 'fontSize', bg: 'nodeBg' },
+  { label: 'Medium', size: 'mediumFontSize', bg: 'mediumBg' },
   { label: 'Low', size: 'lowFontSize', bg: 'lowBg' }
 ];
 
@@ -80,16 +94,23 @@ const setNumber = (key, event) => {
 </script>
 
 <style scoped>
-.ft-style-row {
-  display: flex;
-  flex-wrap: wrap;
+.ft-style-grid {
+  display: grid;
+  grid-template-columns: auto auto auto auto;
   align-items: center;
-  gap: 6px;
+  justify-content: start;
+  column-gap: 6px;
   row-gap: 4px;
 }
 
-.ft-style-row label + input {
-  margin-right: 10px;
+.ft-style-grid > :nth-child(4n + 2) {
+  margin-right: 8px;
+}
+
+/* The size box spans the rest of its row, so its width does not widen the
+   column of colors above it and push the card past its edge. */
+.ft-style-grid > .ft-tier-size {
+  grid-column: span 3;
 }
 
 .ft-tier-grid {

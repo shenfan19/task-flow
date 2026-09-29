@@ -1,7 +1,7 @@
 {
 	"id": "task-flow",
 	"name": "Tasks Flowchart",
-	"version": "0.2.0",
+	"version": "0.3.0",
 	"minAppVersion": "1.7.2",
 	"description": "Flowchart for the Tasks plugin. Follow dependency chains, see what blocks what, and link or create tasks by dragging, all in plain Markdown.",
 	"author": "Fan Shen",
