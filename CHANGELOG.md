@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.4.0
+
+### Added
+
+- **Edit task…** in a node's right-click menu opens the task in the Tasks plugin's own edit dialog, to change its name and tags, priority, dates, status, recurrence and dependencies without leaving the graph. It needs Tasks 7.21.0 or later. If the task's line changes in its note while the dialog is open, the edit is not saved, so nothing written in the note is lost.
+- **Change id…** in a node's right-click menu gives a task a new id and changes every dependsOn that names the old one, in both the Dataview and the emoji format.
+- **Edit task** as a choice for **Click** and **Double-click** in View Control.
+- The README describes selecting several nodes: Shift and drag for a box, Ctrl or Cmd and click to add one at a time.
+
+### Changed
+
+- A double click edits the task by default. A double click left at **Open task** changes to **Edit task** once on update; Open task stays in the right-click menu and can be chosen again in View Control.
+
 ## 0.3.1
 
 ### Added

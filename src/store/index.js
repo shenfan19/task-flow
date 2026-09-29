@@ -12,7 +12,8 @@ import {
   newSiblingTaskLine,
   listItemBlockEnd,
   readInlineFields,
-  stripInlineFields
+  stripInlineFields,
+  renameIdInLine
 } from '../utils/taskLineEdits';
 
 // Which line of `lines` currently holds `task`. Normally its recorded line
@@ -172,7 +173,8 @@ export const useTaskStore = defineStore('task', {
         layoutDirection: 'TB', // dagre rankdir: TB/BT/LR/RL
         edgeType: 'default', // vue-flow edge type: default(bezier)/straight/smoothstep
         clickAction: 'select', // what a single click on a node does: 'select', 'focus' or 'open' (see runNodeAction)
-        doubleClickAction: 'open', // the same choice for a double click
+        doubleClickAction: 'edit', // the same choice for a double click, plus 'edit'
+        settingsVersion: 4, // the plugin's minor version when these settings were last carried over, see loadState
         timeAxis: false // when on, nodes are ordered along the flow direction by date (see layoutWithTimeAxis)
       },
       // {direction, anchors} from the last time-axis layout, which is what
@@ -344,6 +346,11 @@ export const useTaskStore = defineStore('task', {
         for (const key of ['clickAction', 'doubleClickAction']) {
           if (this.viewSettings[key] === 'highlight') this.viewSettings[key] = 'select';
         }
+        // From 0.4.0 a double click edits the task, as a double click opened
+        // it before; a double click left at Open task moves along.
+        if ((saved.settingsVersion ?? 0) < 4 && this.viewSettings.doubleClickAction === 'open') {
+          this.viewSettings.doubleClickAction = 'edit';
+        }
       }
       if (data?.filterPresets) {
         this.filterPresets = data.filterPresets;
@@ -507,6 +514,64 @@ export const useTaskStore = defineStore('task', {
       if (target.dependsOn.includes(sourcePluginId)) return;
       await editTaskLine(target, (line) => addDependsOnTag(line, sourcePluginId));
       target.dependsOn = [...target.dependsOn, sourcePluginId];
+    },
+    // Opens the Tasks plugin's edit dialog on a task and writes the result
+    // back over the task's line. The line is read again when the dialog
+    // closes, and nothing is written if it changed meanwhile, so an edit
+    // made in the note while the dialog was open is never overwritten. The
+    // graph picks the change up on the reload that follows the write.
+    async editTaskInModal(taskId) {
+      const task = this.tasks.find((t) => t.id === taskId);
+      const app = getApp();
+      if (!task || !app) return;
+      const api = new TasksPluginAPI(app);
+      if (!api.canEditInModal()) {
+        new Notice('Tasks Flowchart: editing a task needs the Tasks plugin 7.21.0 or later.');
+        return;
+      }
+      const file = app.vault.getAbstractFileByPath(task.path);
+      if (!file) return;
+      const lines = (await app.vault.read(file)).split('\n');
+      const index = locateTaskLine(lines, task);
+      if (index === -1) {
+        new Notice('Tasks Flowchart: the task line could not be found in its note.');
+        return;
+      }
+      const before = lines[index];
+      const edited = await api.editTaskLineModal(before);
+      if (!edited || edited === before) return;
+
+      let written = false;
+      await app.vault.process(file, (content) => {
+        const current = content.split('\n');
+        const at = current[index] === before ? index : current.indexOf(before);
+        if (at === -1) return content;
+        current.splice(at, 1, ...edited.split('\n'));
+        written = true;
+        return current.join('\n');
+      });
+      if (!written) new Notice('Tasks Flowchart: the task changed in its note while the dialog was open, so the edit was not saved.');
+    },
+    // Gives a task a new id, or its first one, and changes every
+    // dependsOn that names the old id to match, like renaming a note
+    // updates the links to it. Only task lines the Tasks plugin knows are
+    // searched.
+    async changeTaskId(taskId, newId) {
+      const task = this.tasks.find((t) => t.id === taskId);
+      if (!task || task.pluginId === newId) return;
+      const oldId = task.pluginId;
+      await editTaskLine(task, (line) => (oldId ? renameIdInLine(line, oldId, newId) : addIdTag(line, newId)));
+      task.pluginId = newId;
+      if (!oldId) return;
+
+      const dependents = this.tasks.filter((t) => t !== task && t.dependsOn.includes(oldId));
+      for (const dependent of dependents) {
+        await editTaskLine(dependent, (line) => renameIdInLine(line, oldId, newId));
+        dependent.dependsOn = dependent.dependsOn.map((id) => (id === oldId ? newId : id));
+      }
+      if (dependents.length) {
+        new Notice(`Tasks Flowchart: id changed to ${newId} in this task and ${dependents.length} task${dependents.length === 1 ? '' : 's'} depending on it.`);
+      }
     },
     // Removes the dependency the given edge represents, both from the
     // target's file and from the in-memory task.

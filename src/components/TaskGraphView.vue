@@ -67,6 +67,8 @@ import AppearancePanel from './AppearancePanel.vue';
 import TaskFlowNode from './TaskFlowNode.vue';
 import TimeAxisRuler from './TimeAxisRuler.vue';
 import { layoutWithDagre, layoutWithTimeAxis } from '../utils/layout';
+import { promptName } from '../utils/promptName';
+import { isValidTaskId } from '../utils/taskLineEdits';
 
 const taskStore = useTaskStore();
 const { fitView, findNode, getSelectedNodes, setCenter, screenToFlowCoordinate, viewport, dimensions, setViewport } = useVueFlow();
@@ -377,14 +379,37 @@ const openTask = async (id) => {
 };
 
 // Click and Double-click in View Control each pick one of: select only,
-// focus the node's chain, or open it. Every click also selects, which Vue
-// Flow does on its own. By default a click only selects and a double click
-// opens. The browser sends two clicks before every double click, so the
-// click action always runs first. Highlight is not among them: it is a
-// mark that stays, set from the right-click menu.
+// focus the node's chain, open its note, or edit it in the Tasks plugin's
+// dialog. Every click also selects, which Vue Flow does on its own. By
+// default a click only selects and a double click edits. The browser sends
+// two clicks before every double click, so the click action always runs
+// first. Highlight is not among them: it is a mark that stays, set from the
+// right-click menu.
 const runNodeAction = async (action, id) => {
   if (action === 'focus') focusChain(id);
   else if (action === 'open') await openTask(id);
+  else if (action === 'edit') await taskStore.editTaskInModal(id);
+};
+
+// Asks for a task's new id, filled in with the current one, and changes it
+// along with every dependsOn that names it.
+const promptChangeId = async (id) => {
+  const task = taskStore.tasks.find((t) => t.id === id);
+  const app = getApp();
+  if (!task || !app) return;
+  const newId = await promptName(app, {
+    title: task.pluginId ? 'Change id' : 'Set id',
+    value: task.pluginId,
+    placeholder: 'id',
+    submitText: 'Save',
+    emptyText: 'Enter an id.',
+    validate: (value) => {
+      if (!isValidTaskId(value)) return 'Use only letters, digits, - and _.';
+      if (value !== task.pluginId && taskStore.tasks.some((t) => t.pluginId === value)) return 'Another task already has this id.';
+      return null;
+    }
+  });
+  if (newId && newId !== task.pluginId) await taskStore.changeTaskId(id, newId);
 };
 
 const onNodeClick = (event) => runNodeAction(taskStore.viewSettings.clickAction, event.node.id);
@@ -415,6 +440,9 @@ const onNodeContextMenu = ({ event, node }) => {
   addHighlightItem(menu, 'nodeIds', node.id);
   menu.addItem((item) => item.setTitle('Focus chain').setIcon('focus').onClick(() => runNodeAction('focus', node.id)));
   menu.addItem((item) => item.setTitle('Open task').setIcon('file-text').onClick(() => runNodeAction('open', node.id)));
+  menu.addSeparator();
+  menu.addItem((item) => item.setTitle('Edit task…').setIcon('pencil').onClick(() => runNodeAction('edit', node.id)));
+  menu.addItem((item) => item.setTitle('Change id…').setIcon('hash').onClick(() => promptChangeId(node.id)));
   addClearItems(menu);
   menu.showAtMouseEvent(event);
 };

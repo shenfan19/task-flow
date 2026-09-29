@@ -59,6 +59,7 @@
         <option value="select">Select</option>
         <option value="focus">Focus chain</option>
         <option value="open">Open task</option>
+        <option value="edit">Edit task</option>
       </select>
     </div>
   </RailCard>

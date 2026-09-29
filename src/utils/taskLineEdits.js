@@ -66,6 +66,25 @@ export function removeDependsOnTag(line, depId) {
   return line.slice(0, match.index) + replacement + line.slice(match.index + match[0].length);
 }
 
+// Characters the Tasks plugin allows in an id.
+export const isValidTaskId = (id) => /^[A-Za-z0-9_-]+$/.test(id);
+
+// Replaces `oldId` with `newId` wherever the line names it: in its own id
+// field and in its list of dependencies, in the Dataview style this plugin
+// writes and in the Tasks emoji style (🆔 and ⛔). Everything else on the
+// line, other ids in the same list included, stays as it is.
+export function renameIdInLine(line, oldId, newId) {
+  const swap = (list) => {
+    const ids = list.split(',').map((s) => s.trim());
+    return ids.includes(oldId) ? ids.map((id) => (id === oldId ? newId : id)).join(',') : list;
+  };
+  return line
+    .replace(/([[(]id::\s*)([A-Za-z0-9_-]+)(\s*[\])])/g, (m, head, id, tail) => (id === oldId ? head + newId + tail : m))
+    .replace(/(\u{1F194}\uFE0F?\s*)([A-Za-z0-9_-]+)/gu, (m, head, id) => (id === oldId ? head + newId : m))
+    .replace(/([[(]dependsOn::\s*)([^\])]*?)(\s*[\])])/g, (m, head, list, tail) => head + swap(list) + tail)
+    .replace(/(\u26D4\uFE0F?\s*)([A-Za-z0-9_,-]+)/gu, (m, head, list) => head + swap(list));
+}
+
 // A fresh unchecked task line with the same indentation and list marker as
 // `line` (the task it is created next to), so it lands as that task's
 // sibling rather than as a child of it or of its parent.

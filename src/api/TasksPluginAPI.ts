@@ -7,6 +7,9 @@ import type { App } from 'obsidian';
 interface TasksPluginInstance {
     getTasks?: () => unknown[];
     loadData: () => Promise<unknown>;
+    apiV1?: {
+        editTaskLineModal?: (taskLine: string) => Promise<string>;
+    };
 }
 
 /**
@@ -58,6 +61,27 @@ export class TasksPluginAPI {
             console.error('Tasks Flowchart: Error reading Tasks plugin settings:', error);
             return '';
         }
+    }
+
+    /**
+     * Whether the Tasks plugin offers its edit dialog to other plugins,
+     * which it does from version 7.21.0.
+     */
+    public canEditInModal(): boolean {
+        return typeof this.tasksPlugin?.apiV1?.editTaskLineModal === 'function';
+    }
+
+    /**
+     * Opens the Tasks plugin's own edit dialog filled in from `taskLine`, so
+     * the task is edited with the same form and settings as in a note.
+     * Resolves to the edited Markdown, which is more than one line when
+     * completing a recurring task adds its next occurrence, or to '' when
+     * the dialog is cancelled. Tasks writes any change to what this task
+     * blocks straight into the other tasks' files itself.
+     */
+    public editTaskLineModal(taskLine: string): Promise<string> {
+        const edit = this.tasksPlugin?.apiV1?.editTaskLineModal;
+        return edit ? edit(taskLine) : Promise.resolve('');
     }
 
     /**
