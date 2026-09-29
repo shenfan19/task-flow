@@ -10,17 +10,17 @@
 
 [English](README.md)
 
-**把连线拖到画布空白处，就新建一个关联任务。** 新任务写进笔记，并打开、选中名字，直接输入即可改名。
+**双击任务即可编辑，点 Layout 后它会按新日期移到时间轴上对应的位置。**
 
-![从两个节点拖出新建任务，新任务在旁边的笔记里被选中](images_ai/drag-to-create.gif)
+![双击任务，在 Tasks 编辑框里设置优先级、截止日期和 tag，再点 Layout，任务沿时间轴移到新日期](images_ai/edit-task.gif)
 
-**在两个任务之间拖动即可建立依赖，选中箭头按 Delete 即可删除。**
+**拖到另一个任务上即建立依赖，拖到画布空白处即新建关联任务，右键箭头可以删除依赖。**
 
-![连接两个任务，再选中新箭头并删除](images_ai/connect-and-delete.gif)
+![拖动连接两个任务，拖到空白处新建任务，再从右键菜单删除刚建的依赖](images_ai/link-and-create.gif)
 
-**打开时间轴，按日期排布任务。**
+**聚焦一个任务的整条链路，高亮需要留意的任务和箭头。**
 
-![打开时间轴后的 Tasks Flowchart 图谱](images_ai/time-axis.png)
+![聚焦一个任务的链路，高亮一个任务和一条箭头，取消聚焦后高亮仍保留，最后去掉一个高亮](images_ai/focus-and-highlight.gif)
 
 ## 为什么用 Tasks Flowchart
 

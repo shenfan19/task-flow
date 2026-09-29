@@ -10,17 +10,17 @@
 
 [中文说明](README_zh.md)
 
-**Drop a connection on empty canvas to create a linked task.** It is written into your note and opened with its name selected.
+**Double-click a task to edit it, then Layout places it on the time axis by its new date.**
 
-![Dragging out of two nodes to create new tasks, each selected in the note beside the graph](images_ai/drag-to-create.gif)
+![Double-clicking a task, setting its priority, due date and a tag in the Tasks edit dialog, then clicking Layout to move it along the time axis](images_ai/edit-task.gif)
 
-**Drag between two tasks to link them. Select an arrow and press Delete to unlink.**
+**Drag onto another task to link them, or onto empty canvas to create a linked task. Right-click an arrow to delete it.**
 
-![Connecting two tasks, then selecting the new arrow and deleting it](images_ai/connect-and-delete.gif)
+![Linking two tasks by dragging, creating a new task by dragging onto empty canvas, then deleting the new link from its right-click menu](images_ai/link-and-create.gif)
 
-**Turn on the time axis to order tasks by date.**
+**Focus a task's whole chain, and highlight the tasks and arrows that matter.**
 
-![Tasks Flowchart graph with the time axis turned on](images_ai/time-axis.png)
+![Focusing the chain of one task, highlighting a task and an arrow, clearing the focus while the highlights stay, then removing a highlight](images_ai/focus-and-highlight.gif)
 
 ## Why Tasks Flowchart
 

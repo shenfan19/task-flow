@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.2
+
+### Fixed
+
+- Letting go of a drag anywhere on another task links the two tasks. Before, the drop had to land close to one of that task's connection points, and a drop on the middle of a task did nothing.
+
+### Changed
+
+- The README shows three new demos: editing a task and placing it on the time axis, linking and creating tasks, and focus and highlight.
+
 ## 0.4.1
 
 ### Added

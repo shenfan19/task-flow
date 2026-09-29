@@ -622,7 +622,18 @@ const onConnectEnd = async (event) => {
   // the handle on the origin node, so on a phone every drag looked like it
   // ended on a node and no task was created.
   const dropTarget = activeDocument.elementFromPoint(end.x, end.y);
-  if (dropTarget?.closest?.('.vue-flow__node')) return;
+  // Let go anywhere on another node links to it. Vue Flow only reports a
+  // connection when the drag ends close to one of that node's handles, so
+  // a drop on the middle of a node was otherwise ignored.
+  const targetNode = dropTarget?.closest?.('.vue-flow__node');
+  if (targetNode) {
+    const targetId = targetNode.dataset.id;
+    if (targetId && targetId !== drag.nodeId) {
+      if (drag.upstream) void taskStore.connectTasks(targetId, drag.nodeId);
+      else void taskStore.connectTasks(drag.nodeId, targetId);
+    }
+    return;
+  }
 
   const drop = screenToFlowCoordinate(end);
   const created = await taskStore.createLinkedTask(drag.nodeId, {
