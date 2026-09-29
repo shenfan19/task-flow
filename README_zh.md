@@ -80,6 +80,10 @@ Tasks Flowchart 会直接修改你的笔记。连接两个任务时，会给一�
 
 需要 Node.js 22 或更高版本。运行 `npm install` 和 `npm run build`，构建产物 `main.js`、`manifest.json`、`styles.css` 输出到 `dist/`。发版由 GitHub Actions 根据版本 tag 自动构建和发布，具体步骤写在 `.github/workflows/release.yml` 开头的注释里。
 
+## 致谢
+
+本项目在开发中使用了 AI 编程辅助，用于代码生成、自动化测试和文档编写。
+
 ## 许可证
 
 MIT，见 [LICENSE](LICENSE)。

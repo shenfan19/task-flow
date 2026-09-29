@@ -80,6 +80,10 @@ The plugin is provided as is, without warranty of any kind, as set out in the [M
 
 The project requires Node.js 22 or later. `npm install` and `npm run build` write `main.js`, `manifest.json` and `styles.css` to `dist/`. Releases are built and published by GitHub Actions from a version tag, and the steps are described at the top of `.github/workflows/release.yml`.
 
+## Acknowledgments
+
+This project was developed with AI coding assistance for code generation, automated testing, and documentation.
+
 ## License
 
 MIT, see [LICENSE](LICENSE).
