@@ -41,7 +41,7 @@ Three lines like these become three connected nodes:
 2. Install Tasks Flowchart from **Settings → Community plugins → Browse**. To install manually, copy `main.js`, `manifest.json` and `styles.css` from the [latest release](https://github.com/shenfan19/task-flow/releases/latest) into `<your-vault>/.obsidian/plugins/task-flow/`.
 3. Click **Open tasks flowchart** in the left ribbon, or run **Tasks Flowchart: Open flowchart**. Click **Layout** at the top left, then **Overview**.
 
-All settings live in the cards on the left of the view, **Presets**, **View Control**, **File Filters** and **Node Style**, below the **Layout** and **Overview** buttons.
+All settings live in the cards on the left of the view, **Presets**, **View Control**, **File Filters** and **Node Style**, below the **Layout**, **Overview** and **Reset** buttons.
 
 ## Usage
 
@@ -51,6 +51,7 @@ All settings live in the cards on the left of the view, **Presets**, **View Cont
 - **Select**: click a node or an arrow to select it. Clicking empty canvas deselects.
 - **Highlight**: right-click a node or an arrow and choose **Highlight** to mark it with a glowing outline, and **Remove highlight** to take the mark off. A highlighted node lights up alone, without its arrows. Marks stay while you click, drag and open tasks, and **Clear all highlights**, in the right-click menus including the one on empty canvas, removes them all. The color is **Highlight** in Node Style.
 - **Focus**: right-click a node and choose **Focus chain** to keep its whole chain, every task it depends on and every task that depends on it, at full strength while the rest of the graph fades. Click empty canvas to clear the focus.
+- **Reset**: the **Reset** button, or the **Tasks Flowchart: Reset, clear highlights and focus** command, removes every highlight and the focus at once. Highlights and focus are otherwise kept when the view is closed and opened again, and so are the node positions and where the canvas was panned and zoomed to.
 - **Open**: double-click a node, or right-click it and choose **Open task**, to open its note in a side pane with the cursor at the end of the task's name, ready to type. A name still left as `untitled` is selected instead, so typing replaces it. **Click** and **Double-click** in View Control set what each does to a node, **Select**, **Focus chain** or **Open task**. By default a click selects and a double click opens. Right-click an arrow to open the task at either end.
 - **Commands**: **Tasks Flowchart: Layout** and **Tasks Flowchart: Overview, fit the graph in the view** do the same as the two buttons and can be given hotkeys in **Settings → Hotkeys**.
 - **Arrange**: drag nodes freely, and their positions are remembered. **Layout** arranges everything in the chosen direction with curved, straight or stepped arrows and keeps the zoom. The view stays where it is, or centers on the selected task if there is one. **Overview** fits the graph on screen. Both buttons sit at the top of the rail on the left.
@@ -68,7 +69,7 @@ Tasks Flowchart reads `[id:: ]`, `[dependsOn:: ]` and date fields anywhere on th
 
 ## Data
 
-Dependencies live only in your notes. Node positions, filters, presets and view settings are saved in `.obsidian/plugins/task-flow/data.json`. Deleting that file resets the layout and settings without touching any task.
+Dependencies live only in your notes. Node positions, the pan and zoom of the canvas, filters, presets, view settings, highlights and focus are saved in `.obsidian/plugins/task-flow/data.json`. Deleting that file resets the layout and settings without touching any task.
 
 ## Your notes
 

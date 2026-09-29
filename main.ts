@@ -50,6 +50,16 @@ export default class TaskFlowPlugin extends Plugin {
 		});
 
 		this.addCommand({
+			id: 'reset',
+			name: 'Reset, clear highlights and focus',
+			checkCallback: (checking) => {
+				if (!hasOpenGraph()) return false;
+				if (!checking) runViewCommand('reset');
+				return true;
+			}
+		});
+
+		this.addCommand({
 			id: 'overview',
 			name: 'Overview, fit the graph in the view',
 			checkCallback: (checking) => {

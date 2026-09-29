@@ -41,7 +41,7 @@
 2. 在 **设置 → 第三方插件 → 浏览** 里安装 Tasks Flowchart。也可以手动安装，把[最新版本](https://github.com/shenfan19/task-flow/releases/latest)的 `main.js`、`manifest.json`、`styles.css` 拷贝到 `<你的vault>/.obsidian/plugins/task-flow/`。
 3. 点击左侧功能区的 **Open tasks flowchart**，或者运行命令 **Tasks Flowchart: Open flowchart**。先点左上角的 **Layout**，再点 **Overview**。
 
-所有设置都在视图左侧的几张卡片里，分别是 **Presets**、**View Control**、**File Filters** 和 **Node Style**，上方是 **Layout** 和 **Overview** 两个按钮。
+所有设置都在视图左侧的几张卡片里，分别是 **Presets**、**View Control**、**File Filters** 和 **Node Style**，上方是 **Layout**、**Overview** 和 **Reset** 三个按钮。
 
 ## 使用说明
 
@@ -51,6 +51,7 @@
 - **选中**：单击节点或箭头即选中，单击空白处取消选中。
 - **高亮**：右键节点或箭头选 **Highlight**，给它加上发光标记，选 **Remove highlight** 去掉标记。高亮节点时只有节点本身发光，连在它上面的箭头不变。标记在单击、拖动、打开任务时都保持不变，右键菜单里的 **Clear all highlights** 一次清除全部标记，空白处的右键菜单里也有。颜色在 Node Style 的 **Highlight** 里设置。
 - **聚焦**：右键节点选 **Focus chain**，它的整条链路，也就是它依赖的所有任务和依赖它的所有任务，保持原样，其余部分变淡。单击空白处取消聚焦。
+- **复位**：点 **Reset** 按钮，或者运行命令 **Tasks Flowchart: Reset, clear highlights and focus**，一次清除全部高亮和聚焦。除此之外，高亮和聚焦在关闭视图再打开后都会保留，节点位置和画布的平移、缩放也一样。
 - **打开任务**：双击节点，或者右键节点选 **Open task**，在右侧分栏打开笔记，光标放在任务名末尾，可以直接输入。如果任务名还是 `untitled`，则直接选中它，输入即可替换。View Control 里的 **Click** 和 **Double-click** 分别决定单击和双击节点的效果，都可选 **Select**、**Focus chain** 或 **Open task**，默认单击选中、双击打开。右键箭头可以打开它两端的任务。
 - **命令**：**Tasks Flowchart: Layout** 和 **Tasks Flowchart: Overview, fit the graph in the view** 与两个按钮作用相同，可以在 **设置 → 快捷键** 里绑定快捷键。
 - **排布**：节点可以随意拖动，位置会记住。**Layout** 按选定方向排布全部节点，箭头可选曲线、直线或阶梯线，缩放保持不变；视图位置不动，如果选中了某个任务，则把它移到视图中心。**Overview** 让整张图显示在屏幕内。这两个按钮在左侧最上方。
@@ -68,7 +69,7 @@ Tasks Flowchart 在整行的任意位置读取 `[id:: ]`、`[dependsOn:: ]` 和�
 
 ## 数据
 
-依赖关系只存在笔记里。节点位置、过滤条件、预设和视图设置保存在 `.obsidian/plugins/task-flow/data.json`。删掉这个文件会重置布局和设置，不会影响任何任务。
+依赖关系只存在笔记里。节点位置、画布的平移和缩放、过滤条件、预设、视图设置、高亮和聚焦保存在 `.obsidian/plugins/task-flow/data.json`。删掉这个文件会重置布局和设置，不会影响任何任务。
 
 ## 对笔记的修改
 

@@ -180,6 +180,14 @@ export const useTaskStore = defineStore('task', {
       // with the positions it was computed alongside, so the ruler still
       // matches after a reload without re-running layout.
       timeAxisInfo: null,
+      // Highlight and focus, kept between sessions: the highlighted node and
+      // edge ids, and the task whose chain is focused (its chain is worked
+      // out again from the links when the view opens).
+      marks: { highlightNodes: [], highlightEdges: [], focusId: null },
+      // Where the canvas was panned and zoomed to, {x, y, zoom}, with the
+      // canvas size at that moment ({width, height}), so reopening the view
+      // shows the same part of the graph. Null until the canvas first moves.
+      viewport: null,
       // Tasks created on the canvas (see createLinkedTask) that the Tasks
       // plugin may not have indexed yet: {task, createdAt}. Kept across
       // refreshes until a fetch returns them, so a refresh landing before the
@@ -352,6 +360,12 @@ export const useTaskStore = defineStore('task', {
       }
       if (data?.timeAxisInfo) {
         this.timeAxisInfo = data.timeAxisInfo;
+      }
+      if (data?.marks) {
+        this.marks = { ...this.marks, ...data.marks };
+      }
+      if (data?.viewport) {
+        this.viewport = data.viewport;
       }
       // Default is made from the filters in use when it first appears, so
       // upgrading does not change what anyone sees.
@@ -614,8 +628,18 @@ export const useTaskStore = defineStore('task', {
         filterPresets: this.filterPresets,
         selectedPresetId: this.selectedPresetId,
         filters: this.filters,
-        timeAxisInfo: this.timeAxisInfo
+        timeAxisInfo: this.timeAxisInfo,
+        marks: this.marks,
+        viewport: this.viewport
       });
+    },
+    setMarks(marks) {
+      this.marks = marks;
+      this.saveState();
+    },
+    setSavedViewport(viewport) {
+      this.viewport = viewport;
+      this.saveState();
     }
   }
 });

@@ -1,15 +1,16 @@
 <template>
   <!-- The two actions used most, always in sight at the top of the rail and
        drawn in the accent color, set apart from the cards by having no
-       frame of their own. -->
+       frame of their own, and Reset, which clears highlights and focus. -->
   <div class="ft-action-bar">
     <button class="mod-cta" title="Arrange all nodes in the chosen direction" @click="$emit('layout')">Layout</button>
     <button class="mod-cta" title="Fit the whole graph in the view" @click="$emit('overview')">Overview</button>
+    <button title="Clear every highlight and the focus" @click="$emit('reset')">Reset</button>
   </div>
 </template>
 
 <script setup>
-defineEmits(['layout', 'overview']);
+defineEmits(['layout', 'overview', 'reset']);
 </script>
 
 <style scoped>

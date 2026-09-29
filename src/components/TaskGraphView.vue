@@ -3,7 +3,7 @@
     <!-- Left rail: the Layout and Overview buttons, then filter presets,
          view controls, filters and node appearance -->
     <div class="ft-left-rail">
-      <ActionBar @layout="onLayoutClick" @overview="onOverviewClick" />
+      <ActionBar @layout="onLayoutClick" @overview="onOverviewClick" @reset="resetMarks" />
       <PresetPanel />
       <ViewControlPanel
         @direction-change="onLayoutDirectionChange"
@@ -29,6 +29,7 @@
         @node-context-menu="onNodeContextMenu"
         @edge-context-menu="onEdgeContextMenu"
         @pane-click="clearFocus"
+        @move-end="onMoveEnd"
         @pane-context-menu="onPaneContextMenu"
         @node-drag-start="onNodeDragStart"
         @node-drag="onNodeDrag"
@@ -120,11 +121,13 @@ const hasHighlight = () => highlight.value.nodeIds.size > 0 || highlight.value.e
 // Focus: a node's whole chain, everything it depends on and everything that
 // depends on it, {nodeIds, edgeIds} kept at full strength while the rest
 // fades. Chosen from a node's menu, cleared by clicking empty canvas. Null
-// for no focus.
+// for no focus. focusId is the node the chain was taken from.
 const focus = ref(null);
+const focusId = ref(null);
 
 const clearFocus = () => {
   focus.value = null;
+  focusId.value = null;
 };
 
 const clearHighlight = () => {
@@ -168,6 +171,37 @@ const chainOf = (id) => {
 
 const focusChain = (id) => {
   focus.value = chainOf(id);
+  focusId.value = id;
+};
+
+// Reset clears every highlight and the focus: the button at the top of the
+// rail and the Reset command.
+const resetMarks = () => {
+  clearHighlight();
+  clearFocus();
+};
+
+// Highlight and focus are kept in data.json, so closing and reopening the
+// view brings them back. Saving starts once they have been restored, so
+// the empty state of a view that is still loading never overwrites them.
+let marksRestored = false;
+
+watch([highlight, focusId], () => {
+  if (!marksRestored) return;
+  taskStore.setMarks({
+    highlightNodes: [...highlight.value.nodeIds],
+    highlightEdges: [...highlight.value.edgeIds],
+    focusId: focusId.value
+  });
+});
+
+// Called once the tasks are loaded, since the focused chain is worked out
+// from their links. A focused task that no longer shows is dropped.
+const restoreMarks = () => {
+  const { highlightNodes = [], highlightEdges = [], focusId: savedFocus = null } = taskStore.marks ?? {};
+  highlight.value = { nodeIds: new Set(highlightNodes), edgeIds: new Set(highlightEdges) };
+  if (savedFocus && taskStore.filteredTasks.some((t) => t.id === savedFocus)) focusChain(savedFocus);
+  marksRestored = true;
 };
 
 // Class names for a node or edge from the current highlight and focus.
@@ -581,6 +615,38 @@ const onOverviewClick = () => {
   fitView({ padding: 0.2 });
 };
 
+// The canvas remembers where it was panned and zoomed to. It is saved when
+// a pan or zoom ends, once the saved one has been put back, so the default
+// view of a canvas that is still opening never overwrites it.
+let viewportRestored = false;
+
+const onMoveEnd = () => {
+  if (!viewportRestored) return;
+  const { x, y, zoom } = viewport.value;
+  const { width, height } = dimensions.value;
+  taskStore.setSavedViewport({ x, y, zoom, width, height });
+};
+
+// Puts the saved view back. When the canvas is a different size than when
+// it was saved, for example because a note is open beside it now, the view
+// is shifted by half the difference, as on a resize, so what was in the
+// middle stays in the middle.
+const restoreViewport = async () => {
+  const saved = taskStore.viewport;
+  if (saved) {
+    for (let i = 0; i < 20 && !dimensions.value.width; i++) {
+      await new Promise((resolve) => activeWindow.setTimeout(resolve, 50));
+    }
+    const { width, height } = dimensions.value;
+    setViewport({
+      x: saved.x + (saved.width && width ? (width - saved.width) / 2 : 0),
+      y: saved.y + (saved.height && height ? (height - saved.height) / 2 : 0),
+      zoom: saved.zoom
+    });
+  }
+  viewportRestored = true;
+};
+
 // Tasks reload as soon as the Tasks plugin reports a change, see
 // scheduleCacheReload below. This timer re-reads its cache every so often
 // as well, for any change that event misses. A reload only replaces the
@@ -615,10 +681,11 @@ const scheduleCacheReload = () => {
   }, CACHE_RELOAD_DELAY_MS);
 };
 
-// The Layout and Overview commands, see main.ts.
+// The Layout, Overview and Reset commands, see main.ts.
 const stopViewCommands = onViewCommand((name) => {
   if (name === 'layout') onLayoutClick();
   else if (name === 'overview') onOverviewClick();
+  else if (name === 'reset') resetMarks();
 });
 
 onMounted(async () => {
@@ -626,6 +693,8 @@ onMounted(async () => {
   // position is read from taskStore.positions at construction time.
   await taskStore.loadState();
   taskStore.fetchTasksFromObsidian();
+  restoreMarks();
+  await restoreViewport();
 
   refreshTimer = activeWindow.setInterval(() => {
     if (!isInteracting()) taskStore.fetchTasksFromObsidian();

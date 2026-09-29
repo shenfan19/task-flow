@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Highlights and focus are kept when the view is closed and opened again. A focused task that no longer shows is dropped.
+- The canvas reopens panned and zoomed to where it was left. If the view is a different size than then, for example with a note open beside it, the graph is shifted so that what was in the middle stays in the middle.
+- A **Reset** button next to Layout and Overview, and a **Reset, clear highlights and focus** command, remove every highlight and the focus at once.
+
 ## 0.3.0
 
 ### Added
