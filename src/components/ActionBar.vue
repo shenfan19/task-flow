@@ -1,7 +1,8 @@
 <template>
   <!-- The two actions used most, always in sight at the top of the rail and
-       drawn in the accent color, set apart from the cards by having no
-       frame of their own, and Reset, which clears highlights and focus. -->
+       drawn in the accent color, and Reset, which clears highlights and
+       focus. Framed like the cards below but with no title, so the Profile
+       row under it, the one control with no frame, stands out. -->
   <div class="ft-action-bar">
     <button class="mod-cta" title="Arrange all nodes in the chosen direction" @click="$emit('layout')">Layout</button>
     <button class="mod-cta" title="Fit the whole graph in the view" @click="$emit('overview')">Overview</button>
@@ -19,6 +20,11 @@ defineEmits(['layout', 'overview', 'reset']);
   box-sizing: border-box;
   display: flex;
   gap: 6px;
+  padding: 6px;
+  border-radius: 8px;
+  border: 1px solid var(--background-modifier-border, #d0d4da);
+  background: var(--background-primary, #fff);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 .ft-action-bar button {

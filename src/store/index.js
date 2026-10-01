@@ -91,8 +91,8 @@ function taskDay(t, fields) {
   return null;
 }
 
-// The filter settings a preset stores, copied so later edits to the live
-// filters do not reach into the preset.
+// The filter settings a profile stores, copied so later edits to the live
+// filters do not reach into the profile.
 const filterSnapshot = (f) => ({
   directories: [...f.directories],
   directoryMode: f.directoryMode,
@@ -102,6 +102,20 @@ const filterSnapshot = (f) => ({
   tagMode: f.tagMode,
   excludeText: f.excludeText
 });
+
+// What a profile stores: the File Filters, the View Control choices and the
+// Node Style, each copied. settingsVersion is bookkeeping for loadState, not
+// a choice, so it stays out.
+// eslint-disable-next-line no-unused-vars
+const profileSnapshot = ({ filters, viewSettings: { settingsVersion, ...view }, appearance }) => ({
+  filters: filterSnapshot(filters),
+  viewSettings: { ...view },
+  appearance: { ...appearance }
+});
+
+// View settings that move nodes, so switching to a profile that changes one
+// of them runs Layout again.
+const LAYOUT_VIEW_KEYS = ['layoutDirection', 'edgeType', 'timeAxis'];
 
 // data.json holds every node position, so it runs to hundreds of KB in a
 // large vault. Saves requested within this window are merged into one
@@ -127,8 +141,8 @@ async function setAsideUnreadableData(plugin) {
   }
 }
 
-// The preset that always exists and cannot be deleted.
-export const DEFAULT_PRESET_ID = 'default';
+// The profile that always exists and cannot be deleted.
+export const DEFAULT_PROFILE_ID = 'default';
 
 // Ids listed in a dependsOn field value, e.g. "abc123,def456".
 const splitIds = (value) => (value ?? '').split(',').map((s) => s.trim()).filter(Boolean);
@@ -150,8 +164,8 @@ export const useTaskStore = defineStore('task', {
         tagMode: 'include', // 'include': only tasks with any checked tag; 'exclude': hide tasks with any checked tag
         excludeText: '' // comma-separated keywords; a task whose line contains any of them is hidden
       },
-      filterPresets: [], // [{id, name, ...filterSnapshot}], always starting with the Default preset, see loadState
-      selectedPresetId: DEFAULT_PRESET_ID, // the preset shown in the Presets card; Save writes the filters into it
+      profiles: [], // [{id, name, ...profileSnapshot}], always starting with the Default profile, see loadState
+      selectedProfileId: DEFAULT_PROFILE_ID, // the profile shown in the Profile row; Save writes the current settings into it
       appearance: {
         nodeBg: '#ffffff',
         nodeBorder: '#0d6efd',
@@ -166,6 +180,8 @@ export const useTaskStore = defineStore('task', {
         lowFontSize: 11,
         lowBg: '#eef0f3',
         highlightColor: '#f59e0b', // glow around a highlighted node or link
+        edgeWidth: 1, // link line width in px, Vue Flow's own default
+        arrowSize: 12.5, // arrowhead width in px on screen, whatever the line width
         richText: true, // task text rendered as Markdown; off skips the MarkdownRenderer call entirely
         showTags: true // colored tag chips under each node's text
       },
@@ -176,7 +192,7 @@ export const useTaskStore = defineStore('task', {
         doubleClickAction: 'edit', // the same choice for a double click, plus 'edit'
         newTaskAction: 'edit', // a task made by dragging onto empty canvas: 'edit' it in the Tasks dialog or 'open' its note
         settingsVersion: 4, // the plugin's minor version when these settings were last carried over, see loadState
-        timeAxis: false // when on, nodes are ordered along the flow direction by date (see layoutWithTimeAxis)
+        timeAxis: true // the Date axis checkbox; when on, nodes are ordered along the flow direction by date (see layoutWithTimeAxis)
       },
       // {direction, anchors} from the last time-axis layout, which is what
       // the ruler reads to map canvas coordinates back to dates. Saved
@@ -222,16 +238,17 @@ export const useTaskStore = defineStore('task', {
         return hasOutgoing || hasIncoming;
       });
     },
-    selectedPreset() {
-      return this.filterPresets.find((p) => p.id === this.selectedPresetId) ?? null;
+    selectedProfile() {
+      return this.profiles.find((p) => p.id === this.selectedProfileId) ?? null;
     },
-    // True when the filters differ from the selected preset, i.e. there is
-    // something for Save to store.
-    presetModified() {
-      const preset = this.selectedPreset;
-      if (!preset) return false;
-      const { id, name, ...saved } = preset;
-      return JSON.stringify(filterSnapshot({ ...this.filters, ...saved })) !== JSON.stringify(filterSnapshot(this.filters));
+    // True when the current settings differ from the selected profile, i.e.
+    // there is something for Save to store.
+    profileModified() {
+      const profile = this.selectedProfile;
+      if (!profile) return false;
+      // eslint-disable-next-line no-unused-vars
+      const { id, name, ...saved } = profile;
+      return JSON.stringify(saved) !== JSON.stringify(profileSnapshot(this));
     },
     // tag -> hue for every tag in the vault, see utils/tagColor.js.
     tagHues() {
@@ -353,12 +370,6 @@ export const useTaskStore = defineStore('task', {
           this.viewSettings.doubleClickAction = 'edit';
         }
       }
-      if (data?.filterPresets) {
-        this.filterPresets = data.filterPresets;
-      }
-      if (data?.selectedPresetId) {
-        this.selectedPresetId = data.selectedPresetId;
-      }
       if (data?.filters) {
         this.filters = {
           ...this.filters,
@@ -375,12 +386,26 @@ export const useTaskStore = defineStore('task', {
       if (data?.viewport) {
         this.viewport = data.viewport;
       }
-      // Default is made from the filters in use when it first appears, so
+      // Read after the filters, view settings and appearance, which fill in
+      // what an older profile lacks. Up to 0.4.2 these were filter presets,
+      // {id, name, ...filters}; each becomes a profile with its own filters
+      // and the view settings and style in use now.
+      const current = profileSnapshot(this);
+      const fill = (p) => ({
+        id: p.id,
+        name: p.name,
+        filters: p.filters ?? filterSnapshot({ ...current.filters, tags: [], tagMode: 'include', excludeText: '', ...p }),
+        viewSettings: { ...current.viewSettings, ...p.viewSettings },
+        appearance: { ...current.appearance, ...p.appearance }
+      });
+      this.profiles = (data?.profiles ?? data?.filterPresets ?? []).map(fill);
+      this.selectedProfileId = data?.selectedProfileId ?? data?.selectedPresetId ?? DEFAULT_PROFILE_ID;
+      // Default is made from the settings in use when it first appears, so
       // upgrading does not change what anyone sees.
-      if (!this.filterPresets.some((p) => p.id === DEFAULT_PRESET_ID)) {
-        this.filterPresets.unshift({ id: DEFAULT_PRESET_ID, name: 'Default', ...filterSnapshot(this.filters) });
+      if (!this.profiles.some((p) => p.id === DEFAULT_PROFILE_ID)) {
+        this.profiles.unshift({ id: DEFAULT_PROFILE_ID, name: 'Default', ...current });
       }
-      if (!this.selectedPreset) this.selectedPresetId = DEFAULT_PRESET_ID;
+      if (!this.selectedProfile) this.selectedProfileId = DEFAULT_PROFILE_ID;
     },
     fetchTasksFromObsidian() {
       const app = getApp();
@@ -465,34 +490,38 @@ export const useTaskStore = defineStore('task', {
       this.viewSettings = { ...this.viewSettings, ...partial };
       void this.flushState();
     },
-    // A new preset holding the current filters, which becomes the selected one.
-    createFilterPreset(name) {
+    // A new profile holding the current settings, which becomes the selected one.
+    createProfile(name) {
       const id = Date.now().toString(36);
-      this.filterPresets.push({ id, name, ...filterSnapshot(this.filters) });
-      this.selectedPresetId = id;
+      this.profiles.push({ id, name, ...profileSnapshot(this) });
+      this.selectedProfileId = id;
       this.saveState();
     },
-    // Stores the current filters in the selected preset.
-    saveFilterPreset() {
-      const preset = this.selectedPreset;
-      if (!preset) return;
-      Object.assign(preset, filterSnapshot(this.filters));
+    // Stores the current settings in the selected profile.
+    saveProfile() {
+      const profile = this.selectedProfile;
+      if (!profile) return;
+      Object.assign(profile, profileSnapshot(this));
       this.saveState();
     },
-    // Selects a preset and loads its filters.
-    applyFilterPreset(id) {
-      const preset = this.filterPresets.find((p) => p.id === id);
-      if (!preset) return;
-      this.selectedPresetId = id;
-      const defaults = { onlyRelated: this.filters.onlyRelated, tags: [], tagMode: 'include', excludeText: '' };
-      Object.assign(this.filters, filterSnapshot({ ...defaults, ...preset }));
-      this.saveState();
+    // Selects a profile and loads its settings. Returns true when a setting
+    // that places nodes changed, so the caller can run Layout.
+    applyProfile(id) {
+      const profile = this.profiles.find((p) => p.id === id);
+      if (!profile) return false;
+      const relayout = LAYOUT_VIEW_KEYS.some((key) => profile.viewSettings[key] !== this.viewSettings[key]);
+      this.selectedProfileId = id;
+      Object.assign(this.filters, filterSnapshot(profile.filters));
+      this.viewSettings = { ...this.viewSettings, ...profile.viewSettings };
+      this.appearance = { ...this.appearance, ...profile.appearance };
+      void this.flushState();
+      return relayout;
     },
-    // Deletes a preset other than Default, then goes back to Default.
-    deleteFilterPreset(id) {
-      if (id === DEFAULT_PRESET_ID) return;
-      this.filterPresets = this.filterPresets.filter((p) => p.id !== id);
-      this.applyFilterPreset(DEFAULT_PRESET_ID);
+    // Deletes a profile other than Default, then goes back to Default.
+    deleteProfile(id) {
+      if (id === DEFAULT_PROFILE_ID) return false;
+      this.profiles = this.profiles.filter((p) => p.id !== id);
+      return this.applyProfile(DEFAULT_PROFILE_ID);
     },
     // Drawing an edge from `source` to `target` on the canvas means "target
     // depends on source" — writes real 🆔/⛔ tags back to both files (giving
@@ -699,8 +728,8 @@ export const useTaskStore = defineStore('task', {
         positions: this.positions,
         appearance: this.appearance,
         viewSettings: this.viewSettings,
-        filterPresets: this.filterPresets,
-        selectedPresetId: this.selectedPresetId,
+        profiles: this.profiles,
+        selectedProfileId: this.selectedProfileId,
         filters: this.filters,
         timeAxisInfo: this.timeAxisInfo,
         marks: this.marks,

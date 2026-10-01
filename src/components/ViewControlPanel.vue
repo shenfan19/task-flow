@@ -1,5 +1,5 @@
 <template>
-  <RailCard title="View Control" initially-open>
+  <RailCard title="View Control">
     <select
       class="dropdown"
       :value="taskStore.viewSettings.layoutDirection"
@@ -34,7 +34,7 @@
           :checked="taskStore.viewSettings.timeAxis"
           @change="$emit('time-axis-change', { timeAxis: $event.target.checked })"
         >
-        <label class="form-check-label" for="timeAxisToggle">Time axis</label>
+        <label class="form-check-label" for="timeAxisToggle">Date axis</label>
       </div>
       <!-- Tasks reload on their own when a note changes; this is for
            reloading by hand. -->

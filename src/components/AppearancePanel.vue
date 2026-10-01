@@ -46,6 +46,18 @@
 
     <hr class="ft-sep">
 
+    <!-- Links: line width and arrowhead size, changed by dragging. -->
+    <div class="ft-link-grid">
+      <label for="edgeWidth">Line width</label>
+      <input id="edgeWidth" type="range" min="0.5" max="6" step="0.5" :value="taskStore.appearance.edgeWidth" @input="setNumber('edgeWidth', $event)">
+      <span class="ft-link-value">{{ taskStore.appearance.edgeWidth }}</span>
+      <label for="arrowSize">Arrow size</label>
+      <input id="arrowSize" type="range" min="6" max="40" step="0.5" :value="taskStore.appearance.arrowSize" @input="setNumber('arrowSize', $event)">
+      <span class="ft-link-value">{{ taskStore.appearance.arrowSize }}</span>
+    </div>
+
+    <hr class="ft-sep">
+
     <div class="form-check">
       <input
         class="form-check-input"
@@ -139,6 +151,26 @@ const setNumber = (key, event) => {
 
 .ft-tier-size input {
   width: 48px;
+}
+
+.ft-link-grid {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 4px;
+}
+
+.ft-link-grid input[type='range'] {
+  width: 100%;
+  min-width: 80px;
+}
+
+.ft-link-value {
+  min-width: 2.5em;
+  text-align: right;
+  color: var(--text-muted, #666);
+  font-size: 11px;
 }
 
 input[type='color'] {

@@ -1,10 +1,10 @@
 <template>
   <div class="position-relative w-100 h-100 ft-graph-root">
-    <!-- Left rail: the Layout and Overview buttons, then filter presets,
+    <!-- Left rail: the Layout and Overview buttons, then the Profile row,
          view controls, filters and node appearance -->
     <div class="ft-left-rail">
       <ActionBar @layout="onLayoutClick" @overview="onOverviewClick" @reset="resetMarks" />
-      <PresetPanel />
+      <ProfileBar @layout="onLayoutClick" />
       <ViewControlPanel
         @direction-change="onLayoutDirectionChange"
         @edge-type-change="onEdgeTypeChange"
@@ -66,7 +66,7 @@ import { MarkdownView, Menu } from 'obsidian';
 import { getApp } from '../pluginContext';
 import { onViewCommand } from '../viewCommands';
 import ActionBar from './ActionBar.vue';
-import PresetPanel from './PresetPanel.vue';
+import ProfileBar from './ProfileBar.vue';
 import FilterPanel from './FilterPanel.vue';
 import ViewControlPanel from './ViewControlPanel.vue';
 import AppearancePanel from './AppearancePanel.vue';
@@ -285,13 +285,20 @@ const edges = computed(() => {
     // otherwise a backward edge on the time axis is red.
     const glow = highlight.value.edgeIds.has(edge.id);
     const color = glow ? taskStore.appearance.highlightColor : backward ? BACKWARD_EDGE_COLOR : null;
+    // Line width and arrow size from Node Style; a highlighted edge is drawn
+    // a little thicker. Vue Flow sizes the arrowhead in units of the line
+    // width, so dividing by it keeps the arrow at arrowSize px on screen.
+    const { edgeWidth = 1, arrowSize = 12.5 } = taskStore.appearance;
+    const strokeWidth = glow ? edgeWidth + 1.5 : edgeWidth;
+    const markerSize = arrowSize / strokeWidth;
+    const marker = { type: MarkerType.ArrowClosed, width: markerSize, height: markerSize };
     return {
       ...edge,
       // Both are always set, the plain values included: Vue Flow merges an
       // updated edge into the one it already has, so a property left out
       // keeps its old value, and an edge once drawn in a color kept it.
-      style: color ? { stroke: color } : {},
-      markerEnd: color ? { type: MarkerType.ArrowClosed, color } : MarkerType.ArrowClosed,
+      style: color ? { stroke: color, strokeWidth } : { strokeWidth },
+      markerEnd: color ? { ...marker, color } : marker,
       sourceHandle: handles.source,
       targetHandle: handles.target,
       // Set directly on the edge (not via default-edge-options) because Vue
@@ -869,7 +876,6 @@ onUnmounted(() => {
 }
 
 .ft-graph-container :deep(.vue-flow__edge.ft-glow .vue-flow__edge-path) {
-  stroke-width: 2.5;
   filter: drop-shadow(0 0 3px var(--ft-highlight));
 }
 </style>

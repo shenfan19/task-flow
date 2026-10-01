@@ -45,7 +45,7 @@ const TEXTS = {
   },
   filtered: {
     title: 'No tasks match the filters',
-    lines: ['Change the filters in File Filters, or choose another preset.']
+    lines: ['Change the filters in File Filters, or choose another profile.']
   }
 };
 

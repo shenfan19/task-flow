@@ -10,9 +10,9 @@
 
 [中文说明](README_zh.md)
 
-**Double-click a task to edit it, then Layout places it on the time axis by its new date.**
+**Double-click a task to edit it, then Layout places it on the date axis by its new date.**
 
-![Double-clicking a task, setting its priority, due date and a tag in the Tasks edit dialog, then clicking Layout to move it along the time axis](images_ai/edit-task.gif)
+![Double-clicking a task, setting its priority, due date and a tag in the Tasks edit dialog, then clicking Layout to move it along the date axis](images_ai/edit-task.gif)
 
 **Drag onto another task to link them, or onto empty canvas to create a linked task. Right-click an arrow to delete it.**
 
@@ -42,7 +42,7 @@ Three lines like these become three connected nodes:
 3. Click **Open tasks flowchart** in the left ribbon, or run **Tasks Flowchart: Open flowchart**. Click **Layout** at the top left, then **Overview**.
 4. New to linking tasks? Click **Create sample note** on the empty canvas, or run **Tasks Flowchart: Create sample note**, for a small linked plan to try things on.
 
-All settings live in the cards on the left of the view, **Presets**, **View Control**, **File Filters** and **Node Style**, below the **Layout**, **Overview** and **Reset** buttons.
+At the top left of the view are the **Layout**, **Overview** and **Reset** buttons and, below them, the **Profile** row. The other settings live in the folded cards under them, **View Control**, **File Filters** and **Node Style**; click a card's title to open it.
 
 ## Usage
 
@@ -52,17 +52,17 @@ All settings live in the cards on the left of the view, **Presets**, **View Cont
 - **Select**: click a node or an arrow to select it. Clicking empty canvas deselects. Hold Shift and drag on empty canvas to select every node in a box, or hold Ctrl, Cmd on a Mac, and click to add nodes one by one. Selected nodes are dragged together. Dragging on empty canvas without Shift moves the view.
 - **Highlight**: right-click a node or an arrow and choose **Highlight** to mark it with a glowing outline, and **Remove highlight** to take the mark off. A highlighted node lights up alone, without its arrows. Marks stay while you click, drag and open tasks, and **Clear all highlights**, in the right-click menus including the one on empty canvas, removes them all. The color is **Highlight** in Node Style.
 - **Focus**: right-click a node and choose **Focus chain** to keep its whole chain, every task it depends on and every task that depends on it, at full strength while the rest of the graph fades. Click empty canvas to clear the focus.
-- **Reset**: the **Reset** button, or the **Tasks Flowchart: Reset, clear highlights and focus** command, removes every highlight and the focus at once. Highlights and focus are otherwise kept when the view is closed and opened again, and so are the node positions and where the canvas was panned and zoomed to.
+- **Reset**: the **Reset** button, or the **Tasks Flowchart: Reset, clear highlights and focus** command, removes every highlight and the focus at once and changes nothing else. Node positions stay until the next **Layout**, the pan and zoom of the canvas stay until **Overview** or until you move the canvas, and the profile, with its filters, View Control and Node Style, is not touched. Without Reset, highlights and focus are kept when the view is closed and opened again, as are the node positions and the pan and zoom.
 - **Edit**: double-click a node, or right-click it and choose **Edit task…**, to edit the task in the Tasks plugin's own dialog: its name and tags, priority, dates, status, recurrence and dependencies. This needs Tasks 7.21.0 or later.
 - **Change id**: right-click a node and choose **Change id…** to give the task a new id. Every task that depends on it is updated to the new id as well, the way renaming a note updates the links to it.
 - **Open**: right-click a node and choose **Open task**, or set a click to open, to open its note in a side pane with the cursor at the end of the task's name, ready to type. A name still left as `untitled` is selected instead, so typing replaces it. **Click** and **Double-click** in View Control set what each does to a node, **Select**, **Focus chain**, **Open task** or **Edit task**. By default a click selects and a double click edits. Right-click an arrow to open the task at either end.
 - **Commands**: **Tasks Flowchart: Layout** and **Tasks Flowchart: Overview, fit the graph in the view** do the same as the two buttons and can be given hotkeys in **Settings → Hotkeys**.
 - **Arrange**: drag nodes freely, and their positions are remembered. **Layout** arranges everything in the chosen direction with curved, straight or stepped arrows and keeps the zoom. The view stays where it is, or centers on the selected task if there is one. **Overview** fits the graph on screen. Both buttons sit at the top of the rail on the left.
-- **Time axis**: each task is placed by one date: the done date of a finished task, otherwise its due date, then its scheduled date, then its start date. Tasks sharing a date line up, undated tasks fall between their neighbors, and the ruler marks each task's date and stretches with the tasks in between. A red line marks today, a red arrow marks a task dated before one it depends on, and dated nodes can only be dragged sideways.
+- **Date axis**: on by default, and turned off in View Control. Each task is placed by one date: the done date of a finished task, otherwise its due date, then its scheduled date, then its start date. Tasks sharing a date line up, undated tasks fall between their neighbors, and the ruler marks each task's date and stretches with the tasks in between. A red line marks today, a red arrow marks a task dated before one it depends on, and dated nodes can only be dragged sideways.
 - **Filter**: in **File Filters**, show only tasks with a dependency link, which is on by default, hide tasks containing keywords such as `archived on`, and filter by status, tag or folder. Filters are kept between sessions.
-- **Presets**: pick a saved set of filters in **Presets** to load it. **Save** stores the current filters in the selected preset, and **New…** saves them as a new one. **Default** is always there.
-- **Style**: in **Node Style**, set the border, highlight and text colors and the font size and background of every node, give high, medium and low priority tasks their own font size and background, render task text as Markdown, and show tags as chips with automatic colors.
-- **Refresh**: the graph follows your edits. A few seconds after you change a task line and the note is saved, its node shows the new text in the same place. A changed date moves the node on the time axis at the next **Layout**. Tasks also reload every 30 seconds, or with **Refresh** in **View Control**, and refreshing waits while you drag.
+- **Profiles**: a profile keeps the File Filters, View Control and Node Style together. Pick one in the **Profile** row to switch all three at once. **Save** stores the current settings in the selected profile, and **New…** saves them as a new one. A `*` after the name means the settings changed since the last save. **Default** is always there and cannot be deleted. Switching to a profile with another layout direction, link type or date axis setting lays the graph out again. Node positions, the pan and zoom, highlights and focus belong to the view, not to a profile, so all profiles share them.
+- **Style**: in **Node Style**, set the border, highlight and text colors and the font size and background of every node, give high, medium and low priority tasks their own font size and background, drag **Line width** and **Arrow size** to size the links, render task text as Markdown, and show tags as chips with automatic colors.
+- **Refresh**: the graph follows your edits. A few seconds after you change a task line and the note is saved, its node shows the new text in the same place. A changed date moves the node on the date axis at the next **Layout**. Tasks also reload every 30 seconds, or with **Refresh** in **View Control**, and refreshing waits while you drag.
 
 ## Troubleshooting
 
@@ -72,7 +72,7 @@ Tasks Flowchart reads `[id:: ]`, `[dependsOn:: ]` and date fields anywhere on th
 
 ## Data
 
-Dependencies live only in your notes. Node positions, the pan and zoom of the canvas, filters, presets, view settings, highlights and focus are saved in `.obsidian/plugins/task-flow/data.json`. Deleting that file resets the layout and settings without touching any task.
+Dependencies live only in your notes. Node positions, the pan and zoom of the canvas, filters, profiles, view settings, highlights and focus are saved in `.obsidian/plugins/task-flow/data.json`. Deleting that file resets the layout and settings without touching any task.
 
 ## Your notes
 

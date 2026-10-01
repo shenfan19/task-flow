@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.5.0
+
+### Added
+
+- **Line width** and **Arrow size** in Node Style, two sliders for the links. The arrowhead keeps its size when the line gets thicker, and a highlighted link is drawn a little thicker than the others.
+
+### Changed
+
+- Presets are now **profiles**. A profile keeps the File Filters, View Control and Node Style together, so choosing one switches all three at once. **Save** stores the current settings in the selected profile, and a `*` after its name shows that any of them changed since the last save. Switching to a profile with another layout direction, link type or date axis setting lays the graph out again. Node positions, the pan and zoom of the canvas, highlights and focus are shared by all profiles.
+- Each preset becomes a profile of the same name on update. It keeps its filters and takes the view settings and style in use at that moment, so nothing changes on screen. Profiles are saved under a new key in `data.json`, so going back to an earlier version leaves only the Default preset.
+- **Profile** is a row of its own under **Layout**, **Overview** and **Reset**, with no frame, and those three buttons now sit in a frame without a title.
+- **View Control** starts folded, like the other cards.
+- **Time axis** is now **Date axis** and is on for new installs. A saved choice is kept.
+- The README states that **Reset** only clears highlights and focus, and leaves node positions, the pan and zoom and the profile as they are.
+
 ## 0.4.2
 
 ### Fixed
