@@ -3,12 +3,12 @@
 [![Obsidian plugin](https://img.shields.io/badge/Obsidian-plugin-7C3AED?logo=obsidian&logoColor=white)](https://community.obsidian.md/plugins/task-flow)
 [![Downloads](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fcommunity.obsidian.md%2Fapi%2Fv1%2Fplugins%2Ftask-flow&query=%24.downloads&label=downloads&logo=obsidian&logoColor=white&color=7C3AED)](https://community.obsidian.md/plugins/task-flow)
 [![Latest release](https://img.shields.io/github/v/release/shenfan19/task-flow?sort=semver)](https://github.com/shenfan19/task-flow/releases/latest)
-[![Minimum Obsidian version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fshenfan19%2Ftask-flow%2Fmain%2Fmanifest.json&query=%24.minAppVersion&label=min%20Obsidian&color=blue)](manifest.json)
-[![License](https://img.shields.io/github/license/shenfan19/task-flow)](LICENSE)
+[![Minimum Obsidian version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fshenfan19%2Ftask-flow%2Fmain%2Fmanifest.json&query=%24.minAppVersion&label=min%20Obsidian&color=blue)](https://github.com/shenfan19/task-flow/blob/main/manifest.json)
+[![License](https://img.shields.io/github/license/shenfan19/task-flow)](https://github.com/shenfan19/task-flow/blob/main/LICENSE)
 
 **Tasks Flowchart** is a plugin for [Obsidian](https://obsidian.md) that draws your [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) as a flowchart. Follow the flow of work along dependency chains, see what blocks what, link and create tasks by dragging, and keep everything as plain Markdown.
 
-[中文说明](README_zh.md)
+[中文说明](https://github.com/shenfan19/task-flow/blob/main/README_zh.md)
 
 **Double-click a task to edit it, then Layout places it on the date axis by its new date.**
 
@@ -70,6 +70,10 @@ A task missing from the graph usually has no dependency link, and **Only show ta
 
 Tasks Flowchart reads `[id:: ]`, `[dependsOn:: ]` and date fields anywhere on the line, so links survive text that archiving plugins append after them. The Tasks plugin only reads fields at the end of a line, so its own queries see no id, dependencies or dates on such a task.
 
+## Feedback
+
+Found a bug or have an idea? Please [open an issue on GitHub](https://github.com/shenfan19/task-flow/issues). For a bug, include your Obsidian and Tasks versions and a few task lines that show the problem.
+
 ## Data
 
 Dependencies live only in your notes. Node positions, the pan and zoom of the canvas, filters, profiles, view settings, highlights and focus are saved in `.obsidian/plugins/task-flow/data.json`. Deleting that file resets the layout and settings without touching any task.
@@ -78,7 +82,7 @@ Dependencies live only in your notes. Node positions, the pan and zoom of the ca
 
 Tasks Flowchart edits your notes directly. Linking two tasks adds an `[id:: ]` field to one task line and a `[dependsOn:: ]` field to the other, unlinking removes that entry from `[dependsOn:: ]`, and dropping a connection on empty canvas inserts a new `- [ ] untitled` line below the task it started from. It changes only the task lines involved and leaves the rest of the note as it is. There is no undo inside the flowchart: Obsidian's own undo works while the note is open in an editor, and the core File recovery plugin keeps snapshots you can go back to. Keep your vault backed up or under version control, such as git or Obsidian Sync version history, before using it on notes that matter.
 
-The plugin is provided as is, without warranty of any kind, as set out in the [MIT license](LICENSE).
+The plugin is provided as is, without warranty of any kind, as set out in the [MIT license](https://github.com/shenfan19/task-flow/blob/main/LICENSE).
 
 ## Development
 
@@ -90,4 +94,4 @@ This project was developed with AI coding assistance for code generation, automa
 
 ## License
 
-MIT, see [LICENSE](LICENSE).
+MIT, see [LICENSE](https://github.com/shenfan19/task-flow/blob/main/LICENSE).

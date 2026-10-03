@@ -3,12 +3,12 @@
 [![Obsidian plugin](https://img.shields.io/badge/Obsidian-plugin-7C3AED?logo=obsidian&logoColor=white)](https://community.obsidian.md/plugins/task-flow)
 [![Downloads](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fcommunity.obsidian.md%2Fapi%2Fv1%2Fplugins%2Ftask-flow&query=%24.downloads&label=downloads&logo=obsidian&logoColor=white&color=7C3AED)](https://community.obsidian.md/plugins/task-flow)
 [![Latest release](https://img.shields.io/github/v/release/shenfan19/task-flow?sort=semver)](https://github.com/shenfan19/task-flow/releases/latest)
-[![Minimum Obsidian version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fshenfan19%2Ftask-flow%2Fmain%2Fmanifest.json&query=%24.minAppVersion&label=min%20Obsidian&color=blue)](manifest.json)
-[![License](https://img.shields.io/github/license/shenfan19/task-flow)](LICENSE)
+[![Minimum Obsidian version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fshenfan19%2Ftask-flow%2Fmain%2Fmanifest.json&query=%24.minAppVersion&label=min%20Obsidian&color=blue)](https://github.com/shenfan19/task-flow/blob/main/manifest.json)
+[![License](https://img.shields.io/github/license/shenfan19/task-flow)](https://github.com/shenfan19/task-flow/blob/main/LICENSE)
 
 **Tasks Flowchart** 是一款 [Obsidian](https://obsidian.md) 插件，把 [Tasks 插件](https://github.com/obsidian-tasks-group/obsidian-tasks) 里的任务画成流程图。沿着依赖链看清工作的来龙去脉和谁卡着谁，拖一拖就能建立依赖或新建任务，一切都保存为明文 Markdown。
 
-[English](README.md)
+[English](https://github.com/shenfan19/task-flow/blob/main/README.md)
 
 **双击任务即可编辑，点 Layout 后它会按新日期移到日期轴上对应的位置。**
 
@@ -70,6 +70,10 @@
 
 Tasks Flowchart 在整行的任意位置读取 `[id:: ]`、`[dependsOn:: ]` 和日期字段，所以归档插件在字段后面追加文字时，连线照样有效。Tasks 插件只读取行尾的字段，因此它自己的查询功能读不到这类任务的 id、依赖和日期。
 
+## 反馈
+
+遇到问题或有新想法，欢迎[在 GitHub 上提 issue](https://github.com/shenfan19/task-flow/issues)。报告 bug 时请写上 Obsidian 和 Tasks 的版本，并附几行能复现问题的任务。
+
 ## 数据
 
 依赖关系只存在笔记里。节点位置、画布的平移和缩放、过滤条件、profile、视图设置、高亮和聚焦保存在 `.obsidian/plugins/task-flow/data.json`。删掉这个文件会重置布局和设置，不会影响任何任务。
@@ -78,7 +82,7 @@ Tasks Flowchart 在整行的任意位置读取 `[id:: ]`、`[dependsOn:: ]` 和�
 
 Tasks Flowchart 会直接修改你的笔记。连接两个任务时，会给一行任务加上 `[id:: ]` 字段，给另一行加上 `[dependsOn:: ]` 字段；删除依赖时，从 `[dependsOn:: ]` 里去掉对应的一项；把连线拖到空白处松开时，会在出发任务下面插入一行新的 `- [ ] untitled`。插件只改涉及的任务行，笔记里的其他内容保持原样。流程图里没有撤销功能：笔记在编辑器中打开时，可以用 Obsidian 自带的撤销；Obsidian 的核心插件"文件恢复"也会保存快照，可以回退到之前的版本。在重要的笔记上使用之前，请先备份 vault，或者用 git、Obsidian Sync 的版本历史做版本管理。
 
-本插件按原样提供，不作任何形式的担保，详见 [MIT 许可证](LICENSE)。
+本插件按原样提供，不作任何形式的担保，详见 [MIT 许可证](https://github.com/shenfan19/task-flow/blob/main/LICENSE)。
 
 ## 开发
 
@@ -90,4 +94,4 @@ Tasks Flowchart 会直接修改你的笔记。连接两个任务时，会给一�
 
 ## 许可证
 
-MIT，见 [LICENSE](LICENSE)。
+MIT，见 [LICENSE](https://github.com/shenfan19/task-flow/blob/main/LICENSE)。
