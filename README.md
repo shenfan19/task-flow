@@ -6,7 +6,7 @@
 [![Minimum Obsidian version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fshenfan19%2Ftask-flow%2Fmain%2Fmanifest.json&query=%24.minAppVersion&label=min%20Obsidian&color=blue)](https://github.com/shenfan19/task-flow/blob/main/manifest.json)
 [![License](https://img.shields.io/github/license/shenfan19/task-flow)](https://github.com/shenfan19/task-flow/blob/main/LICENSE)
 
-**Tasks Flowchart** is a plugin for [Obsidian](https://obsidian.md) that draws your [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) as a flowchart. Follow the flow of work along dependency chains, see what blocks what, link and create tasks by dragging, and keep everything as plain Markdown.
+**Tasks Flowchart** is a plugin for [Obsidian](https://obsidian.md) that draws your [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) as a flowchart. Follow the flow of work along dependency chains, spot the tasks holding others up, and link or create tasks by dragging. Every link is saved as a field on the task line in your note.
 
 [中文说明](https://github.com/shenfan19/task-flow/blob/main/README_zh.md)
 
@@ -24,8 +24,8 @@
 
 ## Why Tasks Flowchart
 
-- **Your plan stays plain Markdown.** Every node is a task line in your notes and every arrow is a field on that line. There is no database and no hidden file format, so the plan works in any editor, with git and sync, with Dataview and the Tasks plugin's own queries, and it is all still there if you uninstall Tasks Flowchart.
-- **See what blocks what.** Upstream tasks come before the tasks that wait on them, and a task with nothing left above it is one you can start now.
+- **Your plan lives in your notes.** Every node is a task line in your notes and every arrow is a field on that line. There is no database and no hidden file format, so the plan works in any editor, with git and sync, with Dataview and the Tasks plugin's own queries, and it is all still there if you uninstall Tasks Flowchart.
+- **See which tasks hold others up.** Upstream tasks come before the tasks that wait on them, and a task with nothing left above it is one you can start now.
 
 Three lines like these become three connected nodes:
 

@@ -3,7 +3,7 @@
 	"name": "Tasks Flowchart",
 	"version": "0.5.0",
 	"minAppVersion": "1.7.2",
-	"description": "Flowchart for the Tasks plugin. Follow dependency chains, see what blocks what, and link or create tasks by dragging, all in plain Markdown.",
+	"description": "Show your Tasks as a flowchart. Follow dependency chains, spot the tasks holding others up, and link or create tasks by dragging. Every link is saved as a field on the task line in your note.",
 	"author": "Fan Shen",
 	"authorUrl": "https://github.com/shenfan19",
 	"isDesktopOnly": false
