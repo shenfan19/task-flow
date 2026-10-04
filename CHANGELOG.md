@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.1
+
+### Changed
+
+- **Open task** is now **Open note** in the node right-click menu and in the **Click** and **Double-click** choices of View Control, and the arrow menu entries read **Open upstream note** and **Open downstream note**. They open the note, and the old name was easy to mistake for **Edit task**.
+
 ## 0.5.0
 
 ### Added

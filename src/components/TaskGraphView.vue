@@ -455,7 +455,7 @@ const onNodeContextMenu = ({ event, node }) => {
   const menu = new Menu();
   addHighlightItem(menu, 'nodeIds', node.id);
   menu.addItem((item) => item.setTitle('Focus chain').setIcon('focus').onClick(() => runNodeAction('focus', node.id)));
-  menu.addItem((item) => item.setTitle('Open task').setIcon('file-text').onClick(() => runNodeAction('open', node.id)));
+  menu.addItem((item) => item.setTitle('Open note').setIcon('file-text').onClick(() => runNodeAction('open', node.id)));
   menu.addSeparator();
   menu.addItem((item) => item.setTitle('Edit task…').setIcon('pencil').onClick(() => runNodeAction('edit', node.id)));
   menu.addItem((item) => item.setTitle('Change id…').setIcon('hash').onClick(() => promptChangeId(node.id)));
@@ -468,8 +468,8 @@ const onEdgeContextMenu = ({ event, edge }) => {
   const menu = new Menu();
   addHighlightItem(menu, 'edgeIds', edge.id);
   menu.addSeparator();
-  menu.addItem((item) => item.setTitle('Open upstream task').setIcon('arrow-up').onClick(() => openTask(edge.source)));
-  menu.addItem((item) => item.setTitle('Open downstream task').setIcon('arrow-down').onClick(() => openTask(edge.target)));
+  menu.addItem((item) => item.setTitle('Open upstream note').setIcon('arrow-up').onClick(() => openTask(edge.source)));
+  menu.addItem((item) => item.setTitle('Open downstream note').setIcon('arrow-down').onClick(() => openTask(edge.target)));
   menu.addSeparator();
   menu.addItem((item) => item.setTitle('Delete link').setIcon('trash').onClick(() => {
     setHighlight('edgeIds', edge.id, false);
