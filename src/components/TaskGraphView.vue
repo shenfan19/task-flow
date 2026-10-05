@@ -3,7 +3,14 @@
     <!-- Left rail: the Layout and Overview buttons, then the Profile row,
          view controls, filters and node appearance -->
     <div class="ft-left-rail">
-      <ActionBar @layout="onLayoutClick" @overview="onOverviewClick" @reset="resetMarks" />
+      <ActionBar
+        v-model:search="searchText"
+        :search-count="searchHits.size"
+        @layout="onLayoutClick"
+        @overview="onOverviewClick"
+        @reset="resetMarks"
+        @next-hit="jumpToHit"
+      />
       <ProfileBar @layout="onLayoutClick" />
       <ViewControlPanel
         @direction-change="onLayoutDirectionChange"
@@ -15,13 +22,15 @@
     </div>
 
     <!-- Graph Container (Full Size) -->
-    <div class="w-100 h-100 bg-white ft-graph-container" :style="{ '--ft-highlight': taskStore.appearance.highlightColor, '--ft-select': taskStore.appearance.nodeBorder }">
+    <div class="w-100 h-100 bg-white ft-graph-container" :class="{ 'ft-lod': zoomedFarOut }" :style="{ '--ft-highlight': taskStore.appearance.highlightColor, '--ft-select': taskStore.appearance.nodeBorder }">
       <VueFlow
         :nodes="nodes"
         :edges="edges"
         :default-edge-options="defaultEdgeOptions"
         :delete-key-code="DELETE_KEYS"
         :zoom-on-double-click="false"
+        :min-zoom="MIN_ZOOM"
+        :max-zoom="MAX_ZOOM"
         :node-types="NODE_TYPES"
         class="w-100 h-100"
         @node-click="onNodeClick"
@@ -221,13 +230,63 @@ const markClasses = (set, id) => [
   focus.value && !focus.value[set].has(id) ? 'ft-faded' : ''
 ].filter(Boolean).join(' ');
 
+// Search: tasks whose text, tags or note path contain every word typed, in
+// any case. Matches are lit and everything else fades while the box is not
+// empty. It is a view of the moment and is not saved.
+const searchText = ref('');
+
+const searchHits = computed(() => {
+  const words = searchText.value.toLowerCase().split(/\s+/).filter(Boolean);
+  const hits = new Set();
+  if (!words.length) return hits;
+  for (const task of taskStore.filteredTasks) {
+    const haystack = `${task.name} ${task.tags.join(' ')} ${task.path}`.toLowerCase();
+    if (words.every((word) => haystack.includes(word))) hits.add(task.id);
+  }
+  return hits;
+});
+
+const searching = computed(() => searchText.value.trim() !== '');
+
+// Enter in the search box centers the next match, Shift+Enter the previous
+// one. Zoom is raised if the view is too far out to read the node.
+let hitCursor = -1;
+watch(searchText, () => {
+  hitCursor = -1;
+});
+
+const jumpToHit = (step) => {
+  const ids = taskStore.filteredTasks.map((t) => t.id).filter((id) => searchHits.value.has(id));
+  if (!ids.length) return;
+  hitCursor = (hitCursor + step + ids.length) % ids.length;
+  const task = taskStore.filteredTasks.find((t) => t.id === ids[hitCursor]);
+  const { width = 0, height = 0 } = findNode(task.id)?.dimensions ?? {};
+  void setCenter(task.position.x + width / 2, task.position.y + height / 2, {
+    zoom: Math.max(viewport.value.zoom, LOD_ZOOM * 1.5),
+    duration: 200
+  });
+};
+
+// Zoom range. Vue Flow stops at 0.5 by default, too near for a graph of
+// hundreds of tasks. Below LOD_ZOOM the text and tags are hidden, leaving
+// each node's size and color, since text that small cannot be read anyway.
+const MIN_ZOOM = 0.02;
+const MAX_ZOOM = 2;
+const LOD_ZOOM = 0.3;
+const zoomedFarOut = computed(() => viewport.value.zoom < LOD_ZOOM);
+
+const searchClass = (id) => {
+  if (!searching.value) return '';
+  return searchHits.value.has(id) ? 'ft-hit' : 'ft-dim';
+};
+
 const nodes = computed(() =>
   taskStore.filteredTasks.map((task) => ({
     id: task.id,
     type: 'task',
     position: task.position,
     data: { task },
-    class: markClasses('nodeIds', task.id)
+    class: [markClasses('nodeIds', task.id), searchClass(task.id)].filter(Boolean).join(' ')
   }))
 );
 
@@ -847,6 +906,23 @@ onUnmounted(() => {
    :deep. */
 .ft-graph-container :deep(.vue-flow__node.ft-faded) {
   opacity: 0.25;
+}
+
+/* Search: matches get an amber ring, distinct from Highlight and Border, the rest
+   fade a little less than Focus does. */
+.ft-graph-container :deep(.vue-flow__node.ft-hit .task-flow-node) {
+  box-shadow: 0 0 0 3px #ff9800, 0 0 14px 3px rgba(255, 152, 0, 0.7);
+}
+
+.ft-graph-container :deep(.vue-flow__node.ft-dim) {
+  opacity: 0.3;
+}
+
+/* Far out: text and tags are hidden but keep their space, so every node
+   stays the size it has up close. */
+.ft-lod :deep(.task-flow-node__label),
+.ft-lod :deep(.task-flow-node__tags) {
+  visibility: hidden;
 }
 
 .ft-graph-container :deep(.vue-flow__edge.ft-faded) {

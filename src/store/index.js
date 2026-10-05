@@ -3,6 +3,7 @@ import { Notice } from 'obsidian';
 import { TasksPluginAPI } from '../api/TasksPluginAPI';
 import { getApp, getPlugin } from '../pluginContext';
 import { stableTaskId } from '../utils/hash';
+import { watchForTaskModal } from '../utils/modalCloseButton';
 import { assignTagHues } from '../utils/tagColor';
 import {
   generateTaskId,
@@ -568,6 +569,7 @@ export const useTaskStore = defineStore('task', {
         return;
       }
       const before = lines[index];
+      watchForTaskModal();
       const edited = await api.editTaskLineModal(before);
       if (!edited || edited === before) return;
 

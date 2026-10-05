@@ -1,7 +1,7 @@
 {
 	"id": "task-flow",
 	"name": "Tasks Flowchart",
-	"version": "0.5.1",
+	"version": "0.6.0",
 	"minAppVersion": "1.7.2",
 	"description": "Show your Tasks as a flowchart. Follow dependency chains, spot the tasks holding others up, and link or create tasks by dragging. Every link is saved as a field on the task line in your note.",
 	"author": "Fan Shen",

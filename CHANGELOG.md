@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.0
+
+### Added
+
+- **Search** box in the frame with **Layout**, **Overview** and **Reset**. Tasks whose text, tags or note path contain every word typed are lit and the rest fade. **Enter** and **Shift+Enter** step through the matches, and a **×** in the box clears it.
+- The canvas zooms out to 2%, and below 30% the task text and tags are hidden so that only each node's size and color show.
+- An **X** at the top right of the Tasks edit dialog when Obsidian shows no close button there, beside the Tasks settings gear.
+
 ## 0.5.1
 
 ### Changed
