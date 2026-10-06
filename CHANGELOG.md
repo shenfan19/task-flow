@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.1
+
+### Changed
+
+- The plugin list description is shortened to one sentence. The details are in the README.
+
 ## 0.7.0
 
 ### Added
