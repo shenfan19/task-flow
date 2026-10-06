@@ -14,7 +14,10 @@ import {
   listItemBlockEnd,
   readInlineFields,
   stripInlineFields,
-  renameIdInLine
+  renameIdInLine,
+  addTagToLine,
+  removeTagFromLine,
+  setPriorityInLine
 } from '../utils/taskLineEdits';
 
 // Which line of `lines` currently holds `task`. Normally its recorded line
@@ -264,6 +267,17 @@ export const useTaskStore = defineStore('task', {
       return [...counts.entries()]
         .map(([tag, count]) => ({ tag, count }))
         .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
+    },
+    // Every tag on any task, most used first, for the right-click "Add tag"
+    // menu; unlike availableTags it ignores the "only related" filter.
+    allTags() {
+      const counts = new Map();
+      for (const task of this.tasks) {
+        for (const tag of task.tags) counts.set(tag, (counts.get(tag) || 0) + 1);
+      }
+      return [...counts.entries()]
+        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+        .map(([tag]) => tag);
     },
     // Lowercased keywords from filters.excludeText.
     excludeKeywords() {
@@ -612,6 +626,60 @@ export const useTaskStore = defineStore('task', {
       if (dependents.length) {
         new Notice(`Tasks Flowchart: id changed to ${newId} in this task and ${dependents.length} task${dependents.length === 1 ? '' : 's'} depending on it.`);
       }
+    },
+    async addTagToTask(taskId, tag) {
+      const task = this.tasks.find((t) => t.id === taskId);
+      if (!task || task.tags.includes(tag)) return;
+      await editTaskLine(task, (line) => addTagToLine(line, tag));
+      task.tags = [...task.tags, tag];
+    },
+    async removeTagFromTask(taskId, tag) {
+      const task = this.tasks.find((t) => t.id === taskId);
+      if (!task) return;
+      await editTaskLine(task, (line) => removeTagFromLine(line, tag));
+      task.tags = task.tags.filter((t) => t !== tag);
+    },
+    // Sets a task's priority to the Tasks plugin's Priority enum string.
+    async setTaskPriority(taskId, value) {
+      const task = this.tasks.find((t) => t.id === taskId);
+      if (!task || task.priority === value) return;
+      await editTaskLine(task, (line) => setPriorityInLine(line, value));
+      task.priority = value;
+    },
+    // Takes the tag off every task of the view, one write per note. Lines are
+    // only edited in place, so the line numbers of a note's other tasks stay
+    // valid while its tasks are processed together. Returns how many tasks
+    // were changed.
+    async removeTagFromAllTasks(tag) {
+      const app = getApp();
+      if (!app) return 0;
+      const byPath = new Map();
+      for (const task of this.tasks) {
+        if (!task.tags.includes(tag)) continue;
+        if (!byPath.has(task.path)) byPath.set(task.path, []);
+        byPath.get(task.path).push(task);
+      }
+      let changed = 0;
+      for (const [path, tasks] of byPath) {
+        const file = app.vault.getAbstractFileByPath(path);
+        if (!file) continue;
+        await app.vault.process(file, (content) => {
+          const lines = content.split('\n');
+          for (const task of tasks) {
+            const index = locateTaskLine(lines, task);
+            if (index === -1) continue;
+            const edited = removeTagFromLine(lines[index], tag);
+            if (edited === lines[index]) continue;
+            lines[index] = edited;
+            task.originalTask = { ...task.originalTask, originalMarkdown: edited };
+            task.tags = task.tags.filter((t) => t !== tag);
+            changed++;
+          }
+          return lines.join('\n');
+        });
+      }
+      this.filters.tags = this.filters.tags.filter((t) => t !== tag);
+      return changed;
     },
     // Removes the dependency the given edge represents, both from the
     // target's file and from the in-memory task.

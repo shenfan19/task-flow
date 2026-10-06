@@ -84,6 +84,7 @@
           :title="`${count} task${count === 1 ? '' : 's'}`"
           @click="taskStore.toggleTagFilter(tag)"
           @keydown.enter.prevent="taskStore.toggleTagFilter(tag)"
+          @contextmenu="onTagContextMenu($event, tag)"
         >{{ tag.replace(/^#/, '') }}</span>
         <span v-if="taskStore.availableTags.length === 0" class="text-muted small">No tags found</span>
       </div>
@@ -136,7 +137,9 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue';
+import { Menu, Notice } from 'obsidian';
 import { useTaskStore } from '../store';
+import { confirmDialog } from '../utils/confirmDialog';
 import RailCard from './RailCard.vue';
 import { getApp } from '../pluginContext';
 import TreeNode from './TreeNode.vue';
@@ -144,6 +147,34 @@ import TreeNode from './TreeNode.vue';
 const taskStore = useTaskStore();
 const treeData = ref([]);
 const checkedTags = computed(() => new Set(taskStore.filters.tags));
+
+// Right-clicking a tag offers to take it off every task of the view, which
+// rewrites the notes, so it is confirmed first with the number of tasks and
+// notes it touches.
+const removeTagEverywhere = async (tag) => {
+  const app = getApp();
+  const holders = taskStore.tasks.filter((t) => t.tags.includes(tag));
+  if (!app || !holders.length) return;
+  const noteCount = new Set(holders.map((t) => t.path)).size;
+  const sure = await confirmDialog(app, {
+    title: `Remove ${tag}`,
+    message: `Remove ${tag} from ${holders.length} task${holders.length === 1 ? '' : 's'} in ${noteCount} note${noteCount === 1 ? '' : 's'}? This edits the text of those notes.`,
+    confirmText: 'Remove'
+  });
+  if (!sure) return;
+  const changed = await taskStore.removeTagFromAllTasks(tag);
+  new Notice(`Tasks Flowchart: removed ${tag} from ${changed} task${changed === 1 ? '' : 's'}.`);
+};
+
+const onTagContextMenu = (event, tag) => {
+  event.preventDefault();
+  const menu = new Menu();
+  menu.addItem((item) => item
+    .setTitle(`Remove ${tag} from all tasks`)
+    .setIcon('trash')
+    .onClick(() => removeTagEverywhere(tag)));
+  menu.showAtMouseEvent(event);
+};
 
 // Helper to build tree from flat paths
 const buildTree = (paths) => {

@@ -71,7 +71,7 @@ import { Background } from '@vue-flow/background';
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
 import { useTaskStore, isPlaceholderTaskName } from '../store';
-import { MarkdownView, Menu } from 'obsidian';
+import { MarkdownView, Menu, MenuItem } from 'obsidian';
 import { getApp } from '../pluginContext';
 import { onViewCommand } from '../viewCommands';
 import ActionBar from './ActionBar.vue';
@@ -86,7 +86,7 @@ import { createSampleNote, takePendingSampleLayout } from '../utils/sampleNote';
 import { TasksPluginAPI } from '../api/TasksPluginAPI';
 import { layoutWithDagre, layoutWithTimeAxis } from '../utils/layout';
 import { promptName } from '../utils/promptName';
-import { isValidTaskId } from '../utils/taskLineEdits';
+import { isValidTaskId, normalizeTag, PRIORITY_LEVELS } from '../utils/taskLineEdits';
 
 const taskStore = useTaskStore();
 const { fitView, findNode, getSelectedNodes, setCenter, screenToFlowCoordinate, viewport, dimensions, setViewport } = useVueFlow();
@@ -487,6 +487,70 @@ const promptChangeId = async (id) => {
   if (newId && newId !== task.pluginId) await taskStore.changeTaskId(id, newId);
 };
 
+// Asks for a new tag and puts it on the task.
+const promptNewTag = async (id) => {
+  const task = taskStore.tasks.find((t) => t.id === id);
+  const app = getApp();
+  if (!task || !app) return;
+  const text = await promptName(app, {
+    title: 'New tag',
+    placeholder: '#tag',
+    submitText: 'Add',
+    emptyText: 'Enter a tag.',
+    validate: (value) => (normalizeTag(value) ? null : 'Use letters, digits, - _ and /, not only digits, no spaces.')
+  });
+  const tag = text && normalizeTag(text);
+  if (tag) await taskStore.addTagToTask(id, tag);
+};
+
+// A menu entry that opens a submenu built by `build`. Obsidian's submenu
+// call is missing from its public typings and from older versions, so
+// without it the entries go into the main menu under a greyed-out heading.
+const addSubmenu = (menu, title, icon, build) => {
+  if (typeof MenuItem.prototype.setSubmenu !== 'function') {
+    menu.addSeparator();
+    menu.addItem((item) => item.setTitle(title).setIcon(icon).setDisabled(true));
+    build(menu);
+    menu.addSeparator();
+    return;
+  }
+  menu.addItem((item) => {
+    item.setTitle(title).setIcon(icon);
+    build(item.setSubmenu());
+  });
+};
+
+const addTagItems = (menu, id) => {
+  const task = taskStore.tasks.find((t) => t.id === id);
+  if (!task) return;
+  addSubmenu(menu, 'Add tag', 'tag', (sub) => {
+    for (const tag of taskStore.allTags.filter((t) => !task.tags.includes(t))) {
+      sub.addItem((item) => item.setTitle(tag).onClick(() => taskStore.addTagToTask(id, tag)));
+    }
+    sub.addSeparator();
+    sub.addItem((item) => item.setTitle('New tag…').setIcon('plus').onClick(() => promptNewTag(id)));
+  });
+  if (!task.tags.length) return;
+  addSubmenu(menu, 'Remove tag', 'tag', (sub) => {
+    for (const tag of task.tags) {
+      sub.addItem((item) => item.setTitle(tag).onClick(() => taskStore.removeTagFromTask(id, tag)));
+    }
+  });
+};
+
+const addPriorityItems = (menu, id) => {
+  const task = taskStore.tasks.find((t) => t.id === id);
+  if (!task) return;
+  addSubmenu(menu, 'Priority', 'flag', (sub) => {
+    for (const level of PRIORITY_LEVELS) {
+      sub.addItem((item) => item
+        .setTitle(level.label)
+        .setChecked(task.priority === level.value)
+        .onClick(() => taskStore.setTaskPriority(id, level.value)));
+    }
+  });
+};
+
 const onNodeClick = (event) => runNodeAction(taskStore.viewSettings.clickAction, event.node.id);
 
 const onNodeDoubleClick = (event) => runNodeAction(taskStore.viewSettings.doubleClickAction, event.node.id);
@@ -518,6 +582,8 @@ const onNodeContextMenu = ({ event, node }) => {
   menu.addSeparator();
   menu.addItem((item) => item.setTitle('Edit task…').setIcon('pencil').onClick(() => runNodeAction('edit', node.id)));
   menu.addItem((item) => item.setTitle('Change id…').setIcon('hash').onClick(() => promptChangeId(node.id)));
+  addTagItems(menu, node.id);
+  addPriorityItems(menu, node.id);
   addClearItems(menu);
   menu.showAtMouseEvent(event);
 };

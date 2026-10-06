@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.7.0
+
+### Added
+
+- **Add tag** and **Remove tag** in the node right-click menu. **Add tag** lists the tags already used in your notes and ends with **New tag…** to type a new one. The tag is written to the task's line in its note, before any block link.
+- **Priority** in the node right-click menu, with Highest, High, Medium, None, Low and Lowest. The line is changed in the format it already uses, Dataview field or emoji.
+- Right-click a tag in the filter panel and choose **Remove … from all tasks** to take it off every task of the view. A dialog first says how many tasks and notes it will edit, and each note is written once.
+
 ## 0.6.0
 
 ### Added

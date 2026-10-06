@@ -133,3 +133,57 @@ export function readInlineFields(line) {
 export function stripInlineFields(text) {
   return text.replace(INLINE_FIELD, ' ').replace(/\s+/g, ' ').trim();
 }
+
+const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// A tag as the whole word it is: preceded by the line start or whitespace and
+// not followed by more tag characters, so "#work" never matches inside
+// "#work2" or "#work/sub".
+const tagRegex = (tag) => new RegExp(`(^|\\s)${escapeRegExp(tag)}(?![\\p{L}\\p{N}_/-])`, 'giu');
+
+// Turns what the user typed into a tag with its leading "#", or null when it
+// cannot be one: Obsidian tags have no spaces and are not only digits.
+export function normalizeTag(text) {
+  const name = text.trim().replace(/^#+/, '');
+  if (!/^[\p{L}\p{N}_/-]+$/u.test(name) || /^\d+$/.test(name)) return null;
+  return `#${name}`;
+}
+
+export function addTagToLine(line, tag) {
+  if (tagRegex(tag).test(line)) return line;
+  return insertBeforeBlockLink(line, ` ${tag}`);
+}
+
+export function removeTagFromLine(line, tag) {
+  return line.replace(tagRegex(tag), '');
+}
+
+// The Tasks plugin's priority levels, in its enum order. `value` is the
+// Priority enum string the plugin reports, `field` the Dataview value and
+// `emoji` the shorthand of the emoji format.
+export const PRIORITY_LEVELS = [
+  { value: '0', label: 'Highest', field: 'highest', emoji: '\u{1F53A}' },
+  { value: '1', label: 'High', field: 'high', emoji: '⏫' },
+  { value: '2', label: 'Medium', field: 'medium', emoji: '\u{1F53C}' },
+  { value: '3', label: 'None', field: null, emoji: null },
+  { value: '4', label: 'Low', field: 'low', emoji: '\u{1F53D}' },
+  { value: '5', label: 'Lowest', field: 'lowest', emoji: '⏬' }
+];
+
+const DATAVIEW_PRIORITY = /( *)[[(]priority:: *(?:highest|high|medium|low|lowest) *[\])]/;
+const EMOJI_PRIORITY = /( *)(?:\u{1F53A}|⏫|\u{1F53C}|\u{1F53D}|⏬)️?/u;
+
+// Sets the line's priority to the level with the given enum string, in the
+// format the line already uses (a line with none yet gets the Dataview
+// field). Level '3' (None) removes it.
+export function setPriorityInLine(line, value) {
+  const level = PRIORITY_LEVELS.find((l) => l.value === value);
+  if (!level) return line;
+  if (DATAVIEW_PRIORITY.test(line)) {
+    return line.replace(DATAVIEW_PRIORITY, (m, gap) => (level.field ? `${gap}[priority:: ${level.field}]` : ''));
+  }
+  if (EMOJI_PRIORITY.test(line)) {
+    return line.replace(EMOJI_PRIORITY, (m, gap) => (level.emoji ? `${gap}${level.emoji}` : ''));
+  }
+  return level.field ? insertBeforeBlockLink(line, newInlineField('priority', level.field)) : line;
+}
