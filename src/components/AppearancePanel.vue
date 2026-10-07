@@ -72,6 +72,16 @@
       <input
         class="form-check-input"
         type="checkbox"
+        id="showLinkCountsToggle"
+        :checked="taskStore.appearance.showLinkCounts"
+        @change="taskStore.updateAppearance({ showLinkCounts: $event.target.checked })"
+      >
+      <label class="form-check-label" for="showLinkCountsToggle">Show link counts</label>
+    </div>
+    <div class="form-check">
+      <input
+        class="form-check-input"
+        type="checkbox"
         id="showTagsToggle"
         :checked="taskStore.appearance.showTags"
         @change="taskStore.updateAppearance({ showTags: $event.target.checked })"

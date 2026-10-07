@@ -1,12 +1,13 @@
 # Changelog
 
-## Unreleased
+## 0.8.0
 
 ### Added
 
 - **Priority** filter in **File Filters**, like the tag filter: click the levels to check them, then choose **Include checked** or **Exclude checked**. None is listed last, apart from the other levels.
 - The right-click menu works on a multiple selection. Shift-drag a box or select several nodes, then right-click the box or one of the selected nodes to **Highlight**, **Focus chain**, **Add tag**, **Remove tag** or set **Priority** on all of them at once.
 - **Highest** and **Lowest** have a font size and a background of their own in **Node Style**.
+- **Show link counts** in **Node Style**, off by default. Each node shows `depend N`, the number of tasks it depends on, where its arrows come in, and `next N`, the number of tasks that depend on it, where they go out. Every link is counted, whether or not the filters show the task at its other end.
 
 ### Changed
 

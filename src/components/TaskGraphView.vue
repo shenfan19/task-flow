@@ -1051,6 +1051,7 @@ onUnmounted(() => {
 
 /* Far out: text and tags are hidden but keep their space, so every node
    stays the size it has up close. */
+.ft-lod :deep(.ft-link-count),
 .ft-lod :deep(.task-flow-node__label),
 .ft-lod :deep(.task-flow-node__tags) {
   visibility: hidden;

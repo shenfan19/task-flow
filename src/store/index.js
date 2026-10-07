@@ -207,7 +207,8 @@ export const useTaskStore = defineStore('task', {
         edgeWidth: 1, // link line width in px, Vue Flow's own default
         arrowSize: 12.5, // arrowhead width in px on screen, whatever the line width
         richText: true, // task text rendered as Markdown; off skips the MarkdownRenderer call entirely
-        showTags: true // colored tag chips under each node's text
+        showTags: true, // colored tag chips under each node's text
+        showLinkCounts: false // two small numbers on each node: its upstream and downstream links
       },
       viewSettings: {
         layoutDirection: 'TB', // dagre rankdir: TB/BT/LR/RL
@@ -351,6 +352,25 @@ export const useTaskStore = defineStore('task', {
 
         return dirMatch && statusMatch;
       });
+    },
+    // Task node id -> {up, down}: how many tasks it depends on and how many
+    // depend on it. Counted over every task, filtered out or not, so the
+    // numbers on a node stay the same whatever the filters show.
+    linkCounts() {
+      const nodeIdByPluginId = new Map();
+      for (const task of this.tasks) {
+        if (task.pluginId) nodeIdByPluginId.set(task.pluginId, task.id);
+      }
+      const counts = new Map(this.tasks.map((t) => [t.id, { up: 0, down: 0 }]));
+      for (const task of this.tasks) {
+        for (const depPluginId of new Set(task.dependsOn)) {
+          const sourceId = nodeIdByPluginId.get(depPluginId);
+          if (!sourceId || sourceId === task.id) continue;
+          counts.get(task.id).up++;
+          counts.get(sourceId).down++;
+        }
+      }
+      return counts;
     },
     // Dependency edges derived from the Tasks plugin's own id / dependsOn fields,
     // restricted to edges whose endpoints both survive the current filter.

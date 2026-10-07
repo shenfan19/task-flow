@@ -22,6 +22,21 @@
     <Handle type="target" :position="Position.Left" id="left-target" class="ft-node-handle ft-node-handle--hidden" />
     <Handle type="source" :position="Position.Left" id="left-source" class="ft-node-handle" />
 
+    <!-- Link counts: upstream and downstream, on the two sides the arrows
+         enter and leave by for the layout direction, drawn just outside the node. -->
+    <span
+      v-if="taskStore.appearance.showLinkCounts"
+      class="ft-link-count ft-link-count--up"
+      :class="`ft-link-count--${sides.up}`"
+      :title="`${counts.up} upstream link${counts.up === 1 ? '' : 's'}`"
+    >depend {{ counts.up }}</span>
+    <span
+      v-if="taskStore.appearance.showLinkCounts"
+      class="ft-link-count ft-link-count--down"
+      :class="`ft-link-count--${sides.down}`"
+      :title="`${counts.down} downstream link${counts.down === 1 ? '' : 's'}`"
+    >next {{ counts.down }}</span>
+
     <!-- Only one of these ever exists at a time: when rich text is off, the
          MarkdownRenderer call below never runs at all, not just hidden. -->
     <div v-if="taskStore.appearance.richText" ref="richTextEl" class="task-flow-node__label"></div>
@@ -68,6 +83,19 @@ const TIER_KEYS = {
   low: { size: 'lowFontSize', bg: 'lowBg' },
   lowest: { size: 'lowestFontSize', bg: 'lowestBg' }
 };
+
+// Links of this task, filtered out or not, see linkCounts in the store.
+const counts = computed(() => taskStore.linkCounts.get(props.data.task.id) ?? { up: 0, down: 0 });
+
+// The side of the node the upstream and the downstream count sit on: where
+// arrows come in and where they go out for the layout direction.
+const SIDES_BY_DIRECTION = {
+  TB: { up: 'top', down: 'bottom' },
+  BT: { up: 'bottom', down: 'top' },
+  LR: { up: 'left', down: 'right' },
+  RL: { up: 'right', down: 'left' }
+};
+const sides = computed(() => SIDES_BY_DIRECTION[taskStore.viewSettings.layoutDirection] ?? SIDES_BY_DIRECTION.TB);
 
 const nodeStyle = computed(() => {
   const a = taskStore.appearance;
@@ -145,6 +173,26 @@ watch(
     border-radius: 50%;
   }
 }
+
+/* A count sits outside the node, on the side the arrows enter or leave by,
+   moved off the middle so the arrow and its head stay in view. On the top and
+   bottom sides it goes to the right of the arrow line. On the left and right
+   sides it is turned to run downward along the node's edge, at its top end,
+   so it takes little width and stays clear of the arrows that meet in the
+   middle. */
+.ft-link-count {
+  position: absolute;
+  font-size: 10px;
+  line-height: 12px;
+  white-space: nowrap;
+  color: var(--text-muted, #666);
+  pointer-events: none;
+}
+
+.ft-link-count--top { bottom: calc(100% + 2px); left: calc(50% + 10px); }
+.ft-link-count--bottom { top: calc(100% + 2px); left: calc(50% + 10px); }
+.ft-link-count--left { right: calc(100% + 2px); top: 0; writing-mode: vertical-rl; }
+.ft-link-count--right { left: calc(100% + 2px); top: 0; writing-mode: vertical-rl; }
 
 .task-flow-node__tags {
   display: flex;
