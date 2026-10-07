@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **Priority** filter in **File Filters**, like the tag filter: click the levels to check them, then choose **Include checked** or **Exclude checked**. None is listed last, apart from the other levels.
+- The right-click menu works on a multiple selection. Shift-drag a box or select several nodes, then right-click the box or one of the selected nodes to **Highlight**, **Focus chain**, **Add tag**, **Remove tag** or set **Priority** on all of them at once.
+- **Highest** and **Lowest** have a font size and a background of their own in **Node Style**.
+
+### Changed
+
+- The node right-click menu is in two groups. **Highlight**, **Focus chain**, **Add tag**, **Remove tag** and **Priority** come first, and below a line **Open note**, **Edit task…** and **Change id…**.
+- In the **Priority** menu, **None** is listed last, below a line.
+- **Focus chain** on several nodes keeps all their chains at full strength together.
+
 ## 0.7.1
 
 ### Changed

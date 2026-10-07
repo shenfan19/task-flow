@@ -98,6 +98,57 @@
 
     <hr class="ft-sep">
 
+    <!-- Priority Filter: click a chip to check/uncheck it; None sits apart
+         at the end -->
+    <div class="mb-3">
+      <label class="form-label text-muted small fw-bold mb-1">Priority</label>
+      <div class="d-flex gap-3 mb-1">
+        <div class="form-check">
+          <input
+            class="form-check-input"
+            type="radio"
+            value="include"
+            v-model="taskStore.filters.priorityMode"
+            id="priorityModeInclude"
+          >
+          <label class="form-check-label" for="priorityModeInclude">Include checked</label>
+        </div>
+        <div class="form-check">
+          <input
+            class="form-check-input"
+            type="radio"
+            value="exclude"
+            v-model="taskStore.filters.priorityMode"
+            id="priorityModeExclude"
+          >
+          <label class="form-check-label" for="priorityModeExclude">Exclude checked</label>
+        </div>
+      </div>
+      <div class="ft-tag-list">
+        <template v-for="level in PRIORITY_LEVELS_NONE_LAST" :key="level.value">
+          <span v-if="level.value === NONE_PRIORITY" class="ft-priority-sep" aria-hidden="true"></span>
+          <span
+            role="button"
+            tabindex="0"
+            class="ft-tag ft-tag-toggle"
+            :class="{ 'ft-tag-toggle--on': checkedPriorities.has(level.value) }"
+            :style="{ '--ft-tag-hue': PRIORITY_HUES[level.value] }"
+            :title="`${priorityCounts.get(level.value) ?? 0} task${priorityCounts.get(level.value) === 1 ? '' : 's'}`"
+            @click="taskStore.togglePriorityFilter(level.value)"
+            @keydown.enter.prevent="taskStore.togglePriorityFilter(level.value)"
+          >{{ level.label }}</span>
+        </template>
+      </div>
+      <button
+        v-if="taskStore.filters.priorities.length"
+        type="button"
+        class="ft-tag-clear"
+        @click="taskStore.filters.priorities = []"
+      >Clear</button>
+    </div>
+
+    <hr class="ft-sep">
+
     <!-- Directory Tree Filter -->
     <div>
       <label class="form-label text-muted small fw-bold mb-1">Directory Path</label>
@@ -143,10 +194,26 @@ import { confirmDialog } from '../utils/confirmDialog';
 import RailCard from './RailCard.vue';
 import { getApp } from '../pluginContext';
 import TreeNode from './TreeNode.vue';
+import { NONE_PRIORITY, PRIORITY_LEVELS_NONE_LAST } from '../utils/taskLineEdits';
 
 const taskStore = useTaskStore();
 const treeData = ref([]);
 const checkedTags = computed(() => new Set(taskStore.filters.tags));
+const checkedPriorities = computed(() => new Set(taskStore.filters.priorities));
+
+// Chip hues from warm for the high levels to cool for the low ones, None
+// last in purple, painted by the shared .ft-tag rule like any tag.
+const PRIORITY_HUES = { '0': 0, '1': 25, '2': 50, '4': 200, '5': 230, '3': 270 };
+
+// Tasks of the view at each priority level, for the chips' tooltips.
+const priorityCounts = computed(() => {
+  const counts = new Map();
+  for (const task of taskStore.relatedTasks) {
+    const value = task.priority ?? NONE_PRIORITY;
+    counts.set(value, (counts.get(value) || 0) + 1);
+  }
+  return counts;
+});
 
 // Right-clicking a tag offers to take it off every task of the view, which
 // rewrites the notes, so it is confirmed first with the number of tasks and
@@ -253,6 +320,13 @@ onMounted(() => {
   opacity: 1;
   font-weight: 600;
   border-width: 2px;
+}
+
+.ft-priority-sep {
+  flex-basis: 100%;
+  height: 0;
+  border-top: 1px solid var(--background-modifier-border, #ccc);
+  margin: 2px 0;
 }
 
 .ft-tag-clear {

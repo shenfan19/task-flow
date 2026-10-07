@@ -21,8 +21,8 @@
 
     <hr class="ft-sep">
 
-    <!-- Font size and background by priority. The Tasks plugin's five
-         priority levels fall into three tiers, see PRIORITY_TIER in
+    <!-- Font size and background by priority, one row for each of the Tasks
+         plugin's five priority levels, see PRIORITY_TIER in
          TaskFlowNode.vue. -->
     <div class="ft-tier-grid">
       <span class="ft-tier-head">Priority</span>
@@ -87,12 +87,14 @@ import RailCard from './RailCard.vue';
 
 const taskStore = useTaskStore();
 
-// Appearance keys of each priority tier. A task with no priority uses Size
+// Appearance keys of each priority level. A task with no priority uses Size
 // and Background above, the original fontSize / nodeBg keys.
 const TIERS = [
+  { label: 'Highest', size: 'highestFontSize', bg: 'highestBg' },
   { label: 'High', size: 'highFontSize', bg: 'highBg' },
   { label: 'Medium', size: 'mediumFontSize', bg: 'mediumBg' },
-  { label: 'Low', size: 'lowFontSize', bg: 'lowBg' }
+  { label: 'Low', size: 'lowFontSize', bg: 'lowBg' },
+  { label: 'Lowest', size: 'lowestFontSize', bg: 'lowestBg' }
 ];
 
 const setValue = (key, event) => {

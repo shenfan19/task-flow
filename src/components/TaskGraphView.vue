@@ -36,6 +36,7 @@
         @node-click="onNodeClick"
         @node-double-click="onNodeDoubleClick"
         @node-context-menu="onNodeContextMenu"
+        @selection-context-menu="onSelectionContextMenu"
         @edge-context-menu="onEdgeContextMenu"
         @pane-click="clearFocus"
         @move-end="onMoveEnd"
@@ -86,7 +87,7 @@ import { createSampleNote, takePendingSampleLayout } from '../utils/sampleNote';
 import { TasksPluginAPI } from '../api/TasksPluginAPI';
 import { layoutWithDagre, layoutWithTimeAxis } from '../utils/layout';
 import { promptName } from '../utils/promptName';
-import { isValidTaskId, normalizeTag, PRIORITY_LEVELS } from '../utils/taskLineEdits';
+import { isValidTaskId, normalizeTag, PRIORITY_LEVELS_NONE_LAST, NONE_PRIORITY } from '../utils/taskLineEdits';
 
 const taskStore = useTaskStore();
 const { fitView, findNode, getSelectedNodes, setCenter, screenToFlowCoordinate, viewport, dimensions, setViewport } = useVueFlow();
@@ -141,13 +142,14 @@ const hasHighlight = () => highlight.value.nodeIds.size > 0 || highlight.value.e
 // Focus: a node's whole chain, everything it depends on and everything that
 // depends on it, {nodeIds, edgeIds} kept at full strength while the rest
 // fades. Chosen from a node's menu, cleared by clicking empty canvas. Null
-// for no focus. focusId is the node the chain was taken from.
+// for no focus. focusIds are the nodes the chains were taken from, several
+// when the focus was set on a multiple selection.
 const focus = ref(null);
-const focusId = ref(null);
+const focusIds = ref([]);
 
 const clearFocus = () => {
   focus.value = null;
-  focusId.value = null;
+  focusIds.value = [];
 };
 
 const clearHighlight = () => {
@@ -189,10 +191,20 @@ const chainOf = (id) => {
   return { nodeIds, edgeIds };
 };
 
-const focusChain = (id) => {
-  focus.value = chainOf(id);
-  focusId.value = id;
+// Focuses the chains of all the given nodes together.
+const focusChains = (ids) => {
+  const nodeIds = new Set();
+  const edgeIds = new Set();
+  for (const id of ids) {
+    const chain = chainOf(id);
+    chain.nodeIds.forEach((n) => nodeIds.add(n));
+    chain.edgeIds.forEach((e) => edgeIds.add(e));
+  }
+  focus.value = { nodeIds, edgeIds };
+  focusIds.value = [...ids];
 };
+
+const focusChain = (id) => focusChains([id]);
 
 // Reset clears every highlight and the focus: the button at the top of the
 // rail and the Reset command.
@@ -206,21 +218,24 @@ const resetMarks = () => {
 // the empty state of a view that is still loading never overwrites them.
 let marksRestored = false;
 
-watch([highlight, focusId], () => {
+watch([highlight, focusIds], () => {
   if (!marksRestored) return;
   taskStore.setMarks({
     highlightNodes: [...highlight.value.nodeIds],
     highlightEdges: [...highlight.value.edgeIds],
-    focusId: focusId.value
+    focusIds: focusIds.value
   });
 });
 
 // Called once the tasks are loaded, since the focused chain is worked out
 // from their links. A focused task that no longer shows is dropped.
 const restoreMarks = () => {
-  const { highlightNodes = [], highlightEdges = [], focusId: savedFocus = null } = taskStore.marks ?? {};
+  const { highlightNodes = [], highlightEdges = [], focusIds: savedFocus = [], focusId: legacyFocus = null } = taskStore.marks ?? {};
   highlight.value = { nodeIds: new Set(highlightNodes), edgeIds: new Set(highlightEdges) };
-  if (savedFocus && taskStore.filteredTasks.some((t) => t.id === savedFocus)) focusChain(savedFocus);
+  // focusId is how a single focus was saved up to 0.7.1.
+  const visible = new Set(taskStore.filteredTasks.map((t) => t.id));
+  const kept = (savedFocus.length ? savedFocus : [legacyFocus]).filter((id) => id && visible.has(id));
+  if (kept.length) focusChains(kept);
   marksRestored = true;
 };
 
@@ -487,20 +502,17 @@ const promptChangeId = async (id) => {
   if (newId && newId !== task.pluginId) await taskStore.changeTaskId(id, newId);
 };
 
-// Asks for a new tag and puts it on the task.
-const promptNewTag = async (id) => {
-  const task = taskStore.tasks.find((t) => t.id === id);
-  const app = getApp();
-  if (!task || !app) return;
-  const text = await promptName(app, {
-    title: 'New tag',
-    placeholder: '#tag',
-    submitText: 'Add',
-    emptyText: 'Enter a tag.',
-    validate: (value) => (normalizeTag(value) ? null : 'Use letters, digits, - _ and /, not only digits, no spaces.')
-  });
-  const tag = text && normalizeTag(text);
-  if (tag) await taskStore.addTagToTask(id, tag);
+// Sets or clears the highlight on several nodes at once.
+const setNodesHighlight = (ids, on) => {
+  const next = {
+    nodeIds: new Set(highlight.value.nodeIds),
+    edgeIds: new Set(highlight.value.edgeIds)
+  };
+  for (const id of ids) {
+    if (on) next.nodeIds.add(id);
+    else next.nodeIds.delete(id);
+  }
+  highlight.value = next;
 };
 
 // A menu entry that opens a submenu built by `build`. Obsidian's submenu
@@ -520,33 +532,63 @@ const addSubmenu = (menu, title, icon, build) => {
   });
 };
 
-const addTagItems = (menu, id) => {
-  const task = taskStore.tasks.find((t) => t.id === id);
-  if (!task) return;
+// The tag and priority entries work on one or several tasks, `ids` being
+// the node ids of the right-clicked node or of the whole selection.
+const tasksOf = (ids) => ids.map((id) => taskStore.tasks.find((t) => t.id === id)).filter(Boolean);
+
+const forEachTask = async (tasks, action) => {
+  for (const task of tasks) await action(task);
+};
+
+// Asks for a new tag and puts it on the tasks.
+const promptNewTag = async (ids) => {
+  const app = getApp();
+  if (!app) return;
+  const text = await promptName(app, {
+    title: 'New tag',
+    placeholder: '#tag',
+    submitText: 'Add',
+    emptyText: 'Enter a tag.',
+    validate: (value) => (normalizeTag(value) ? null : 'Use letters, digits, - _ and /, not only digits, no spaces.')
+  });
+  const tag = text && normalizeTag(text);
+  if (tag) await forEachTask(tasksOf(ids), (task) => taskStore.addTagToTask(task.id, tag));
+};
+
+const addTagItems = (menu, ids) => {
+  const tasks = tasksOf(ids);
+  if (!tasks.length) return;
   addSubmenu(menu, 'Add tag', 'tag', (sub) => {
-    for (const tag of taskStore.allTags.filter((t) => !task.tags.includes(t))) {
-      sub.addItem((item) => item.setTitle(tag).onClick(() => taskStore.addTagToTask(id, tag)));
+    for (const tag of taskStore.allTags.filter((t) => tasks.some((task) => !task.tags.includes(t)))) {
+      sub.addItem((item) => item.setTitle(tag).onClick(() => forEachTask(tasks, (task) => taskStore.addTagToTask(task.id, tag))));
     }
     sub.addSeparator();
-    sub.addItem((item) => item.setTitle('New tag…').setIcon('plus').onClick(() => promptNewTag(id)));
+    sub.addItem((item) => item.setTitle('New tag…').setIcon('plus').onClick(() => promptNewTag(ids)));
   });
-  if (!task.tags.length) return;
+  const present = [...new Set(tasks.flatMap((task) => task.tags))];
+  if (!present.length) return;
   addSubmenu(menu, 'Remove tag', 'tag', (sub) => {
-    for (const tag of task.tags) {
-      sub.addItem((item) => item.setTitle(tag).onClick(() => taskStore.removeTagFromTask(id, tag)));
+    for (const tag of present) {
+      sub.addItem((item) => item.setTitle(tag).onClick(() => forEachTask(
+        tasks.filter((task) => task.tags.includes(tag)),
+        (task) => taskStore.removeTagFromTask(task.id, tag)
+      )));
     }
   });
 };
 
-const addPriorityItems = (menu, id) => {
-  const task = taskStore.tasks.find((t) => t.id === id);
-  if (!task) return;
+// None is listed last, below a line of its own. A level is checked when
+// every task has it.
+const addPriorityItems = (menu, ids) => {
+  const tasks = tasksOf(ids);
+  if (!tasks.length) return;
   addSubmenu(menu, 'Priority', 'flag', (sub) => {
-    for (const level of PRIORITY_LEVELS) {
+    for (const level of PRIORITY_LEVELS_NONE_LAST) {
+      if (level.value === NONE_PRIORITY) sub.addSeparator();
       sub.addItem((item) => item
         .setTitle(level.label)
-        .setChecked(task.priority === level.value)
-        .onClick(() => taskStore.setTaskPriority(id, level.value)));
+        .setChecked(tasks.every((task) => task.priority === level.value))
+        .onClick(() => forEachTask(tasks, (task) => taskStore.setTaskPriority(task.id, level.value))));
     }
   });
 };
@@ -564,7 +606,7 @@ const addClearItems = (menu, separate = true) => {
   if (focus.value) menu.addItem((item) => item.setTitle('Clear focus').setIcon('eraser').onClick(clearFocus));
 };
 
-// Highlight, or Remove highlight on a node or edge that is already lit.
+// Highlight, or Remove highlight on an edge that is already lit.
 const addHighlightItem = (menu, set, id) => {
   const on = highlight.value[set].has(id);
   menu.addItem((item) => item
@@ -573,19 +615,42 @@ const addHighlightItem = (menu, set, id) => {
     .onClick(() => setHighlight(set, id, !on)));
 };
 
-const onNodeContextMenu = ({ event, node }) => {
-  event.preventDefault();
+// The menu of one node, or of every node in a multiple selection. The marking
+// and editing entries come first: Highlight, Focus chain, tags and priority.
+// A line follows, then the entries that open or rewrite one task, which a
+// selection of several does not get.
+const showNodesMenu = (event, ids) => {
   const menu = new Menu();
-  addHighlightItem(menu, 'nodeIds', node.id);
-  menu.addItem((item) => item.setTitle('Focus chain').setIcon('focus').onClick(() => runNodeAction('focus', node.id)));
-  menu.addItem((item) => item.setTitle('Open note').setIcon('file-text').onClick(() => runNodeAction('open', node.id)));
-  menu.addSeparator();
-  menu.addItem((item) => item.setTitle('Edit task…').setIcon('pencil').onClick(() => runNodeAction('edit', node.id)));
-  menu.addItem((item) => item.setTitle('Change id…').setIcon('hash').onClick(() => promptChangeId(node.id)));
-  addTagItems(menu, node.id);
-  addPriorityItems(menu, node.id);
+  const lit = ids.every((id) => highlight.value.nodeIds.has(id));
+  menu.addItem((item) => item
+    .setTitle(lit ? 'Remove highlight' : 'Highlight')
+    .setIcon('sparkles')
+    .onClick(() => setNodesHighlight(ids, !lit)));
+  menu.addItem((item) => item.setTitle('Focus chain').setIcon('focus').onClick(() => focusChains(ids)));
+  addTagItems(menu, ids);
+  addPriorityItems(menu, ids);
+  if (ids.length === 1) {
+    menu.addSeparator();
+    menu.addItem((item) => item.setTitle('Open note').setIcon('file-text').onClick(() => runNodeAction('open', ids[0])));
+    menu.addItem((item) => item.setTitle('Edit task…').setIcon('pencil').onClick(() => runNodeAction('edit', ids[0])));
+    menu.addItem((item) => item.setTitle('Change id…').setIcon('hash').onClick(() => promptChangeId(ids[0])));
+  }
   addClearItems(menu);
   menu.showAtMouseEvent(event);
+};
+
+// Right-clicking a node that is part of a multiple selection acts on the
+// whole selection; any other node acts on itself alone.
+const onNodeContextMenu = ({ event, node }) => {
+  event.preventDefault();
+  const selected = getSelectedNodes.value.map((n) => n.id);
+  showNodesMenu(event, selected.length > 1 && selected.includes(node.id) ? selected : [node.id]);
+};
+
+// Right-clicking the box drawn around a shift-drag selection.
+const onSelectionContextMenu = ({ event, nodes: selectedNodes }) => {
+  event.preventDefault();
+  if (selectedNodes.length) showNodesMenu(event, selectedNodes.map((n) => n.id));
 };
 
 const onEdgeContextMenu = ({ event, edge }) => {

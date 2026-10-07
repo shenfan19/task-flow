@@ -170,6 +170,16 @@ export const PRIORITY_LEVELS = [
   { value: '5', label: 'Lowest', field: 'lowest', emoji: '⏬' }
 ];
 
+// The enum string of None, the level with no marker on the line.
+export const NONE_PRIORITY = '3';
+
+// The levels as menus and filters list them: from Highest down to Lowest,
+// then None on its own at the end.
+export const PRIORITY_LEVELS_NONE_LAST = [
+  ...PRIORITY_LEVELS.filter((l) => l.value !== NONE_PRIORITY),
+  ...PRIORITY_LEVELS.filter((l) => l.value === NONE_PRIORITY)
+];
+
 const DATAVIEW_PRIORITY = /( *)[[(]priority:: *(?:highest|high|medium|low|lowest) *[\])]/;
 const EMOJI_PRIORITY = /( *)(?:\u{1F53A}|⏫|\u{1F53C}|\u{1F53D}|⏬)️?/u;
 

@@ -17,7 +17,8 @@ import {
   renameIdInLine,
   addTagToLine,
   removeTagFromLine,
-  setPriorityInLine
+  setPriorityInLine,
+  NONE_PRIORITY
 } from '../utils/taskLineEdits';
 
 // Which line of `lines` currently holds `task`. Normally its recorded line
@@ -104,7 +105,20 @@ const filterSnapshot = (f) => ({
   onlyRelated: f.onlyRelated,
   tags: [...f.tags],
   tagMode: f.tagMode,
+  priorities: [...(f.priorities ?? [])],
+  priorityMode: f.priorityMode ?? 'include',
   excludeText: f.excludeText
+});
+
+// Highest and lowest have a font size and background of their own. An
+// appearance saved before that, when they used the high and low ones, gets
+// those values copied in, so nothing changes in what it shows.
+const withTierDefaults = (a) => ({
+  ...a,
+  ...(a.highestFontSize === undefined && a.highFontSize !== undefined ? { highestFontSize: a.highFontSize } : {}),
+  ...(a.highestBg === undefined && a.highBg !== undefined ? { highestBg: a.highBg } : {}),
+  ...(a.lowestFontSize === undefined && a.lowFontSize !== undefined ? { lowestFontSize: a.lowFontSize } : {}),
+  ...(a.lowestBg === undefined && a.lowBg !== undefined ? { lowestBg: a.lowBg } : {})
 });
 
 // What a profile stores: the File Filters, the View Control choices and the
@@ -166,6 +180,8 @@ export const useTaskStore = defineStore('task', {
         onlyRelated: true, // hide tasks with no dependsOn link either way; was previously hardcoded on
         tags: [],
         tagMode: 'include', // 'include': only tasks with any checked tag; 'exclude': hide tasks with any checked tag
+        priorities: [], // checked priorities, as the Tasks plugin's Priority enum strings
+        priorityMode: 'include', // 'include': only tasks with a checked priority; 'exclude': hide them
         excludeText: '' // comma-separated keywords; a task whose line contains any of them is hidden
       },
       profiles: [], // [{id, name, ...profileSnapshot}], always starting with the Default profile, see loadState
@@ -175,14 +191,18 @@ export const useTaskStore = defineStore('task', {
         nodeBorder: '#0d6efd',
         nodeText: '#212529',
         fontSize: 12,
-        // Font size and background of the high, medium and low priority tiers; the
-        // no-priority row uses fontSize and nodeBg above (see TaskFlowNode.vue).
+        // Font size and background of each priority level; the no-priority
+        // row uses fontSize and nodeBg above (see TaskFlowNode.vue).
+        highestFontSize: 16,
+        highestBg: '#ffe0cc',
         highFontSize: 15,
         highBg: '#fff1e0',
         mediumFontSize: 13,
         mediumBg: '#fdf8e1',
         lowFontSize: 11,
         lowBg: '#eef0f3',
+        lowestFontSize: 10,
+        lowestBg: '#e2e5e9',
         highlightColor: '#f59e0b', // glow around a highlighted node or link
         edgeWidth: 1, // link line width in px, Vue Flow's own default
         arrowSize: 12.5, // arrowhead width in px on screen, whatever the line width
@@ -206,7 +226,7 @@ export const useTaskStore = defineStore('task', {
       // Highlight and focus, kept between sessions: the highlighted node and
       // edge ids, and the task whose chain is focused (its chain is worked
       // out again from the links when the view opens).
-      marks: { highlightNodes: [], highlightEdges: [], focusId: null },
+      marks: { highlightNodes: [], highlightEdges: [], focusIds: [] },
       // Where the canvas was panned and zoomed to, {x, y, zoom}, with the
       // canvas size at that moment ({width, height}), so reopening the view
       // shows the same part of the graph. Null until the canvas first moves.
@@ -288,6 +308,7 @@ export const useTaskStore = defineStore('task', {
     },
     filteredTasks() {
       const checkedTags = new Set(this.filters.tags);
+      const checkedPriorities = new Set(this.filters.priorities);
       const excluded = this.excludeKeywords;
       return this.relatedTasks.filter(task => {
         // Keyword exclusion, matched anywhere in the task's markdown line,
@@ -302,6 +323,12 @@ export const useTaskStore = defineStore('task', {
         if (checkedTags.size > 0) {
           const hasChecked = task.tags.some((tag) => checkedTags.has(tag));
           if (this.filters.tagMode === 'exclude' ? hasChecked : !hasChecked) return false;
+        }
+
+        // Priority filter, the same way; a task without one counts as None.
+        if (checkedPriorities.size > 0) {
+          const checked = checkedPriorities.has(task.priority ?? NONE_PRIORITY);
+          if (this.filters.priorityMode === 'exclude' ? checked : !checked) return false;
         }
 
         // Logic AND between all filters
@@ -362,7 +389,7 @@ export const useTaskStore = defineStore('task', {
       // treating the whole object as positions if it isn't in the new shape.
       this.positions = data?.positions ?? data ?? {};
       if (data?.appearance) {
-        this.appearance = { ...this.appearance, ...data.appearance };
+        this.appearance = { ...this.appearance, ...withTierDefaults(data.appearance) };
       }
       if (data?.viewSettings) {
         // clickToOpen, autoLayoutEnabled, autoLayoutInterval,
@@ -409,9 +436,9 @@ export const useTaskStore = defineStore('task', {
       const fill = (p) => ({
         id: p.id,
         name: p.name,
-        filters: p.filters ?? filterSnapshot({ ...current.filters, tags: [], tagMode: 'include', excludeText: '', ...p }),
+        filters: filterSnapshot(p.filters ?? { ...current.filters, tags: [], tagMode: 'include', excludeText: '', ...p }),
         viewSettings: { ...current.viewSettings, ...p.viewSettings },
-        appearance: { ...current.appearance, ...p.appearance }
+        appearance: { ...current.appearance, ...withTierDefaults(p.appearance ?? {}) }
       });
       this.profiles = (data?.profiles ?? data?.filterPresets ?? []).map(fill);
       this.selectedProfileId = data?.selectedProfileId ?? data?.selectedPresetId ?? DEFAULT_PROFILE_ID;
@@ -487,6 +514,12 @@ export const useTaskStore = defineStore('task', {
       if (tags.has(tag)) tags.delete(tag);
       else tags.add(tag);
       this.filters.tags = [...tags];
+    },
+    togglePriorityFilter(value) {
+      const priorities = new Set(this.filters.priorities);
+      if (priorities.has(value)) priorities.delete(value);
+      else priorities.add(value);
+      this.filters.priorities = [...priorities];
     },
     updateAppearance(partial) {
       this.appearance = { ...this.appearance, ...partial };
