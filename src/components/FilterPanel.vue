@@ -1,46 +1,39 @@
 <template>
-  <RailCard title="File Filters">
-    <!-- Only tasks with a dependsOn relation -->
-    <div class="form-check mb-3">
-      <input
-        class="form-check-input"
-        type="checkbox"
-        id="onlyRelatedToggle"
-        v-model="taskStore.filters.onlyRelated"
-      >
-      <label class="form-check-label" for="onlyRelatedToggle">Only show tasks with a relation</label>
-    </div>
-
-    <hr class="ft-sep">
-
-    <!-- Keyword exclusion, matched anywhere in the task line -->
+  <RailCard title="Filters">
+    <!-- Keywords, matched anywhere in the task line: Include shows only the
+         tasks containing one, Exclude hides them. -->
     <div class="mb-3">
-      <label class="form-label text-muted small fw-bold mb-1" for="excludeTextInput">Exclude tasks containing</label>
+      <label class="form-label text-muted small fw-bold mb-1" for="keywordInput">Keywords</label>
+      <div class="d-flex gap-3 mb-1">
+        <div class="form-check">
+          <input
+            class="form-check-input"
+            type="radio"
+            value="include"
+            v-model="taskStore.filters.textMode"
+            id="textModeInclude"
+          >
+          <label class="form-check-label" for="textModeInclude">Include</label>
+        </div>
+        <div class="form-check">
+          <input
+            class="form-check-input"
+            type="radio"
+            value="exclude"
+            v-model="taskStore.filters.textMode"
+            id="textModeExclude"
+          >
+          <label class="form-check-label" for="textModeExclude">Exclude</label>
+        </div>
+      </div>
       <input
-        id="excludeTextInput"
+        id="keywordInput"
         type="text"
         class="form-control form-control-sm ft-exclude-input"
         placeholder="e.g. archived on, #someday"
-        title="Comma-separated keywords. A task whose line contains any of them, in any case, is hidden."
+        title="Comma-separated keywords, matched in the task text and tags in any case. Include shows only the tasks containing any of them, Exclude hides those tasks."
         v-model.trim="taskStore.filters.excludeText"
       >
-    </div>
-
-    <hr class="ft-sep">
-
-    <!-- Status Filter -->
-    <div class="mb-3">
-      <label class="form-label text-muted small fw-bold mb-1">Status</label>
-      <div class="d-flex gap-3">
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" v-model="taskStore.filters.status.todo" id="filterTodo">
-          <label class="form-check-label" for="filterTodo">To-do</label>
-        </div>
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" v-model="taskStore.filters.status.done" id="filterDone">
-          <label class="form-check-label" for="filterDone">Done</label>
-        </div>
-      </div>
     </div>
 
     <hr class="ft-sep">
@@ -57,7 +50,7 @@
             v-model="taskStore.filters.tagMode"
             id="tagModeInclude"
           >
-          <label class="form-check-label" for="tagModeInclude">Include checked</label>
+          <label class="form-check-label" for="tagModeInclude">Include</label>
         </div>
         <div class="form-check">
           <input
@@ -67,7 +60,7 @@
             v-model="taskStore.filters.tagMode"
             id="tagModeExclude"
           >
-          <label class="form-check-label" for="tagModeExclude">Exclude checked</label>
+          <label class="form-check-label" for="tagModeExclude">Exclude</label>
         </div>
       </div>
       <div class="ft-tag-list">
@@ -98,8 +91,8 @@
 
     <hr class="ft-sep">
 
-    <!-- Priority Filter: click a chip to check/uncheck it; None sits apart
-         at the end -->
+    <!-- Priority Filter: click a chip to check/uncheck it; None is the last
+         chip, on the same row as the others to save space -->
     <div class="mb-3">
       <label class="form-label text-muted small fw-bold mb-1">Priority</label>
       <div class="d-flex gap-3 mb-1">
@@ -111,7 +104,7 @@
             v-model="taskStore.filters.priorityMode"
             id="priorityModeInclude"
           >
-          <label class="form-check-label" for="priorityModeInclude">Include checked</label>
+          <label class="form-check-label" for="priorityModeInclude">Include</label>
         </div>
         <div class="form-check">
           <input
@@ -121,12 +114,11 @@
             v-model="taskStore.filters.priorityMode"
             id="priorityModeExclude"
           >
-          <label class="form-check-label" for="priorityModeExclude">Exclude checked</label>
+          <label class="form-check-label" for="priorityModeExclude">Exclude</label>
         </div>
       </div>
       <div class="ft-tag-list">
         <template v-for="level in PRIORITY_LEVELS_NONE_LAST" :key="level.value">
-          <span v-if="level.value === NONE_PRIORITY" class="ft-priority-sep" aria-hidden="true"></span>
           <span
             role="button"
             tabindex="0"
@@ -150,7 +142,7 @@
     <hr class="ft-sep">
 
     <!-- Directory Tree Filter -->
-    <div>
+    <div class="mb-3">
       <label class="form-label text-muted small fw-bold mb-1">Directory Path</label>
       <div class="d-flex gap-3 mb-1">
         <div class="form-check">
@@ -161,7 +153,7 @@
             v-model="taskStore.filters.directoryMode"
             id="dirModeInclude"
           >
-          <label class="form-check-label" for="dirModeInclude">Include checked</label>
+          <label class="form-check-label" for="dirModeInclude">Include</label>
         </div>
         <div class="form-check">
           <input
@@ -171,7 +163,7 @@
             v-model="taskStore.filters.directoryMode"
             id="dirModeExclude"
           >
-          <label class="form-check-label" for="dirModeExclude">Exclude checked</label>
+          <label class="form-check-label" for="dirModeExclude">Exclude</label>
         </div>
       </div>
       <div class="directory-tree border rounded bg-light p-2 mt-1">
@@ -182,6 +174,39 @@
           No directories found
         </div>
       </div>
+    </div>
+
+    <hr class="ft-sep">
+
+    <!-- The two checkboxes that hide the most tasks at once sit last, away
+         from the filters that are changed often, so one is not hit by
+         mistake. -->
+    <!-- Status Filter -->
+    <div class="mb-3">
+      <label class="form-label text-muted small fw-bold mb-1">Status</label>
+      <div class="d-flex gap-3">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" v-model="taskStore.filters.status.todo" id="filterTodo">
+          <label class="form-check-label" for="filterTodo">To-do</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" v-model="taskStore.filters.status.done" id="filterDone">
+          <label class="form-check-label" for="filterDone">Done</label>
+        </div>
+      </div>
+    </div>
+
+    <hr class="ft-sep">
+
+    <!-- Only tasks with a dependsOn relation -->
+    <div class="form-check">
+      <input
+        class="form-check-input"
+        type="checkbox"
+        id="onlyRelatedToggle"
+        v-model="taskStore.filters.onlyRelated"
+      >
+      <label class="form-check-label" for="onlyRelatedToggle">Only show tasks with a relation</label>
     </div>
   </RailCard>
 </template>
@@ -320,13 +345,6 @@ onMounted(() => {
   opacity: 1;
   font-weight: 600;
   border-width: 2px;
-}
-
-.ft-priority-sep {
-  flex-basis: 100%;
-  height: 0;
-  border-top: 1px solid var(--background-modifier-border, #ccc);
-  margin: 2px 0;
 }
 
 .ft-tag-clear {

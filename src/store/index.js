@@ -107,7 +107,8 @@ const filterSnapshot = (f) => ({
   tagMode: f.tagMode,
   priorities: [...(f.priorities ?? [])],
   priorityMode: f.priorityMode ?? 'include',
-  excludeText: f.excludeText
+  excludeText: f.excludeText,
+  textMode: f.textMode ?? 'exclude'
 });
 
 // Highest and lowest have a font size and background of their own. An
@@ -121,8 +122,8 @@ const withTierDefaults = (a) => ({
   ...(a.lowestBg === undefined && a.lowBg !== undefined ? { lowestBg: a.lowBg } : {})
 });
 
-// What a profile stores: the File Filters, the View Control choices and the
-// Node Style, each copied. settingsVersion is bookkeeping for loadState, not
+// What a profile stores: the Filters, the View choices and the
+// Style, each copied. settingsVersion is bookkeeping for loadState, not
 // a choice, so it stays out.
 // eslint-disable-next-line no-unused-vars
 const profileSnapshot = ({ filters, viewSettings: { settingsVersion, ...view }, appearance }) => ({
@@ -133,7 +134,7 @@ const profileSnapshot = ({ filters, viewSettings: { settingsVersion, ...view }, 
 
 // View settings that move nodes, so switching to a profile that changes one
 // of them runs Layout again.
-const LAYOUT_VIEW_KEYS = ['layoutDirection', 'edgeType', 'timeAxis'];
+const LAYOUT_VIEW_KEYS = ['layoutDirection', 'edgeType', 'timeAxis', 'laneMode', 'lanePrimary'];
 
 // data.json holds every node position, so it runs to hundreds of KB in a
 // large vault. Saves requested within this window are merged into one
@@ -182,7 +183,8 @@ export const useTaskStore = defineStore('task', {
         tagMode: 'include', // 'include': only tasks with any checked tag; 'exclude': hide tasks with any checked tag
         priorities: [], // checked priorities, as the Tasks plugin's Priority enum strings
         priorityMode: 'include', // 'include': only tasks with a checked priority; 'exclude': hide them
-        excludeText: '' // comma-separated keywords; a task whose line contains any of them is hidden
+        excludeText: '', // comma-separated keywords; the name predates textMode and is kept so saved filters and profiles still load
+        textMode: 'exclude' // 'include': only tasks whose line contains any keyword; 'exclude': hide them, which is what the box did before it had a mode
       },
       profiles: [], // [{id, name, ...profileSnapshot}], always starting with the Default profile, see loadState
       selectedProfileId: DEFAULT_PROFILE_ID, // the profile shown in the Profile row; Save writes the current settings into it
@@ -217,8 +219,13 @@ export const useTaskStore = defineStore('task', {
         doubleClickAction: 'edit', // the same choice for a double click, plus 'edit'
         newTaskAction: 'edit', // a task made by dragging onto empty canvas: 'edit' it in the Tasks dialog or 'open' its note
         settingsVersion: 4, // the plugin's minor version when these settings were last carried over, see loadState
-        timeAxis: true // the Date axis checkbox; when on, nodes are ordered along the flow direction by date (see layoutWithTimeAxis)
+        timeAxis: true, // the Date axis checkbox; when on, nodes are ordered along the flow direction by date (see layoutWithTimeAxis)
+        laneMode: 'default', // tag lanes across the flow direction: default (off), auto, alpha, size or soft, see utils/tagLanes.js
+        lanePrimary: 'common' // which tag of a multi-tag task picks its lane: common, rare or first
       },
+      // {direction, lanes} from the last tag-lane layout, read by LaneBands
+      // to draw the lane labels. Saved with the positions like timeAxisInfo.
+      laneInfo: null,
       // {direction, anchors} from the last time-axis layout, which is what
       // the ruler reads to map canvas coordinates back to dates. Saved
       // with the positions it was computed alongside, so the ruler still
@@ -300,8 +307,8 @@ export const useTaskStore = defineStore('task', {
         .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
         .map(([tag]) => tag);
     },
-    // Lowercased keywords from filters.excludeText.
-    excludeKeywords() {
+    // Lowercased keywords from filters.excludeText, for either textMode.
+    keywords() {
       return this.filters.excludeText
         .split(',')
         .map((k) => k.trim().toLowerCase())
@@ -310,13 +317,17 @@ export const useTaskStore = defineStore('task', {
     filteredTasks() {
       const checkedTags = new Set(this.filters.tags);
       const checkedPriorities = new Set(this.filters.priorities);
-      const excluded = this.excludeKeywords;
+      const keywords = this.keywords;
       return this.relatedTasks.filter(task => {
-        // Keyword exclusion, matched anywhere in the task's markdown line,
-        // e.g. "archived on" to hide tasks an archiving plugin has marked.
-        if (excluded.length > 0) {
-          const line = (task.originalTask?.originalMarkdown || task.name).toLowerCase();
-          if (excluded.some((k) => line.includes(k))) return false;
+        // Keywords, matched in the task's text and tags, e.g. "archived on"
+        // to hide tasks an archiving plugin has marked. The line's fields
+        // (id, dependsOn, dates, priority) are not searched: name is the
+        // description with them stripped. In include mode a task needs at
+        // least one keyword, in exclude mode none.
+        if (keywords.length > 0) {
+          const line = `${task.name} ${task.tags.join(' ')}`.toLowerCase();
+          const hasKeyword = keywords.some((k) => line.includes(k));
+          if (this.filters.textMode === 'include' ? !hasKeyword : hasKeyword) return false;
         }
 
         // Tag filter: in include mode a task needs at least one checked tag,
@@ -442,6 +453,9 @@ export const useTaskStore = defineStore('task', {
       if (data?.timeAxisInfo) {
         this.timeAxisInfo = data.timeAxisInfo;
       }
+      if (data?.laneInfo) {
+        this.laneInfo = data.laneInfo;
+      }
       if (data?.marks) {
         this.marks = { ...this.marks, ...data.marks };
       }
@@ -549,6 +563,10 @@ export const useTaskStore = defineStore('task', {
     // records how they map back to dates.
     setTimeAxisInfo(info) {
       this.timeAxisInfo = info;
+      this.saveState();
+    },
+    setLaneInfo(info) {
+      this.laneInfo = info;
       this.saveState();
     },
     // View settings change one click at a time, so they are written at once
@@ -855,6 +873,7 @@ export const useTaskStore = defineStore('task', {
         selectedProfileId: this.selectedProfileId,
         filters: this.filters,
         timeAxisInfo: this.timeAxisInfo,
+        laneInfo: this.laneInfo,
         marks: this.marks,
         viewport: this.viewport
       });

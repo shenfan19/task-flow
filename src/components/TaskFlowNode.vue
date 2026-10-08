@@ -69,7 +69,7 @@ const props = defineProps({
 const taskStore = useTaskStore();
 
 // The Tasks plugin's six priorities ('0' Highest .. '5' Lowest, '3' None),
-// each but None with its own font size and background from the Node Style
+// each but None with its own font size and background from the Style
 // panel. None, and any value not listed, uses the panel's Size and
 // Background.
 const PRIORITY_TIER = { '0': 'highest', '1': 'high', '2': 'medium', '4': 'low', '5': 'lowest' };

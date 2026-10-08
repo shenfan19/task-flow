@@ -1,10 +1,10 @@
 <template>
   <!-- A bare row under the action bar, with no card frame. A profile holds
-       the File Filters, View Control and Node Style together: choosing one
+       the Filters, View and Style together: choosing one
        loads all three, Save stores the current settings into it, and New…
        makes a new one from the current settings. -->
   <div class="ft-profile-row">
-    <label class="ft-profile-label" for="ftProfileSelect" title="Filters, View Control and Node Style saved together">Profile</label>
+    <label class="ft-profile-label" for="ftProfileSelect" title="Filters, View and Style saved together">Profile</label>
     <select
       id="ftProfileSelect"
       class="dropdown ft-profile-select"

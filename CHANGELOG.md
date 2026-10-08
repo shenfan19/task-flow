@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.9.0
+
+### Added
+
+- **Tag lanes** in **View**: **Lanes, auto order**, **Lanes, A-Z**, **Lanes, biggest first** and **Soft pull to tag** group tasks of the same tag into one column, or one row in a left to right layout, with a tinted band and the tag's name for each lane. **Default** keeps the layout as before. **Lane tag** picks which tag of a task decides its lane: the most common, the rarest or the first. Lanes only move nodes across the flow direction, so the date axis is unchanged. Tag lanes are part of a profile and are applied at **Layout**.
+
+### Changed
+
+- The keyword box under **Filters** is now **Keywords**, with **Include** and **Exclude** like Tags, Priority and Directory Path. **Exclude**, the default, hides tasks whose text or tags contain any keyword as before. **Include** shows only those tasks. Keywords are matched in the task text and tags, not in fields such as id or dependsOn.
+- The **Include checked** and **Exclude checked** options in **Filters** are now just **Include** and **Exclude**.
+- In the **Priority** filter, **None** follows the other levels on the same row instead of standing apart, to save space. The right-click **Priority** menu still lists it apart at the end.
+- In **Filters**, **Status** and **Only show tasks with a relation** are moved to the end of the panel, below **Directory Path**, so they are not clicked by mistake.
+
+### Removed
+
+- The **Search tasks** box under the **Layout** buttons, with its lit matches and the Enter and Shift+Enter jump between them. **Keywords** in **Filters** replaces it. Unlike the search it matches the task text and tags only, not the note path, and it hides the other tasks instead of fading them.
+
 ## 0.8.0
 
 ### Added

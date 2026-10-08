@@ -4,20 +4,18 @@
          view controls, filters and node appearance -->
     <div class="ft-left-rail">
       <ActionBar
-        v-model:search="searchText"
-        :search-count="searchHits.size"
         @layout="onLayoutClick"
         @overview="onOverviewClick"
         @reset="resetMarks"
-        @next-hit="jumpToHit"
       />
       <ProfileBar @layout="onLayoutClick" />
+      <FilterPanel />
       <ViewControlPanel
         @direction-change="onLayoutDirectionChange"
         @edge-type-change="onEdgeTypeChange"
         @time-axis-change="onTimeAxisChange"
+        @lane-change="onLaneChange"
       />
-      <FilterPanel />
       <AppearancePanel />
     </div>
 
@@ -56,6 +54,10 @@
           @show-all="taskStore.filters.onlyRelated = false"
           @sample="openSampleNote"
         />
+        <LaneBands
+          v-if="taskStore.viewSettings.laneMode !== 'default' && taskStore.laneInfo?.lanes"
+          :info="taskStore.laneInfo"
+        />
         <TimeAxisRuler
           v-if="taskStore.viewSettings.timeAxis && taskStore.timeAxisInfo?.anchors"
           :info="taskStore.timeAxisInfo"
@@ -86,6 +88,8 @@ import EmptyState from './EmptyState.vue';
 import { createSampleNote, takePendingSampleLayout } from '../utils/sampleNote';
 import { TasksPluginAPI } from '../api/TasksPluginAPI';
 import { layoutWithDagre, layoutWithTimeAxis } from '../utils/layout';
+import { applyTagLanes } from '../utils/tagLanes';
+import LaneBands from './LaneBands.vue';
 import { promptName } from '../utils/promptName';
 import { isValidTaskId, normalizeTag, PRIORITY_LEVELS_NONE_LAST, NONE_PRIORITY } from '../utils/taskLineEdits';
 
@@ -245,43 +249,6 @@ const markClasses = (set, id) => [
   focus.value && !focus.value[set].has(id) ? 'ft-faded' : ''
 ].filter(Boolean).join(' ');
 
-// Search: tasks whose text, tags or note path contain every word typed, in
-// any case. Matches are lit and everything else fades while the box is not
-// empty. It is a view of the moment and is not saved.
-const searchText = ref('');
-
-const searchHits = computed(() => {
-  const words = searchText.value.toLowerCase().split(/\s+/).filter(Boolean);
-  const hits = new Set();
-  if (!words.length) return hits;
-  for (const task of taskStore.filteredTasks) {
-    const haystack = `${task.name} ${task.tags.join(' ')} ${task.path}`.toLowerCase();
-    if (words.every((word) => haystack.includes(word))) hits.add(task.id);
-  }
-  return hits;
-});
-
-const searching = computed(() => searchText.value.trim() !== '');
-
-// Enter in the search box centers the next match, Shift+Enter the previous
-// one. Zoom is raised if the view is too far out to read the node.
-let hitCursor = -1;
-watch(searchText, () => {
-  hitCursor = -1;
-});
-
-const jumpToHit = (step) => {
-  const ids = taskStore.filteredTasks.map((t) => t.id).filter((id) => searchHits.value.has(id));
-  if (!ids.length) return;
-  hitCursor = (hitCursor + step + ids.length) % ids.length;
-  const task = taskStore.filteredTasks.find((t) => t.id === ids[hitCursor]);
-  const { width = 0, height = 0 } = findNode(task.id)?.dimensions ?? {};
-  void setCenter(task.position.x + width / 2, task.position.y + height / 2, {
-    zoom: Math.max(viewport.value.zoom, LOD_ZOOM * 1.5),
-    duration: 200
-  });
-};
-
 // Zoom range. Vue Flow stops at 0.5 by default, too near for a graph of
 // hundreds of tasks. Below LOD_ZOOM the text and tags are hidden, leaving
 // each node's size and color, since text that small cannot be read anyway.
@@ -290,18 +257,13 @@ const MAX_ZOOM = 2;
 const LOD_ZOOM = 0.3;
 const zoomedFarOut = computed(() => viewport.value.zoom < LOD_ZOOM);
 
-const searchClass = (id) => {
-  if (!searching.value) return '';
-  return searchHits.value.has(id) ? 'ft-hit' : 'ft-dim';
-};
-
 const nodes = computed(() =>
   taskStore.filteredTasks.map((task) => ({
     id: task.id,
     type: 'task',
     position: task.position,
     data: { task },
-    class: [markClasses('nodeIds', task.id), searchClass(task.id)].filter(Boolean).join(' ')
+    class: markClasses('nodeIds', task.id)
   }))
 );
 
@@ -359,7 +321,7 @@ const edges = computed(() => {
     // otherwise a backward edge on the time axis is red.
     const glow = highlight.value.edgeIds.has(edge.id);
     const color = glow ? taskStore.appearance.highlightColor : backward ? BACKWARD_EDGE_COLOR : null;
-    // Line width and arrow size from Node Style; a highlighted edge is drawn
+    // Line width and arrow size from Style; a highlighted edge is drawn
     // a little thicker. Vue Flow sizes the arrowhead in units of the line
     // width, so dividing by it keeps the arrow at arrowSize px on screen.
     const { edgeWidth = 1, arrowSize = 12.5 } = taskStore.appearance;
@@ -468,7 +430,7 @@ const openTask = async (id) => {
   });
 };
 
-// Click and Double-click in View Control each pick one of: select only,
+// Click and Double-click in View each pick one of: select only,
 // focus the node's chain, open its note, or edit it in the Tasks plugin's
 // dialog. Every click also selects, which Vue Flow does on its own. By
 // default a click only selects and a double click edits. The browser sends
@@ -721,17 +683,22 @@ const runAutoLayout = () => {
     return {
       ...node,
       day: node.data.task.day,
+      tags: node.data.task.tags,
       width: graphNode?.dimensions?.width,
       height: graphNode?.dimensions?.height
     };
   });
-  const { layoutDirection, timeAxis } = taskStore.viewSettings;
+  const { layoutDirection, timeAxis, laneMode, lanePrimary } = taskStore.viewSettings;
   // With no dated task at all the time axis still lays out and shows a
   // ruler, starting from today; nothing on it is tied to a real date then.
   const timed = timeAxis ? layoutWithTimeAxis(layoutNodes, edges.value, layoutDirection) : null;
-  const positions = timed ? timed.positions : layoutWithDagre(layoutNodes, edges.value, layoutDirection);
-  positions.forEach(({ id, x, y }) => taskStore.updateTaskPosition(id, x, y));
+  const base = timed ? timed.positions : layoutWithDagre(layoutNodes, edges.value, layoutDirection);
+  // Tag lanes only move nodes across the flow direction, so the time axis
+  // computed above stays valid.
+  const laned = applyTagLanes(base, layoutNodes, edges.value, layoutDirection, laneMode, lanePrimary);
+  laned.positions.forEach(({ id, x, y }) => taskStore.updateTaskPosition(id, x, y));
   taskStore.setTimeAxisInfo(timed ? timed.info : null);
+  taskStore.setLaneInfo(laned.info);
 };
 
 // Layout only arranges the nodes and leaves the zoom alone; fitting the
@@ -756,6 +723,11 @@ const onLayoutDirectionChange = (value) => {
 };
 
 const onTimeAxisChange = (partial) => {
+  taskStore.updateViewSettings(partial);
+  onLayoutClick();
+};
+
+const onLaneChange = (partial) => {
   taskStore.updateViewSettings(partial);
   onLayoutClick();
 };
@@ -838,7 +810,7 @@ const onConnectEnd = async (event) => {
     position: { x: drop.x - 60, y: drop.y - 15 }
   });
   if (!created) return;
-  // New task in View Control: open the note with the placeholder name
+  // New task in View: open the note with the placeholder name
   // selected, ready to be typed over, or edit the task in the Tasks dialog.
   if (taskStore.viewSettings.newTaskAction === 'edit') await taskStore.editTaskInModal(created.id);
   else await openInSidePane(created.path, created.lineNumber, { text: created.name, select: true, waitForText: true });
@@ -1039,16 +1011,6 @@ onUnmounted(() => {
   opacity: 0.25;
 }
 
-/* Search: matches get an amber ring, distinct from Highlight and Border, the rest
-   fade a little less than Focus does. */
-.ft-graph-container :deep(.vue-flow__node.ft-hit .task-flow-node) {
-  box-shadow: 0 0 0 3px #ff9800, 0 0 14px 3px rgba(255, 152, 0, 0.7);
-}
-
-.ft-graph-container :deep(.vue-flow__node.ft-dim) {
-  opacity: 0.3;
-}
-
 /* Far out: text and tags are hidden but keep their space, so every node
    stays the size it has up close. */
 .ft-lod :deep(.ft-link-count),
@@ -1077,7 +1039,7 @@ onUnmounted(() => {
   outline-offset: 2px;
 }
 
-/* Highlight: a glowing outline in the Highlight color from Node Style,
+/* Highlight: a glowing outline in the Highlight color from Style,
    passed in as --ft-highlight; nothing else changes. */
 .ft-graph-container :deep(.vue-flow__node.ft-glow .task-flow-node) {
   box-shadow: 0 0 0 2px var(--ft-highlight), 0 0 12px 2px var(--ft-highlight);

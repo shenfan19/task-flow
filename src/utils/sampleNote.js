@@ -48,7 +48,7 @@ function sampleNoteContent(globalFilter) {
     '',
     '- Drag from one node onto another to link two tasks, or onto empty canvas to add a new one.',
     '- Double-click a node to edit the task.',
-    '- Turn on **Time axis** in View Control to order the tasks by date.',
+    '- Turn on **Time axis** in View to order the tasks by date.',
     '',
     'Delete this note when you are done with it.',
     '',

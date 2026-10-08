@@ -1,5 +1,5 @@
 <template>
-  <RailCard title="View Control">
+  <RailCard title="View">
     <select
       class="dropdown"
       :value="taskStore.viewSettings.layoutDirection"
@@ -43,6 +43,38 @@
       </button>
     </div>
 
+    <!-- Tag lanes: after the layout above, each task is moved across the flow
+         direction into a column (row in LR/RL) for its primary tag; see
+         utils/tagLanes.js. -->
+    <div class="ft-interval-row">
+      <label class="ft-click-label" for="laneMode">Tag lanes</label>
+      <select
+        id="laneMode"
+        class="dropdown ft-click-select"
+        :value="taskStore.viewSettings.laneMode"
+        @change="$emit('lane-change', { laneMode: $event.target.value })"
+      >
+        <option value="default">Default</option>
+        <option value="auto">Lanes, auto order</option>
+        <option value="alpha">Lanes, A-Z</option>
+        <option value="size">Lanes, biggest first</option>
+        <option value="soft">Soft pull to tag</option>
+      </select>
+    </div>
+    <div v-if="taskStore.viewSettings.laneMode !== 'default'" class="ft-interval-row">
+      <label class="ft-click-label" for="lanePrimary">Lane tag</label>
+      <select
+        id="lanePrimary"
+        class="dropdown ft-click-select"
+        :value="taskStore.viewSettings.lanePrimary"
+        @change="$emit('lane-change', { lanePrimary: $event.target.value })"
+      >
+        <option value="common">Most common tag</option>
+        <option value="rare">Rarest tag</option>
+        <option value="first">First tag</option>
+      </select>
+    </div>
+
     <hr class="ft-sep">
 
     <!-- What a click and a double click on a node do; see runNodeAction in
@@ -84,7 +116,7 @@
 import { useTaskStore } from '../store';
 import RailCard from './RailCard.vue';
 
-defineEmits(['direction-change', 'edge-type-change', 'time-axis-change']);
+defineEmits(['direction-change', 'edge-type-change', 'time-axis-change', 'lane-change']);
 
 const taskStore = useTaskStore();
 

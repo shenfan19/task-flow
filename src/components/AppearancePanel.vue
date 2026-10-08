@@ -1,5 +1,5 @@
 <template>
-  <RailCard title="Node Style">
+  <RailCard title="Style">
     <!-- Outline colors, content colors, then the font size. Size and
          Background apply to every node; a task with a priority takes those
          of its tier below instead. -->
