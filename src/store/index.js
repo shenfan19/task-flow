@@ -96,6 +96,12 @@ function taskDay(t, fields) {
   return null;
 }
 
+// Before textMode existed the keyword box could only exclude, so saved
+// filters and profiles that have keywords but no mode keep excluding. With no
+// keywords the mode changes nothing, and the default is include like the
+// other filters.
+const legacyTextMode = (text) => (text ? 'exclude' : 'include');
+
 // The filter settings a profile stores, copied so later edits to the live
 // filters do not reach into the profile.
 const filterSnapshot = (f) => ({
@@ -108,7 +114,7 @@ const filterSnapshot = (f) => ({
   priorities: [...(f.priorities ?? [])],
   priorityMode: f.priorityMode ?? 'include',
   excludeText: f.excludeText,
-  textMode: f.textMode ?? 'exclude'
+  textMode: f.textMode ?? legacyTextMode(f.excludeText)
 });
 
 // Highest and lowest have a font size and background of their own. An
@@ -134,7 +140,22 @@ const profileSnapshot = ({ filters, viewSettings: { settingsVersion, ...view }, 
 
 // View settings that move nodes, so switching to a profile that changes one
 // of them runs Layout again.
-const LAYOUT_VIEW_KEYS = ['layoutDirection', 'edgeType', 'timeAxis', 'laneMode', 'lanePrimary'];
+const LAYOUT_VIEW_KEYS = ['layoutDirection', 'edgeType', 'timeAxis', 'laneBy', 'laneMode'];
+
+// 0.9.0 had one lane setting, laneMode, with Default for no lanes and the
+// others for lanes by tag. It is now laneBy for what to group by and laneMode
+// for how to arrange; older view settings, in the plugin's data or in a
+// profile, are carried over to match. lanePrimary, the 0.9.0 choice of which
+// tag of a task decides its lane, is dropped.
+const migrateLanes = (view) => {
+  if (!view) return view;
+  // eslint-disable-next-line no-unused-vars
+  const { lanePrimary, ...rest } = view;
+  if (rest.laneBy !== undefined) return rest;
+  if (rest.laneMode === undefined) return { ...rest, laneBy: 'none' };
+  if (rest.laneMode === 'default') return { ...rest, laneBy: 'none', laneMode: 'auto' };
+  return { ...rest, laneBy: 'tag' };
+};
 
 // data.json holds every node position, so it runs to hundreds of KB in a
 // large vault. Saves requested within this window are merged into one
@@ -184,7 +205,7 @@ export const useTaskStore = defineStore('task', {
         priorities: [], // checked priorities, as the Tasks plugin's Priority enum strings
         priorityMode: 'include', // 'include': only tasks with a checked priority; 'exclude': hide them
         excludeText: '', // comma-separated keywords; the name predates textMode and is kept so saved filters and profiles still load
-        textMode: 'exclude' // 'include': only tasks whose line contains any keyword; 'exclude': hide them, which is what the box did before it had a mode
+        textMode: 'include' // 'include': only tasks whose text or tags contain any keyword; 'exclude': hide them
       },
       profiles: [], // [{id, name, ...profileSnapshot}], always starting with the Default profile, see loadState
       selectedProfileId: DEFAULT_PROFILE_ID, // the profile shown in the Profile row; Save writes the current settings into it
@@ -220,10 +241,10 @@ export const useTaskStore = defineStore('task', {
         newTaskAction: 'edit', // a task made by dragging onto empty canvas: 'edit' it in the Tasks dialog or 'open' its note
         settingsVersion: 4, // the plugin's minor version when these settings were last carried over, see loadState
         timeAxis: true, // the Date axis checkbox; when on, nodes are ordered along the flow direction by date (see layoutWithTimeAxis)
-        laneMode: 'default', // tag lanes across the flow direction: default (off), auto, alpha, size or soft, see utils/tagLanes.js
-        lanePrimary: 'common' // which tag of a multi-tag task picks its lane: common, rare or first
+        laneBy: 'none', // lanes across the flow direction by 'tag', 'file' or 'priority'; 'none' is off, see utils/lanes.js
+        laneMode: 'auto' // how the lanes are arranged: auto, alpha, size or soft
       },
-      // {direction, lanes} from the last tag-lane layout, read by LaneBands
+      // {direction, lanes} from the last lane layout, read by LaneBands
       // to draw the lane labels. Saved with the positions like timeAxisInfo.
       laneInfo: null,
       // {direction, anchors} from the last time-axis layout, which is what
@@ -428,7 +449,7 @@ export const useTaskStore = defineStore('task', {
         // no longer exist and are dropped here.
         // eslint-disable-next-line no-unused-vars
         const { clickToOpen, autoLayoutEnabled, autoLayoutInterval, autoRefreshEnabled, autoRefreshInterval, ...saved } = data.viewSettings;
-        this.viewSettings = { ...this.viewSettings, ...saved };
+        this.viewSettings = { ...this.viewSettings, ...migrateLanes(saved) };
         // The earlier "Click to open" checkbox, carried over to Click.
         if (clickToOpen && !saved.clickAction) this.viewSettings.clickAction = 'open';
         // Highlight was a click action up to 0.2.0, the default for Click.
@@ -447,6 +468,7 @@ export const useTaskStore = defineStore('task', {
         this.filters = {
           ...this.filters,
           ...data.filters,
+          textMode: data.filters.textMode ?? legacyTextMode(data.filters.excludeText),
           status: { ...this.filters.status, ...data.filters.status }
         };
       }
@@ -471,7 +493,7 @@ export const useTaskStore = defineStore('task', {
         id: p.id,
         name: p.name,
         filters: filterSnapshot(p.filters ?? { ...current.filters, tags: [], tagMode: 'include', excludeText: '', ...p }),
-        viewSettings: { ...current.viewSettings, ...p.viewSettings },
+        viewSettings: { ...current.viewSettings, ...migrateLanes(p.viewSettings ?? {}) },
         appearance: { ...current.appearance, ...withTierDefaults(p.appearance ?? {}) }
       });
       this.profiles = (data?.profiles ?? data?.filterPresets ?? []).map(fill);

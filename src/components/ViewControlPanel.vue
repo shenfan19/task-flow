@@ -1,77 +1,65 @@
 <template>
   <RailCard title="View">
-    <select
-      class="dropdown"
-      :value="taskStore.viewSettings.layoutDirection"
-      @change="$emit('direction-change', $event.target.value)"
-    >
-      <option value="TB">Top to Bottom</option>
-      <option value="BT">Bottom to Top</option>
-      <option value="LR">Left to Right</option>
-      <option value="RL">Right to Left</option>
-    </select>
-
-    <select
-      class="dropdown"
-      :value="taskStore.viewSettings.edgeType"
-      @change="$emit('edge-type-change', $event.target.value)"
-    >
-      <option value="default">Bezier</option>
-      <option value="straight">Straight</option>
-      <option value="smoothstep">Step</option>
-    </select>
-
-    <hr class="ft-sep">
-
-    <!-- Orders tasks along the flow direction by date (done, else
-         due, else scheduled, else start); see layoutWithTimeAxis in utils/layout.js. -->
     <div class="ft-interval-row">
-      <div class="form-check">
-        <input
-          class="form-check-input"
-          type="checkbox"
-          id="timeAxisToggle"
-          :checked="taskStore.viewSettings.timeAxis"
-          @change="$emit('time-axis-change', { timeAxis: $event.target.checked })"
-        >
-        <label class="form-check-label" for="timeAxisToggle">Date axis</label>
-      </div>
-      <!-- Tasks reload on their own when a note changes; this is for
-           reloading by hand. -->
-      <button class="btn btn-sm btn-outline-primary ft-refresh" @click="taskStore.fetchTasksFromObsidian()">
-        Refresh
-      </button>
+      <label class="ft-click-label" for="layoutDirection">Direction</label>
+      <select
+        id="layoutDirection"
+        class="dropdown ft-click-select"
+        :value="taskStore.viewSettings.layoutDirection"
+        @change="$emit('direction-change', $event.target.value)"
+      >
+        <option value="TB">Top to Bottom</option>
+        <option value="BT">Bottom to Top</option>
+        <option value="LR">Left to Right</option>
+        <option value="RL">Right to Left</option>
+      </select>
     </div>
 
-    <!-- Tag lanes: after the layout above, each task is moved across the flow
-         direction into a column (row in LR/RL) for its primary tag; see
-         utils/tagLanes.js. -->
     <div class="ft-interval-row">
-      <label class="ft-click-label" for="laneMode">Tag lanes</label>
+      <label class="ft-click-label" for="edgeType">Link</label>
+      <select
+        id="edgeType"
+        class="dropdown ft-click-select"
+        :value="taskStore.viewSettings.edgeType"
+        @change="$emit('edge-type-change', $event.target.value)"
+      >
+        <option value="default">Bezier</option>
+        <option value="straight">Straight</option>
+        <option value="smoothstep">Step</option>
+      </select>
+    </div>
+
+    <!-- Lanes: after the layout above, each task is moved across the flow
+         direction into a column (row in LR/RL) by its tag, note or priority;
+         see utils/lanes.js. -->
+    <div class="ft-interval-row">
+      <label class="ft-click-label" for="laneBy">Group by</label>
+      <select
+        id="laneBy"
+        class="dropdown ft-click-select"
+        :value="taskStore.viewSettings.laneBy"
+        @change="$emit('lane-change', { laneBy: $event.target.value })"
+      >
+        <option value="none">None</option>
+        <option value="tag">Tag</option>
+        <option value="file">File</option>
+        <option value="priority">Priority</option>
+      </select>
+    </div>
+    <div v-if="taskStore.viewSettings.laneBy !== 'none'" class="ft-interval-row">
+      <label class="ft-click-label" for="laneMode">Order</label>
       <select
         id="laneMode"
         class="dropdown ft-click-select"
         :value="taskStore.viewSettings.laneMode"
         @change="$emit('lane-change', { laneMode: $event.target.value })"
       >
-        <option value="default">Default</option>
-        <option value="auto">Lanes, auto order</option>
-        <option value="alpha">Lanes, A-Z</option>
-        <option value="size">Lanes, biggest first</option>
-        <option value="soft">Soft pull to tag</option>
-      </select>
-    </div>
-    <div v-if="taskStore.viewSettings.laneMode !== 'default'" class="ft-interval-row">
-      <label class="ft-click-label" for="lanePrimary">Lane tag</label>
-      <select
-        id="lanePrimary"
-        class="dropdown ft-click-select"
-        :value="taskStore.viewSettings.lanePrimary"
-        @change="$emit('lane-change', { lanePrimary: $event.target.value })"
-      >
-        <option value="common">Most common tag</option>
-        <option value="rare">Rarest tag</option>
-        <option value="first">First tag</option>
+        <option value="auto">Auto</option>
+        <!-- Priority lanes keep the order of the levels, so A-Z and Biggest
+             first are not offered there rather than shown greyed out. -->
+        <option v-if="!byPriority" value="alpha">A-Z</option>
+        <option v-if="!byPriority" value="size">Biggest first</option>
+        <option value="soft">Soft pull</option>
       </select>
     </div>
 
@@ -109,16 +97,34 @@
         <option value="open">Open note</option>
       </select>
     </div>
+
+    <hr class="ft-sep">
+
+    <!-- Orders tasks along the flow direction by date (done, else
+         due, else scheduled, else start); see layoutWithTimeAxis in utils/layout.js. -->
+    <div class="form-check">
+      <input
+        class="form-check-input"
+        type="checkbox"
+        id="timeAxisToggle"
+        :checked="taskStore.viewSettings.timeAxis"
+        @change="$emit('time-axis-change', { timeAxis: $event.target.checked })"
+      >
+      <label class="form-check-label" for="timeAxisToggle">Date axis</label>
+    </div>
   </RailCard>
 </template>
 
 <script setup>
+import { computed } from 'vue';
 import { useTaskStore } from '../store';
 import RailCard from './RailCard.vue';
 
 defineEmits(['direction-change', 'edge-type-change', 'time-axis-change', 'lane-change']);
 
 const taskStore = useTaskStore();
+
+const byPriority = computed(() => taskStore.viewSettings.laneBy === 'priority');
 
 const CLICK_ROWS = [
   { key: 'clickAction', label: 'Click' },
@@ -133,10 +139,6 @@ const CLICK_ROWS = [
   gap: 4px;
 }
 
-.ft-refresh {
-  margin-left: auto;
-}
-
 .ft-click-label {
   flex: none;
   width: 76px;
@@ -146,9 +148,5 @@ const CLICK_ROWS = [
   flex: 1 1 auto;
   width: auto;
   min-width: 0;
-}
-
-.ft-interval-input {
-  width: 48px;
 }
 </style>

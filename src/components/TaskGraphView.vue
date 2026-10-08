@@ -55,7 +55,7 @@
           @sample="openSampleNote"
         />
         <LaneBands
-          v-if="taskStore.viewSettings.laneMode !== 'default' && taskStore.laneInfo?.lanes"
+          v-if="taskStore.viewSettings.laneBy !== 'none' && taskStore.laneInfo?.lanes"
           :info="taskStore.laneInfo"
         />
         <TimeAxisRuler
@@ -88,7 +88,7 @@ import EmptyState from './EmptyState.vue';
 import { createSampleNote, takePendingSampleLayout } from '../utils/sampleNote';
 import { TasksPluginAPI } from '../api/TasksPluginAPI';
 import { layoutWithDagre, layoutWithTimeAxis } from '../utils/layout';
-import { applyTagLanes } from '../utils/tagLanes';
+import { applyLanes } from '../utils/lanes';
 import LaneBands from './LaneBands.vue';
 import { promptName } from '../utils/promptName';
 import { isValidTaskId, normalizeTag, PRIORITY_LEVELS_NONE_LAST, NONE_PRIORITY } from '../utils/taskLineEdits';
@@ -684,18 +684,20 @@ const runAutoLayout = () => {
       ...node,
       day: node.data.task.day,
       tags: node.data.task.tags,
+      path: node.data.task.path,
+      priority: node.data.task.priority,
       width: graphNode?.dimensions?.width,
       height: graphNode?.dimensions?.height
     };
   });
-  const { layoutDirection, timeAxis, laneMode, lanePrimary } = taskStore.viewSettings;
+  const { layoutDirection, timeAxis, laneBy, laneMode } = taskStore.viewSettings;
   // With no dated task at all the time axis still lays out and shows a
   // ruler, starting from today; nothing on it is tied to a real date then.
   const timed = timeAxis ? layoutWithTimeAxis(layoutNodes, edges.value, layoutDirection) : null;
   const base = timed ? timed.positions : layoutWithDagre(layoutNodes, edges.value, layoutDirection);
-  // Tag lanes only move nodes across the flow direction, so the time axis
+  // Lanes only move nodes across the flow direction, so the time axis
   // computed above stays valid.
-  const laned = applyTagLanes(base, layoutNodes, edges.value, layoutDirection, laneMode, lanePrimary);
+  const laned = applyLanes(base, layoutNodes, edges.value, layoutDirection, laneBy, laneMode);
   laned.positions.forEach(({ id, x, y }) => taskStore.updateTaskPosition(id, x, y));
   taskStore.setTimeAxisInfo(timed ? timed.info : null);
   taskStore.setLaneInfo(laned.info);
@@ -728,7 +730,13 @@ const onTimeAxisChange = (partial) => {
 };
 
 const onLaneChange = (partial) => {
-  taskStore.updateViewSettings(partial);
+  // Priority lanes keep their level order, so A-Z and Biggest first, which
+  // the Order list greys out there, fall back to Auto.
+  const order = partial.laneMode ?? taskStore.viewSettings.laneMode;
+  const next = partial.laneBy === 'priority' && (order === 'alpha' || order === 'size')
+    ? { ...partial, laneMode: 'auto' }
+    : partial;
+  taskStore.updateViewSettings(next);
   onLayoutClick();
 };
 
@@ -944,6 +952,7 @@ const stopViewCommands = onViewCommand((name) => {
   if (name === 'layout') onLayoutClick();
   else if (name === 'overview') onOverviewClick();
   else if (name === 'reset') resetMarks();
+  else if (name === 'refresh') taskStore.fetchTasksFromObsidian();
   else if (name === 'sample') void openSampleNote();
 });
 

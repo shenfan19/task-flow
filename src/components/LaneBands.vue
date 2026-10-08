@@ -5,7 +5,7 @@
   <div class="ft-lanes" :class="vertical ? 'ft-lanes--vertical' : 'ft-lanes--horizontal'">
     <div
       v-for="band in bands"
-      :key="band.tag"
+      :key="band.key"
       class="ft-lanes__band"
       :style="band.style"
     >
@@ -18,9 +18,11 @@
 import { computed } from 'vue';
 import { useVueFlow } from '@vue-flow/core';
 import { useTaskStore } from '../store';
+import { PRIORITY_HUES } from '../utils/taskLineEdits';
 
-// {direction, lanes: [{tag, start, end}]} as produced by applyTagLanes:
-// start and end are canvas coordinates across the flow direction.
+// {direction, lanes: [{key, label, kind, start, end}]} as produced by
+// applyLanes: start and end are canvas coordinates across the flow direction,
+// kind is what the lanes group by, tag, file or priority.
 const props = defineProps({
   info: {
     type: Object,
@@ -33,6 +35,17 @@ const { viewport } = useVueFlow();
 
 const vertical = computed(() => props.info.direction === 'TB' || props.info.direction === 'BT');
 
+// A lane's hue: the tag's own color, the priority level's, or for a note one
+// taken from its path so the same note keeps its color.
+const hueOf = (lane, tagHues) => {
+  if (lane.kind === 'tag') return lane.key ? tagHues.get(lane.key) : undefined;
+  if (lane.kind === 'priority') return PRIORITY_HUES[lane.key];
+  if (!lane.key) return undefined;
+  let hash = 0;
+  for (const ch of lane.key) hash = (hash * 31 + ch.codePointAt(0)) % 360;
+  return hash;
+};
+
 const bands = computed(() => {
   const { x, y, zoom } = viewport.value;
   const offset = vertical.value ? x : y;
@@ -40,11 +53,11 @@ const bands = computed(() => {
   return props.info.lanes.map((lane) => {
     const from = lane.start * zoom + offset;
     const size = (lane.end - lane.start) * zoom;
-    const hue = hues.get(lane.tag);
+    const hue = hueOf(lane, hues);
     const fill = hue === undefined ? 'rgba(128, 128, 128, 0.07)' : `hsla(${hue}, 70%, 55%, 0.08)`;
     return {
-      tag: lane.tag,
-      label: lane.tag || '(no tag)',
+      key: lane.key,
+      label: lane.label,
       color: hue === undefined ? 'var(--text-muted, #888)' : `hsl(${hue}, 60%, 42%)`,
       style: vertical.value
         ? { left: `${from}px`, width: `${size}px`, background: fill }

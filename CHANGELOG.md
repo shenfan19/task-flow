@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.10.0
+
+### Added
+
+- Lanes by **File** and by **Priority**, as well as by tag. A file lane is one note, named by its file name, with the folder added when two notes share a name. Priority lanes go from Highest to Lowest with None last, in the colors of the priority chips.
+- The command **Tasks Flowchart: Refresh tasks** reloads the tasks at once and can be given a hotkey.
+
+### Changed
+
+- The lane settings in **View** are split in two. **Group by** chooses **None**, **Tag**, **File** or **Priority**, and **Order** chooses **Auto**, **A-Z**, **Biggest first** or **Soft pull**. The old **Default** is now **None**, and lanes saved by tag in 0.9.0 are carried over. Priority lanes keep the order of the levels, so **A-Z** and **Biggest first** are not listed there. The **Lane tag** choice is removed: a task with several tags always goes in the lane of the tag most tasks share.
+- In **View**, the two lists at the top now have names, **Direction** and **Link**, and **Date axis** is the last item. The **Refresh** button is gone from the panel, replaced by the command above.
+- **Keywords** in **Filters** starts on **Include**, like the other filters, instead of **Exclude**. Saved filters and profiles that already have keywords keep the mode they had, which was Exclude.
+
 ## 0.9.0
 
 ### Added

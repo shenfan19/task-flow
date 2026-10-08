@@ -1,19 +1,30 @@
-// Tag lanes: a second pass over positions that layoutWithDagre or
+// Lanes: a second pass over positions that layoutWithDagre or
 // layoutWithTimeAxis already produced. It only changes the coordinate across
 // the flow direction (x in TB/BT, y in LR/RL), so the time axis and every
 // node's level along the flow stay exactly as they were. Each node gets one
-// lane, its primary tag, and lanes become side-by-side columns (rows in
-// LR/RL).
+// lane, by its tag, its note or its priority, and lanes become side-by-side
+// columns (rows in LR/RL).
 //
-// Modes:
+// Group by:
+//   none      no lanes, the layout is left as it is
+//   tag       one lane per tag; a task with several tags goes in the lane of
+//             the one most tasks share
+//   file      one lane per note
+//   priority  one lane per priority level, Highest to Lowest, None last
+//
+// Order, how the lanes are arranged:
 //   auto   lanes ordered by where their nodes already sat, then neighbors
 //          swapped while that shortens the links between lanes
-//   alpha  lanes in tag order A-Z, a fixed order that never reshuffles
+//   alpha  lanes in A-Z order, a fixed order that never reshuffles
 //   size   biggest lane first
 //   soft   lane order as auto, but nodes are only pulled toward their lane's
 //          center, so dagre's own arrangement still shows through
-export const LANE_MODES = ['default', 'auto', 'alpha', 'size', 'soft'];
-export const LANE_PRIMARIES = ['common', 'rare', 'first'];
+// Priority lanes always keep their level order, so alpha, size and auto
+// change nothing there; only soft differs.
+import { NONE_PRIORITY, PRIORITY_LEVELS_NONE_LAST } from './taskLineEdits';
+
+export const LANE_BY = ['none', 'tag', 'file', 'priority'];
+export const LANE_ORDERS = ['auto', 'alpha', 'size', 'soft'];
 
 const DEFAULT_NODE_WIDTH = 180;
 const DEFAULT_NODE_HEIGHT = 40;
@@ -22,23 +33,22 @@ const LANE_GAP = 40;
 const LANE_PAD = 16;
 const MAIN_GAP = 4;
 const SOFT_KEEP = 0.3; // share of a node's offset from its lane center that soft mode keeps
-const NO_TAG = '';
+const NO_KEY = ''; // the lane of tasks with no tag, or no note path
 
-// Which of a node's tags decides its lane: the one most nodes share, the one
-// fewest share, or simply the first on the task line. A node without tags
-// goes to the last lane.
-const primaryTagOf = (tags, counts, primary) => {
-  if (!tags || tags.length === 0) return NO_TAG;
-  if (primary === 'first') return tags[0];
-  const sign = primary === 'rare' ? 1 : -1;
-  return [...tags].sort((a, b) => sign * (counts.get(a) - counts.get(b)) || a.localeCompare(b))[0];
+// Which of a node's tags decides its lane: the one most nodes share, so a
+// task with several tags joins the biggest group it belongs to.
+const primaryTagOf = (tags, counts) => {
+  if (!tags || tags.length === 0) return NO_KEY;
+  return [...tags].sort((a, b) => counts.get(b) - counts.get(a) || a.localeCompare(b))[0];
 };
+
+const fileLabel = (path) => path.split('/').pop().replace(/\.md$/i, '');
 
 // Orders lanes by the average cross position of their nodes, then swaps
 // neighboring lanes while the total of (links x lane distance) between
 // connected lanes goes down.
-const orderLanesAuto = (laneTags, meanCross, laneEdges) => {
-  const order = [...laneTags].sort((a, b) => meanCross.get(a) - meanCross.get(b) || a.localeCompare(b));
+const orderLanesAuto = (laneKeys, meanCross, laneEdges) => {
+  const order = [...laneKeys].sort((a, b) => meanCross.get(a) - meanCross.get(b) || a.localeCompare(b));
   const cost = () => {
     const pos = new Map(order.map((t, i) => [t, i]));
     let total = 0;
@@ -81,18 +91,26 @@ const clearOverlaps = (items) => {
   }
 };
 
-// nodes: [{id, tags, width, height}], edges: [{source, target}], positions:
-// [{id, x, y}] top-left, as returned by the layouts in layout.js. Returns the
-// new positions plus {direction, lanes: [{tag, start, end}]}, the bands along
-// the cross axis that LaneBands.vue draws. info is null in 'default' mode.
-export function applyTagLanes(positions, nodes, edges, direction, mode = 'default', primary = 'common') {
-  if (!LANE_MODES.includes(mode) || mode === 'default' || nodes.length === 0) {
+// nodes: [{id, tags, path, priority, width, height}], edges: [{source,
+// target}], positions: [{id, x, y}] top-left, as returned by the layouts in
+// layout.js. Returns the new positions plus {direction, lanes: [{key, label,
+// kind, start, end}]}, the bands along the cross axis that LaneBands.vue
+// draws. info is null when nothing is grouped.
+export function applyLanes(positions, nodes, edges, direction, by = 'none', order = 'auto') {
+  if (!LANE_BY.includes(by) || by === 'none' || nodes.length === 0) {
     return { positions, info: null };
   }
+  const mode = LANE_ORDERS.includes(order) ? order : 'auto';
   const vertical = direction === 'TB' || direction === 'BT';
   const posOf = new Map(positions.map((p) => [p.id, p]));
   const tagCounts = new Map();
   for (const n of nodes) for (const t of n.tags ?? []) tagCounts.set(t, (tagCounts.get(t) || 0) + 1);
+
+  const keyOf = (n) => {
+    if (by === 'tag') return primaryTagOf(n.tags, tagCounts);
+    if (by === 'file') return n.path || NO_KEY;
+    return n.priority ?? NONE_PRIORITY;
+  };
 
   const items = nodes.map((n) => {
     const { x, y } = posOf.get(n.id);
@@ -102,7 +120,7 @@ export function applyTagLanes(positions, nodes, edges, direction, mode = 'defaul
       id: n.id,
       width,
       height,
-      tag: primaryTagOf(n.tags, tagCounts, primary),
+      key: keyOf(n),
       cross: vertical ? x + width / 2 : y + height / 2,
       main: vertical ? y + height / 2 : x + width / 2,
       crossSize: vertical ? width : height,
@@ -112,39 +130,41 @@ export function applyTagLanes(positions, nodes, edges, direction, mode = 'defaul
 
   const byLane = new Map();
   for (const item of items) {
-    if (!byLane.has(item.tag)) byLane.set(item.tag, []);
-    byLane.get(item.tag).push(item);
+    if (!byLane.has(item.key)) byLane.set(item.key, []);
+    byLane.get(item.key).push(item);
   }
-  const named = [...byLane.keys()].filter((t) => t !== NO_TAG);
+  const named = [...byLane.keys()].filter((k) => by === 'priority' || k !== NO_KEY);
 
-  let order;
-  if (mode === 'alpha') {
-    order = named.sort((a, b) => a.localeCompare(b));
+  let laneOrder;
+  if (by === 'priority') {
+    laneOrder = PRIORITY_LEVELS_NONE_LAST.map((l) => l.value).filter((v) => byLane.has(v));
+  } else if (mode === 'alpha') {
+    laneOrder = named.sort((a, b) => a.localeCompare(b));
   } else if (mode === 'size') {
-    order = named.sort((a, b) => byLane.get(b).length - byLane.get(a).length || a.localeCompare(b));
+    laneOrder = named.sort((a, b) => byLane.get(b).length - byLane.get(a).length || a.localeCompare(b));
   } else {
     const meanCross = new Map(
-      named.map((t) => [t, byLane.get(t).reduce((s, i) => s + i.cross, 0) / byLane.get(t).length])
+      named.map((k) => [k, byLane.get(k).reduce((s, i) => s + i.cross, 0) / byLane.get(k).length])
     );
-    const laneOfNode = new Map(items.map((i) => [i.id, i.tag]));
+    const laneOfNode = new Map(items.map((i) => [i.id, i.key]));
     const laneEdges = new Map();
     for (const e of edges) {
       const a = laneOfNode.get(e.source);
       const b = laneOfNode.get(e.target);
-      if (a === undefined || b === undefined || a === b || a === NO_TAG || b === NO_TAG) continue;
+      if (a === undefined || b === undefined || a === b || a === NO_KEY || b === NO_KEY) continue;
       const key = [a, b].sort().join('\u0000');
       laneEdges.set(key, (laneEdges.get(key) || 0) + 1);
     }
-    order = orderLanesAuto(named, meanCross, laneEdges);
+    laneOrder = orderLanesAuto(named, meanCross, laneEdges);
   }
-  if (byLane.has(NO_TAG)) order.push(NO_TAG);
+  if (by !== 'priority' && byLane.has(NO_KEY)) laneOrder.push(NO_KEY);
 
   // Inside a lane, nodes whose stretches along the flow overlap go on
   // separate tracks side by side; the lane is as wide as its tracks.
   const lanes = [];
   let cursor = 0;
-  for (const tag of order) {
-    const members = byLane.get(tag).sort((a, b) => a.main - b.main);
+  for (const key of laneOrder) {
+    const members = byLane.get(key).sort((a, b) => a.main - b.main);
     const trackEnds = [];
     for (const item of members) {
       let track = trackEnds.findIndex((end) => end + MAIN_GAP <= item.main - item.mainSize / 2);
@@ -157,7 +177,7 @@ export function applyTagLanes(positions, nodes, edges, direction, mode = 'defaul
     }
     const trackWidth = Math.max(...members.map((i) => i.crossSize)) + CROSS_GAP;
     const width = trackEnds.length * trackWidth + 2 * LANE_PAD;
-    lanes.push({ tag, start: cursor, end: cursor + width, trackWidth, members });
+    lanes.push({ key, start: cursor, end: cursor + width, trackWidth, members });
     cursor += width + LANE_GAP;
   }
 
@@ -173,15 +193,28 @@ export function applyTagLanes(positions, nodes, edges, direction, mode = 'defaul
     }
   }
 
-  let bands = lanes.map((l) => ({ tag: l.tag, start: l.start, end: l.end }));
+  let bands = lanes.map((l) => ({ key: l.key, start: l.start, end: l.end }));
   if (mode === 'soft') {
     clearOverlaps(items);
     bands = lanes.map((l) => ({
-      tag: l.tag,
+      key: l.key,
       start: Math.min(...l.members.map((i) => i.cross - i.crossSize / 2)) - LANE_PAD,
       end: Math.max(...l.members.map((i) => i.cross + i.crossSize / 2)) + LANE_PAD
     }));
   }
+
+  // Lane labels. Two notes with the same name get their full path, so the
+  // labels tell them apart.
+  const nameCounts = new Map();
+  if (by === 'file') {
+    for (const b of bands) nameCounts.set(fileLabel(b.key), (nameCounts.get(fileLabel(b.key)) || 0) + 1);
+  }
+  const labelOf = (key) => {
+    if (by === 'priority') return PRIORITY_LEVELS_NONE_LAST.find((l) => l.value === key)?.label ?? key;
+    if (key === NO_KEY) return by === 'file' ? '(no note)' : '(no tag)';
+    if (by === 'file') return nameCounts.get(fileLabel(key)) > 1 ? key.replace(/\.md$/i, '') : fileLabel(key);
+    return key;
+  };
 
   // Lanes start at cross 0; shifting so the first band sits at its own left
   // edge keeps the graph near where it was instead of drifting off screen.
@@ -195,7 +228,13 @@ export function applyTagLanes(positions, nodes, edges, direction, mode = 'defaul
     })),
     info: {
       direction,
-      lanes: bands.map((b) => ({ tag: b.tag, start: b.start + shift, end: b.end + shift }))
+      lanes: bands.map((b) => ({
+        key: b.key,
+        label: labelOf(b.key),
+        kind: by,
+        start: b.start + shift,
+        end: b.end + shift
+      }))
     }
   };
 }

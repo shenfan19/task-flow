@@ -219,16 +219,12 @@ import { confirmDialog } from '../utils/confirmDialog';
 import RailCard from './RailCard.vue';
 import { getApp } from '../pluginContext';
 import TreeNode from './TreeNode.vue';
-import { NONE_PRIORITY, PRIORITY_LEVELS_NONE_LAST } from '../utils/taskLineEdits';
+import { NONE_PRIORITY, PRIORITY_HUES, PRIORITY_LEVELS_NONE_LAST } from '../utils/taskLineEdits';
 
 const taskStore = useTaskStore();
 const treeData = ref([]);
 const checkedTags = computed(() => new Set(taskStore.filters.tags));
 const checkedPriorities = computed(() => new Set(taskStore.filters.priorities));
-
-// Chip hues from warm for the high levels to cool for the low ones, None
-// last in purple, painted by the shared .ft-tag rule like any tag.
-const PRIORITY_HUES = { '0': 0, '1': 25, '2': 50, '4': 200, '5': 230, '3': 270 };
 
 // Tasks of the view at each priority level, for the chips' tooltips.
 const priorityCounts = computed(() => {

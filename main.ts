@@ -54,6 +54,18 @@ export default class TaskFlowPlugin extends Plugin {
 			}
 		});
 
+		// Tasks reload by themselves when a note changes and every 30 seconds;
+		// this reloads them at once.
+		this.addCommand({
+			id: 'refresh',
+			name: 'Refresh tasks',
+			checkCallback: (checking) => {
+				if (!hasOpenGraph()) return false;
+				if (!checking) runViewCommand('refresh');
+				return true;
+			}
+		});
+
 		this.addCommand({
 			id: 'reset',
 			name: 'Reset, clear highlights and focus',

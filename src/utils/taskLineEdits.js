@@ -173,6 +173,10 @@ export const PRIORITY_LEVELS = [
 // The enum string of None, the level with no marker on the line.
 export const NONE_PRIORITY = '3';
 
+// One hue per level, shared by the filter chips and the priority lanes: warm
+// for the high levels to cool for the low ones, None last in purple.
+export const PRIORITY_HUES = { '0': 0, '1': 25, '2': 50, '4': 200, '5': 230, '3': 270 };
+
 // The levels as menus and filters list them: from Highest down to Lowest,
 // then None on its own at the end.
 export const PRIORITY_LEVELS_NONE_LAST = [
