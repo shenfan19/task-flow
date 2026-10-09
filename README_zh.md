@@ -55,7 +55,7 @@
 - **复位**：点 **Reset** 按钮，或者运行命令 **Tasks Flowchart: Reset, clear highlights and focus**，一次清除全部高亮和聚焦，其他什么都不改。节点位置保持到下次点 **Layout**，画布的平移和缩放保持到点 **Overview** 或你自己移动画布，profile 及其中的过滤条件、View 和 Style 都不受影响。不点 Reset 时，高亮和聚焦在关闭视图再打开后都会保留，节点位置和画布的平移、缩放也一样。
 - **编辑任务**：双击节点，或者右键节点选 **Edit task…**，在 Tasks 插件自己的编辑弹窗里修改任务，包括名称和 tag、优先级、各类日期、状态、重复规则和依赖。需要 Tasks 7.21.0 或更高版本。点击弹窗外的任意位置即可关闭且不保存，也可以点右上角的 **X**，Obsidian 在这里没有显示关闭按钮时，Tasks Flowchart 会在 Tasks 设置齿轮旁边补上它。
 - **修改 id**：右键节点选 **Change id…**，给任务换一个新 id。所有依赖它的任务会同步改成新 id，就像重命名笔记时链接会跟着更新一样。
-- **标签**：右键节点选 **Add tag**，从笔记里已有的 tag 中挑一个，或者点列表最下面的 **New tag…** 输入新 tag。**Remove tag** 列出这个任务自己的 tag。tag 会写进或删出任务所在笔记的那一行。在过滤面板里右键某个 tag，选 **Remove … from all tasks**，可以从当前 view 的所有任务上去掉它，操作前会确认并说明涉及多少个任务和笔记。
+- **标签**：右键节点选 **Add tag**，从笔记里已有的 tag 中挑一个，或者点列表最下面的 **New tag…** 输入新 tag。**Remove tag** 列出这个任务自己的 tag。tag 会写进或删出任务所在笔记的那一行；新 tag 写在行尾那些字段，例如 `[id:: ]`，的前面，Tasks 插件仍能读到这些字段。在过滤面板里右键某个 tag，选 **Remove … from all tasks**，可以从当前 view 的所有任务上去掉它，操作前会确认并说明涉及多少个任务和笔记。
 - **批量操作**：按住 Shift 拖出选框，或者选中多个节点，然后右键选框或其中一个已选节点。**Highlight**、**Focus chain**、**Add tag**、**Remove tag** 和 **Priority** 会同时作用在所有选中的节点上。**Open note**、**Edit task…** 和 **Change id…** 只在单个节点的菜单里。
 - **优先级**：右键节点选 **Priority**，在 Highest、High、Medium、Low、Lowest 里选一个，None 单独放在最后。笔记里这一行按它原有的格式修改，是 `[priority:: high]` 就改字段，是 emoji 就换 emoji，原来没有优先级的任务会加上 `[priority:: …]` 字段。
 - **打开任务**：右键节点选 **Open note**，或者把单击、双击设成打开，在右侧分栏打开笔记，光标放在任务名末尾，可以直接输入。如果任务名还是 `untitled`，则直接选中它，输入即可替换。View 里的 **Click** 和 **Double-click** 分别决定单击和双击节点的效果，都可选 **Select**、**Focus chain**、**Open note** 或 **Edit task**，默认单击选中、双击编辑。右键箭头可以打开它两端的笔记。

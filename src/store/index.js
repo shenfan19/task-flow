@@ -12,7 +12,10 @@ import {
   removeDependsOnTag,
   newSiblingTaskLine,
   listItemBlockEnd,
+  editKeepingEol,
+  withoutEol,
   readInlineFields,
+  readLineTags,
   stripInlineFields,
   renameIdInLine,
   addTagToLine,
@@ -20,6 +23,10 @@ import {
   setPriorityInLine,
   NONE_PRIORITY
 } from '../utils/taskLineEdits';
+
+// The Tasks plugin's global filter, null until first read, see
+// fetchTasksFromObsidian.
+let globalFilter = null;
 
 // Which line of `lines` currently holds `task`. Normally its recorded line
 // number, but a line inserted above it (see createLinkedTask) shifts it down
@@ -29,10 +36,10 @@ function locateTaskLine(lines, task) {
   const lineNumber = task.originalTask?.taskLocation?.lineNumber;
   const markdown = task.originalTask?.originalMarkdown;
   if (lineNumber === undefined) return -1;
-  if (!markdown || lines[lineNumber] === markdown) return lines[lineNumber] === undefined ? -1 : lineNumber;
+  if (!markdown || withoutEol(lines[lineNumber] ?? '') === markdown) return lines[lineNumber] === undefined ? -1 : lineNumber;
   let best = -1;
   lines.forEach((l, i) => {
-    if (l === markdown && (best === -1 || Math.abs(i - lineNumber) < Math.abs(best - lineNumber))) best = i;
+    if (withoutEol(l) === markdown && (best === -1 || Math.abs(i - lineNumber) < Math.abs(best - lineNumber))) best = i;
   });
   return best === -1 && lines[lineNumber] !== undefined ? lineNumber : best;
 }
@@ -49,8 +56,8 @@ async function editTaskLine(task, transform) {
     const lines = content.split('\n');
     const index = locateTaskLine(lines, task);
     if (index === -1) return content;
-    lines[index] = transform(lines[index]);
-    task.originalTask = { ...task.originalTask, originalMarkdown: lines[index] };
+    lines[index] = editKeepingEol(lines[index], transform);
+    task.originalTask = { ...task.originalTask, originalMarkdown: withoutEol(lines[index]) };
     return lines.join('\n');
   });
 }
@@ -512,6 +519,17 @@ export const useTaskStore = defineStore('task', {
       const api = new TasksPluginAPI(app);
       const allTasks = api.getTasks() || [];
 
+      // The global filter is not a tag of the task (the Tasks plugin leaves it
+      // out of `tags`), so it is dropped from the tags read off the line. It
+      // is read once, and the tasks are built again when it arrives; until
+      // then only the plugin's own tags are used.
+      if (globalFilter === null) {
+        api.getGlobalFilter().then((value) => {
+          globalFilter = value;
+          this.fetchTasksFromObsidian();
+        });
+      }
+
       // Editing a task's text changes its node id (path + name), so a node
       // with no saved position takes over the position of whatever node was
       // on the same line before; renaming a task then leaves it in place
@@ -541,7 +559,9 @@ export const useTaskStore = defineStore('task', {
           completed: t.status?.symbol !== ' ',
           status: t.status,
           priority: t.priority, // Tasks plugin's Priority enum string ('0' Highest .. '5' Lowest, '3' None)
-          tags: [...new Set(t.tags || [])], // e.g. ['#work'], without the Tasks global filter
+          // e.g. ['#work'], without the Tasks global filter. The plugin's tags
+          // come first, then any it missed because of where they sit on the line.
+          tags: [...new Set([...(t.tags || []), ...(globalFilter === null ? [] : readLineTags(t.originalMarkdown || '').filter((tag) => tag !== globalFilter))])],
           day: taskDay(t, fields), // whole-day number or null, see taskDay above
           position: pos
         };
@@ -675,7 +695,8 @@ export const useTaskStore = defineStore('task', {
         new Notice('Tasks Flowchart: the task line could not be found in its note.');
         return;
       }
-      const before = lines[index];
+      const before = withoutEol(lines[index]);
+      const eol = lines[index].slice(before.length);
       watchForTaskModal();
       const edited = await api.editTaskLineModal(before);
       if (!edited || edited === before) return;
@@ -683,9 +704,9 @@ export const useTaskStore = defineStore('task', {
       let written = false;
       await app.vault.process(file, (content) => {
         const current = content.split('\n');
-        const at = current[index] === before ? index : current.indexOf(before);
+        const at = withoutEol(current[index] ?? '') === before ? index : current.findIndex((l) => withoutEol(l) === before);
         if (at === -1) return content;
-        current.splice(at, 1, ...edited.split('\n'));
+        current.splice(at, 1, ...edited.split('\n').map((l) => l + eol));
         written = true;
         return current.join('\n');
       });
@@ -761,10 +782,10 @@ export const useTaskStore = defineStore('task', {
           for (const task of tasks) {
             const index = locateTaskLine(lines, task);
             if (index === -1) continue;
-            const edited = removeTagFromLine(lines[index], tag);
+            const edited = editKeepingEol(lines[index], (line) => removeTagFromLine(line, tag));
             if (edited === lines[index]) continue;
             lines[index] = edited;
-            task.originalTask = { ...task.originalTask, originalMarkdown: edited };
+            task.originalTask = { ...task.originalTask, originalMarkdown: withoutEol(edited) };
             task.tags = task.tags.filter((t) => t !== tag);
             changed++;
           }
@@ -817,17 +838,18 @@ export const useTaskStore = defineStore('task', {
         const originIndex = locateTaskLine(lines, origin);
         if (originIndex === -1) return content;
 
-        let newLine = newSiblingTaskLine(lines[originIndex], description);
+        const eol = lines[originIndex].slice(withoutEol(lines[originIndex]).length);
+        let newLine = newSiblingTaskLine(withoutEol(lines[originIndex]), description);
         if (upstream) {
           newLine = addIdTag(newLine, newPluginId);
-          lines[originIndex] = addDependsOnTag(lines[originIndex], newPluginId);
+          lines[originIndex] = editKeepingEol(lines[originIndex], (line) => addDependsOnTag(line, newPluginId));
         } else {
-          lines[originIndex] = addIdTag(lines[originIndex], originPluginId);
+          lines[originIndex] = editKeepingEol(lines[originIndex], (line) => addIdTag(line, originPluginId));
           newLine = addDependsOnTag(addIdTag(newLine, newPluginId), originPluginId);
         }
         const insertAt = listItemBlockEnd(lines, originIndex) + 1;
-        lines.splice(insertAt, 0, newLine);
-        created = { originIndex, originLine: lines[originIndex], lineNumber: insertAt, newLine };
+        lines.splice(insertAt, 0, newLine + eol);
+        created = { originIndex, originLine: withoutEol(lines[originIndex]), lineNumber: insertAt, newLine };
         return lines.join('\n');
       });
       if (!created) return null;

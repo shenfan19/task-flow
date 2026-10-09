@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.10.1
+
+### Fixed
+
+- A tag added from the right-click menu is now written before the fields at the end of the task line, such as `[id:: ]`, `[dependsOn:: ]`, dates and priority, instead of after them. Written after them, the Tasks plugin stopped reading those fields and did not report the tag either, so the tag was not found.
+- Tags are now also read from the task line itself, wherever they sit among the inline fields, in addition to the ones the Tasks plugin reports. The Tasks global filter is not taken for a tag.
+- In a note saved with Windows line endings, an edit to a task line no longer lands after the line's carriage return, where it would show up on a new line. Adding a tag, setting a priority or id, creating a linked task and the **Edit task…** dialog keep the line ending of the line they change.
+
 ## 0.10.0
 
 ### Added

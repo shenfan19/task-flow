@@ -23,6 +23,16 @@ export function generateTaskId(existingIds) {
   return id;
 }
 
+// A note saved with Windows line endings leaves a "\r" at the end of each line
+// once its text is split on "\n". Text added after that "\r" lands on a new
+// line, since a lone "\r" is a line break too, so edits run on the line
+// without it and the "\r" is put back afterwards.
+export const withoutEol = (line) => (line.endsWith('\r') ? line.slice(0, -1) : line);
+
+export function editKeepingEol(line, edit) {
+  return edit(withoutEol(line)) + line.slice(withoutEol(line).length);
+}
+
 // An Obsidian block reference (" ^abc123") must stay at the very end of the
 // line, so a new tag is spliced in just before it rather than appended after.
 function insertBeforeBlockLink(line, tag) {
@@ -149,9 +159,49 @@ export function normalizeTag(text) {
   return `#${name}`;
 }
 
+// The Tasks emoji-format fields: dates, priority, id, dependencies, recurrence
+// and on-completion. A recurrence rule is free text, so it runs up to the next
+// emoji field or bracket.
+const EMOJI_FIELD =
+  /(?:[\u{1F4C5}\u{23F3}\u{1F6EB}➕✅❌]️?\s*\d{4}-\d{2}-\d{2}|[\u{1F194}⛔]️?\s*[A-Za-z0-9_,-]+|\u{1F3C1}️?\s*\S+|[\u{1F53A}⏫\u{1F53C}\u{1F53D}⏬]️?|\u{1F501}️?[^\u{1F4C5}\u{23F3}\u{1F6EB}➕✅❌\u{1F194}⛔\u{1F3C1}\u{1F53A}⏫\u{1F53C}\u{1F53D}⏬[(]*?)/u;
+const TRAILING_FIELD = new RegExp(`\\s*(?:[[(][A-Za-z][\\w-]*::\\s*[^\\])]*?\\s*[\\])]|${EMOJI_FIELD.source})\\s*$`, 'u');
+
+// Index where the run of fields at the end of `text` begins, or the text
+// length when it does not end in a field. The Tasks plugin reads fields from
+// the end of a line backwards and stops at the first plain text, so anything
+// put after that run hides the fields from it.
+function trailingFieldsStart(text) {
+  let end = text.length;
+  for (;;) {
+    const match = text.slice(0, end).match(TRAILING_FIELD);
+    if (!match) return end;
+    end = match.index;
+  }
+}
+
+// Adds the tag to the description, ahead of the line's trailing fields. That
+// keeps the fields where the Tasks plugin looks for them and puts the tag in
+// the description, where it is read as a tag. Appending the tag after the
+// fields made the plugin lose the fields and the tag along with them.
 export function addTagToLine(line, tag) {
   if (tagRegex(tag).test(line)) return line;
-  return insertBeforeBlockLink(line, ` ${tag}`);
+  const blockLink = line.match(/( \^[a-zA-Z0-9-]+)$/)?.[0] ?? '';
+  const body = line.slice(0, line.length - blockLink.length);
+  const cut = trailingFieldsStart(body);
+  return `${body.slice(0, cut)} ${tag}${body.slice(cut)}${blockLink}`;
+}
+
+// The tags written on a task line, found by reading the line itself so that a
+// tag counts wherever it sits relative to the inline fields, which the Tasks
+// plugin does not guarantee. Fields and the block link are left out, so their
+// values cannot pass as tags. A tag has no spaces and is not only digits.
+export function readLineTags(line) {
+  const text = stripInlineFields(line.replace(/ \^[a-zA-Z0-9-]+$/, ''));
+  const tags = [];
+  for (const match of text.matchAll(/(?:^|\s)(#[\p{L}\p{N}_/-]+)/gu)) {
+    if (!/^#\d+$/.test(match[1]) && !tags.includes(match[1])) tags.push(match[1]);
+  }
+  return tags;
 }
 
 export function removeTagFromLine(line, tag) {
