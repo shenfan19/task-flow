@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.11.0
+
+### Added
+
+- **Separate links** in **View**, off by default. When a task sits on or close to the straight line of a longer link, as b does between a and c with the links a to b, b to c and a to c, the three links lie on top of each other and the direction of the flow is hard to read. With it on, **Layout** moves such a task sideways, to about a third of its width from the long link, to the nearest side free of other nodes. Only a task with a link of its own along that line is moved; a link that merely passes behind a task, or runs diagonally well clear of the others, is left as it is. It is part of a profile.
+
 ## 0.10.1
 
 ### Fixed

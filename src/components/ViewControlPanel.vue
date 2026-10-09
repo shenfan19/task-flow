@@ -112,6 +112,20 @@
       >
       <label class="form-check-label" for="timeAxisToggle">Date axis</label>
     </div>
+
+    <!-- At Layout, a task sitting on or near a longer link that joins the
+         tasks before and after it is moved aside, so the links do not lie on
+         top of each other; see separateOverlappingLinks in utils/layout.js. -->
+    <div class="form-check">
+      <input
+        class="form-check-input"
+        type="checkbox"
+        id="separateLinksToggle"
+        :checked="taskStore.viewSettings.separateLinks"
+        @change="$emit('separate-links-change', { separateLinks: $event.target.checked })"
+      >
+      <label class="form-check-label" for="separateLinksToggle">Separate links</label>
+    </div>
   </RailCard>
 </template>
 
@@ -120,7 +134,7 @@ import { computed } from 'vue';
 import { useTaskStore } from '../store';
 import RailCard from './RailCard.vue';
 
-defineEmits(['direction-change', 'edge-type-change', 'time-axis-change', 'lane-change']);
+defineEmits(['direction-change', 'edge-type-change', 'time-axis-change', 'separate-links-change', 'lane-change']);
 
 const taskStore = useTaskStore();
 

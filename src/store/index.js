@@ -147,7 +147,7 @@ const profileSnapshot = ({ filters, viewSettings: { settingsVersion, ...view }, 
 
 // View settings that move nodes, so switching to a profile that changes one
 // of them runs Layout again.
-const LAYOUT_VIEW_KEYS = ['layoutDirection', 'edgeType', 'timeAxis', 'laneBy', 'laneMode'];
+const LAYOUT_VIEW_KEYS = ['layoutDirection', 'edgeType', 'timeAxis', 'laneBy', 'laneMode', 'separateLinks'];
 
 // 0.9.0 had one lane setting, laneMode, with Default for no lanes and the
 // others for lanes by tag. It is now laneBy for what to group by and laneMode
@@ -247,6 +247,7 @@ export const useTaskStore = defineStore('task', {
         doubleClickAction: 'edit', // the same choice for a double click, plus 'edit'
         newTaskAction: 'edit', // a task made by dragging onto empty canvas: 'edit' it in the Tasks dialog or 'open' its note
         settingsVersion: 4, // the plugin's minor version when these settings were last carried over, see loadState
+        separateLinks: false, // the Separate links checkbox; when on, Layout moves a node sitting on or near a longer link between its two ends aside (see separateOverlappingLinks)
         timeAxis: true, // the Date axis checkbox; when on, nodes are ordered along the flow direction by date (see layoutWithTimeAxis)
         laneBy: 'none', // lanes across the flow direction by 'tag', 'file' or 'priority'; 'none' is off, see utils/lanes.js
         laneMode: 'auto' // how the lanes are arranged: auto, alpha, size or soft

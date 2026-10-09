@@ -173,3 +173,103 @@ export function layoutWithTimeAxis(nodes, edges, direction = 'TB') {
     .sort((a, b) => a.day - b.day);
   return { positions, info: { direction, anchors } };
 }
+
+// A long link and the shorter ones next to it can look like one: with a -> b,
+// b -> c and a -> c, a node b on or near the straight line from a to c puts
+// a -> b and b -> c along a -> c, and it can no longer be told which way the
+// flow goes. A link that only passes behind a node, or runs diagonally well
+// clear of the others, is left alone.
+const MIN_SEPARATION_RATIO = 0.35;
+const MIN_SEPARATION = 40;
+const SIDE_GAP = 24;
+const SIDE_TRIES = 6;
+const SEPARATE_PASSES = 3;
+
+// Moves the nodes in the middle of such a link aside, together, to the
+// nearest free spot, so that each is at least about a third of its width from
+// the long link. `positions` are {id, x, y} top-left corners, `nodes` carry
+// the sizes and `edges` the source and target ids. Returns new positions;
+// nothing else is moved.
+export function separateOverlappingLinks(positions, nodes, edges, direction = 'TB') {
+  const vertical = direction === 'TB' || direction === 'BT';
+  const size = new Map(nodes.map((node) => [node.id, sizeOf(node)]));
+  const pos = new Map(positions.map((p) => [p.id, { x: p.x, y: p.y }]));
+  const linked = new Set();
+  for (const edge of edges) {
+    linked.add(`${edge.source}\u0000${edge.target}`);
+    linked.add(`${edge.target}\u0000${edge.source}`);
+  }
+
+  const crossOf = (id) => (vertical ? pos.get(id).x + size.get(id).width / 2 : pos.get(id).y + size.get(id).height / 2);
+  const mainOf = (id) => (vertical ? pos.get(id).y + size.get(id).height / 2 : pos.get(id).x + size.get(id).width / 2);
+  const crossSize = (id) => (vertical ? size.get(id).width : size.get(id).height);
+  const separationOf = (id) => Math.max(MIN_SEPARATION, crossSize(id) * MIN_SEPARATION_RATIO);
+  const overlaps = (id, shift, others) => {
+    const a = pos.get(id);
+    const sa = size.get(id);
+    const ax = a.x + (vertical ? shift : 0);
+    const ay = a.y + (vertical ? 0 : shift);
+    return others.some((other) => {
+      const b = pos.get(other);
+      const sb = size.get(other);
+      return ax < b.x + sb.width + SIDE_GAP / 2 && ax + sa.width + SIDE_GAP / 2 > b.x
+        && ay < b.y + sb.height + SIDE_GAP / 2 && ay + sa.height + SIDE_GAP / 2 > b.y;
+    });
+  };
+
+  const known = (edge) => pos.has(edge.source) && pos.has(edge.target);
+  const longFirst = [...edges].filter(known).sort(
+    (a, b) => Math.abs(mainOf(b.target) - mainOf(b.source)) - Math.abs(mainOf(a.target) - mainOf(a.source))
+  );
+
+  for (let pass = 0; pass < SEPARATE_PASSES; pass++) {
+    let moved = false;
+    for (const { source, target } of longFirst) {
+      const lo = Math.min(mainOf(source), mainOf(target));
+      const hi = Math.max(mainOf(source), mainOf(target));
+      if (hi - lo < 1) continue;
+      // Signed distance across the flow from the straight line source -> target.
+      const offsetOf = (id) => {
+        const along = (mainOf(id) - mainOf(source)) / (mainOf(target) - mainOf(source));
+        return crossOf(id) - (crossOf(source) + (crossOf(target) - crossOf(source)) * along);
+      };
+      const near = [...pos.keys()].filter(
+        (id) => id !== source && id !== target && mainOf(id) > lo && mainOf(id) < hi && Math.abs(offsetOf(id)) < separationOf(id)
+      );
+      if (!near.length) continue;
+
+      // A node near the line only needs to move when a link of its own runs
+      // along it, to the two ends or to another node close to it.
+      const close = new Set([source, target, ...near]);
+      const involved = near.filter((id) => [...close].some((other) => other !== id && linked.has(`${id}\u0000${other}`)));
+      if (!involved.length) continue;
+
+      // The shift that puts every one of them on side `sign` at its own
+      // minimum distance or more.
+      const shiftFor = (sign) => sign * Math.max(...involved.map((id) => separationOf(id) - sign * offsetOf(id)));
+      const mean = involved.reduce((sum, id) => sum + offsetOf(id), 0) / involved.length;
+      const first = mean < -2 ? -1 : 1;
+      const widest = Math.max(...involved.map(crossSize));
+      const others = [...pos.keys()].filter((id) => !involved.includes(id));
+      let shift = shiftFor(first);
+      search: for (let k = 0; k < SIDE_TRIES; k++) {
+        for (const sign of [first, -first]) {
+          const candidate = shiftFor(sign) + sign * k * (widest + SIDE_GAP);
+          if (!involved.some((id) => overlaps(id, candidate, others))) {
+            shift = candidate;
+            break search;
+          }
+        }
+      }
+      for (const id of involved) {
+        const p = pos.get(id);
+        if (vertical) p.x += Math.round(shift);
+        else p.y += Math.round(shift);
+      }
+      moved = true;
+    }
+    if (!moved) break;
+  }
+
+  return positions.map((p) => ({ ...p, x: pos.get(p.id).x, y: pos.get(p.id).y }));
+}

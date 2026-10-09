@@ -14,6 +14,7 @@
         @direction-change="onLayoutDirectionChange"
         @edge-type-change="onEdgeTypeChange"
         @time-axis-change="onTimeAxisChange"
+        @separate-links-change="onTimeAxisChange"
         @lane-change="onLaneChange"
       />
       <AppearancePanel />
@@ -87,7 +88,7 @@ import TimeAxisRuler from './TimeAxisRuler.vue';
 import EmptyState from './EmptyState.vue';
 import { createSampleNote, takePendingSampleLayout } from '../utils/sampleNote';
 import { TasksPluginAPI } from '../api/TasksPluginAPI';
-import { layoutWithDagre, layoutWithTimeAxis } from '../utils/layout';
+import { layoutWithDagre, layoutWithTimeAxis, separateOverlappingLinks } from '../utils/layout';
 import { applyLanes } from '../utils/lanes';
 import LaneBands from './LaneBands.vue';
 import { promptName } from '../utils/promptName';
@@ -698,7 +699,12 @@ const runAutoLayout = () => {
   // Lanes only move nodes across the flow direction, so the time axis
   // computed above stays valid.
   const laned = applyLanes(base, layoutNodes, edges.value, layoutDirection, laneBy, laneMode);
-  laned.positions.forEach(({ id, x, y }) => taskStore.updateTaskPosition(id, x, y));
+  // With Separate links on, a node sitting on or near a longer link between
+  // its two ends is moved aside, so the links do not lie on top of each other.
+  const placed = taskStore.viewSettings.separateLinks
+    ? separateOverlappingLinks(laned.positions, layoutNodes, edges.value, layoutDirection)
+    : laned.positions;
+  placed.forEach(({ id, x, y }) => taskStore.updateTaskPosition(id, x, y));
   taskStore.setTimeAxisInfo(timed ? timed.info : null);
   taskStore.setLaneInfo(laned.info);
 };
