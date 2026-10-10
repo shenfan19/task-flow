@@ -16,7 +16,7 @@ Right-click a tag in the filter panel and choose **Remove … from all tasks** t
 
 ## Priority
 
-Right-click a node and choose **Priority** to pick Highest, High, Medium, Low or Lowest, with None apart at the end. The line is changed in the format it already uses, `[priority:: high]` or the emoji, and a task without a priority gets the `[priority:: …]` field.
+Right-click a node and choose **Priority** to pick Highest, High, Medium, Low or Lowest, with None apart at the end. The line is changed in the format it already uses, `[priority:: high]` or the emoji, and a task without a priority gets one in the format set under **Task format** in **Style**.
 
 ## Open the note
 

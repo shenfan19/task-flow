@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.13.0
+
+### Added
+
+- The Tasks emoji format. Ids and dependencies written as `🆔` and `⛔` are read like `[id:: ]` and `[dependsOn:: ]`, and so are dates and priorities, wherever they sit on the line. A task line may use either format, or both.
+- **Task format** in **Style**, with **Tasks emoji** and **Dataview**, for the fields the plugin adds to a task line. That is the id and the dependency when you link tasks, the new task when you drag onto empty canvas, a new id from **Change id…**, a priority on a line that has none, and the sample note. A field already on a line is edited in the style it has. It is shared by every profile. Until you choose, it follows the format the Tasks plugin is set to.
+
+### Changed
+
+- In a vault where the Tasks plugin is set to the emoji format, which is its default, linking tasks and creating them now writes the emoji format. Before, the plugin always wrote the Dataview format, which the Tasks plugin showed as plain text on such a line. Choose **Dataview** in **Style** to keep writing it.
+- A task's name no longer carries the emoji id, dependency, date and priority markers the Tasks plugin did not read as fields. A node on such a line is shown under its plain name, so its saved position may be lost once.
+
 ## 0.12.1
 
 ### Fixed

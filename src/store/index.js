@@ -15,6 +15,7 @@ import {
   editKeepingEol,
   withoutEol,
   readInlineFields,
+  readPriority,
   readLineTags,
   stripInlineFields,
   renameIdInLine,
@@ -63,10 +64,7 @@ async function editTaskLine(task, transform) {
 }
 
 // The ids a task line lists in its [dependsOn:: ] field.
-const dependsOnIdsOf = (line) => {
-  const match = /\[dependsOn::\s*([^\]]*)\]/.exec(line);
-  return match ? match[1].split(',').map((id) => id.trim()).filter(Boolean) : [];
-};
+const dependsOnIdsOf = (line) => splitIds(readInlineFields(line).dependsOn);
 
 // Waits, up to a few seconds, until the Tasks plugin has indexed every task
 // the line depends on. Its edit dialog looks those tasks up by id and drops
@@ -294,7 +292,11 @@ export const useTaskStore = defineStore('task', {
       // plugin may not have indexed yet: {task, createdAt}. Kept across
       // refreshes until a fetch returns them, so a refresh landing before the
       // re-index doesn't make the new node vanish for a cycle.
-      unindexedTasks: []
+      unindexedTasks: [],
+      // How a field is written when this plugin adds one to a task line, 'emoji'
+      // or 'dataview'; null until it is first read, see loadState. Not part of a
+      // profile: it describes the notes, not the view.
+      taskFormat: null
     };
   },
   getters: {
@@ -320,6 +322,10 @@ export const useTaskStore = defineStore('task', {
         const hasIncoming = task.pluginId && this.referencedPluginIds.has(task.pluginId);
         return hasOutgoing || hasIncoming;
       });
+    },
+    // The style a field is written in when this plugin adds one to a line.
+    writeFormat() {
+      return this.taskFormat ?? 'dataview';
     },
     selectedProfile() {
       return this.profiles.find((p) => p.id === this.selectedProfileId) ?? null;
@@ -470,6 +476,7 @@ export const useTaskStore = defineStore('task', {
       // data.json used to be a flat {id: {x,y}} positions map; fall back to
       // treating the whole object as positions if it isn't in the new shape.
       this.positions = data?.positions ?? data ?? {};
+      this.taskFormat = data?.taskFormat === 'emoji' || data?.taskFormat === 'dataview' ? data.taskFormat : null;
       if (data?.appearance) {
         this.appearance = { ...this.appearance, ...withTierDefaults(data.appearance) };
       }
@@ -588,7 +595,9 @@ export const useTaskStore = defineStore('task', {
           path,
           completed: t.status?.symbol !== ' ',
           status: t.status,
-          priority: t.priority, // Tasks plugin's Priority enum string ('0' Highest .. '5' Lowest, '3' None)
+          // Tasks plugin's Priority enum string ('0' Highest .. '5' Lowest, '3' None); a
+          // priority written in the style the plugin is not set to is read off the line
+          priority: t.priority && t.priority !== NONE_PRIORITY ? t.priority : (readPriority(t.originalMarkdown || '') ?? t.priority),
           // e.g. ['#work'], without the Tasks global filter. The plugin's tags
           // come first, then any it missed because of where they sit on the line.
           tags: [...new Set([...(t.tags || []), ...(globalFilter === null ? [] : readLineTags(t.originalMarkdown || '').filter((tag) => tag !== globalFilter))])],
@@ -695,12 +704,12 @@ export const useTaskStore = defineStore('task', {
       if (!sourcePluginId) {
         const existingIds = new Set(this.tasks.map((t) => t.pluginId).filter(Boolean));
         sourcePluginId = generateTaskId(existingIds);
-        await editTaskLine(source, (line) => addIdTag(line, sourcePluginId));
+        await editTaskLine(source, (line) => addIdTag(line, sourcePluginId, this.writeFormat));
         source.pluginId = sourcePluginId;
       }
 
       if (target.dependsOn.includes(sourcePluginId)) return;
-      await editTaskLine(target, (line) => addDependsOnTag(line, sourcePluginId));
+      await editTaskLine(target, (line) => addDependsOnTag(line, sourcePluginId, this.writeFormat));
       target.dependsOn = [...target.dependsOn, sourcePluginId];
     },
     // Opens the Tasks plugin's edit dialog on a task and writes the result
@@ -759,7 +768,7 @@ export const useTaskStore = defineStore('task', {
       const task = this.tasks.find((t) => t.id === taskId);
       if (!task || task.pluginId === newId) return;
       const oldId = task.pluginId;
-      await editTaskLine(task, (line) => (oldId ? renameIdInLine(line, oldId, newId) : addIdTag(line, newId)));
+      await editTaskLine(task, (line) => (oldId ? renameIdInLine(line, oldId, newId) : addIdTag(line, newId, this.writeFormat)));
       task.pluginId = newId;
       if (!oldId) return;
 
@@ -788,7 +797,7 @@ export const useTaskStore = defineStore('task', {
     async setTaskPriority(taskId, value) {
       const task = this.tasks.find((t) => t.id === taskId);
       if (!task || task.priority === value) return;
-      await editTaskLine(task, (line) => setPriorityInLine(line, value));
+      await editTaskLine(task, (line) => setPriorityInLine(line, value, this.writeFormat));
       task.priority = value;
     },
     // Takes the tag off every task of the view, one write per note. Lines are
@@ -862,6 +871,7 @@ export const useTaskStore = defineStore('task', {
       let name = NEW_TASK_NAME;
       for (let n = 2; namesInFile.has(name); n++) name = `${NEW_TASK_NAME}${n}`;
       const description = globalFilter ? `${globalFilter} ${name}` : name;
+      const format = this.writeFormat;
 
       let created = null;
       await app.vault.process(file, (content) => {
@@ -872,11 +882,11 @@ export const useTaskStore = defineStore('task', {
         const eol = lines[originIndex].slice(withoutEol(lines[originIndex]).length);
         let newLine = newSiblingTaskLine(withoutEol(lines[originIndex]), description);
         if (upstream) {
-          newLine = addIdTag(newLine, newPluginId);
-          lines[originIndex] = editKeepingEol(lines[originIndex], (line) => addDependsOnTag(line, newPluginId));
+          newLine = addIdTag(newLine, newPluginId, format);
+          lines[originIndex] = editKeepingEol(lines[originIndex], (line) => addDependsOnTag(line, newPluginId, format));
         } else {
-          lines[originIndex] = editKeepingEol(lines[originIndex], (line) => addIdTag(line, originPluginId));
-          newLine = addDependsOnTag(addIdTag(newLine, newPluginId), originPluginId);
+          lines[originIndex] = editKeepingEol(lines[originIndex], (line) => addIdTag(line, originPluginId, format));
+          newLine = addDependsOnTag(addIdTag(newLine, newPluginId, format), originPluginId, format);
         }
         const insertAt = listItemBlockEnd(lines, originIndex) + 1;
         lines.splice(insertAt, 0, newLine + eol);
@@ -942,6 +952,7 @@ export const useTaskStore = defineStore('task', {
       if (!plugin) return;
       await plugin.saveData({
         positions: this.positions,
+        taskFormat: this.taskFormat,
         appearance: this.appearance,
         viewSettings: this.viewSettings,
         profiles: this.profiles,
@@ -952,6 +963,19 @@ export const useTaskStore = defineStore('task', {
         marks: this.marks,
         viewport: this.viewport
       });
+    },
+    // Reads which style to write from the Tasks plugin when none has been
+    // chosen yet, and keeps it from then on.
+    async resolveTaskFormat() {
+      if (this.taskFormat) return;
+      const app = getApp();
+      this.taskFormat = app ? await new TasksPluginAPI(app).getTaskFormat() : 'dataview';
+      this.saveState();
+    },
+    setTaskFormat(format) {
+      if (format !== 'emoji' && format !== 'dataview') return;
+      this.taskFormat = format;
+      this.saveState();
     },
     setMarks(marks) {
       this.marks = marks;

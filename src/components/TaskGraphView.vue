@@ -912,7 +912,7 @@ const emptyReason = computed(() => {
 const openSampleNote = async () => {
   const app = getApp();
   if (!app) return;
-  const file = await createSampleNote(app);
+  const file = await createSampleNote(app, taskStore.writeFormat);
   await openInSidePane(file.path);
 };
 
@@ -943,6 +943,7 @@ onMounted(async () => {
   // Positions must load before tasks are built, since each task's starting
   // position is read from taskStore.positions at construction time.
   await taskStore.loadState();
+  await taskStore.resolveTaskFormat();
   taskStore.fetchTasksFromObsidian();
   restoreMarks();
   await restoreViewport();

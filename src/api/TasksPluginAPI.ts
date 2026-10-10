@@ -64,6 +64,23 @@ export class TasksPluginAPI {
     }
 
     /**
+     * The format the Tasks plugin is set to write and read, 'emoji' or
+     * 'dataview'. Its setting is stored as 'tasksPluginEmoji' or 'dataview';
+     * 'emoji' is also what a plugin that has not saved one yet uses.
+     */
+    public async getTaskFormat(): Promise<'emoji' | 'dataview'> {
+        const plugin = this.tasksPlugin;
+        if (!plugin) return 'dataview';
+        try {
+            const data = (await plugin.loadData()) as { taskFormat?: unknown } | null;
+            return data?.taskFormat === 'dataview' ? 'dataview' : 'emoji';
+        } catch (error) {
+            console.error('Tasks Flowchart: Error reading Tasks plugin settings:', error);
+            return 'dataview';
+        }
+    }
+
+    /**
      * Whether the Tasks plugin offers its edit dialog to other plugins,
      * which it does from version 7.21.0.
      */

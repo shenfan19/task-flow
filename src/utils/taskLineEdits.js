@@ -1,19 +1,27 @@
-// Pure text-editing helpers for the Tasks plugin's Dataview-style inline
-// field syntax: "[id:: <id>]" and "[dependsOn:: <id1>,<id2>]". Kept separate
+// Pure text-editing helpers for the two ways the Tasks plugin writes ids and
+// dependencies: the Dataview-style inline fields "[id:: <id>]" and
+// "[dependsOn:: <id1>,<id2>]", and the emoji shorthand "🆔 <id>" and
+// "⛔ <id1>,<id2>". Both are read from every line. A field already on a line
+// is edited in the style it has; a field added to a line that has none is
+// written in the style asked for, which the Style card sets. Kept separate
 // from the store/canvas code so this line-surgery logic can be tested and
 // reasoned about on its own.
-//
-// TODO: this only writes the Dataview format, because that's what this
-// vault is configured to use. Tasks also supports an emoji-shorthand format
-// (🆔 <id> / ⛔ <id1>,<id2>) for vaults configured that way instead — add
-// that back, either auto-detected or as a plugin setting, as a follow-up.
-// (An earlier version of this file wrote the emoji format unconditionally,
-// which silently broke dependency edits on a Dataview-format vault: it wrote
-// tags the Tasks plugin's parser didn't recognize in that mode.)
 
 const ID_SYMBOL = 'id';
 const DEPENDS_ON_SYMBOL = 'dependsOn';
 const ID_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+
+// The two styles a field can be written in, as the Style card lists them.
+export const TASK_FORMATS = [
+  { value: 'emoji', label: 'Tasks emoji' },
+  { value: 'dataview', label: 'Dataview' }
+];
+
+const ID_EMOJI = '\u{1F194}';
+const DEPENDS_ON_EMOJI = '\u26D4';
+const EMOJI_ID = /\u{1F194}\uFE0F?\s*([A-Za-z0-9_-]+)/u;
+const EMOJI_DEPENDS_ON = /( *)\u26D4\uFE0F?\s*([A-Za-z0-9_-]+(?: *, *[A-Za-z0-9_-]+)*)/u;
+const emojiField = (emoji, value) => ` ${emoji} ${value}`;
 
 export function generateTaskId(existingIds) {
   let id;
@@ -50,30 +58,47 @@ function newInlineField(key, value) {
   return `  [${key}:: ${value}]`;
 }
 
-export function addIdTag(line, id) {
-  if (new RegExp(`\\[${ID_SYMBOL}:: *[a-zA-Z0-9-_]+ *\\]`).test(line)) return line; // already has one
-  return insertBeforeBlockLink(line, newInlineField(ID_SYMBOL, id));
+export function addIdTag(line, id, format = 'dataview') {
+  if (new RegExp(`\\[${ID_SYMBOL}:: *[a-zA-Z0-9-_]+ *\\]`).test(line) || EMOJI_ID.test(line)) return line; // already has one
+  const field = format === 'emoji' ? emojiField(ID_EMOJI, id) : newInlineField(ID_SYMBOL, id);
+  return insertBeforeBlockLink(line, field);
 }
 
-export function addDependsOnTag(line, depId) {
+export function addDependsOnTag(line, depId, format = 'dataview') {
   const regex = new RegExp(`\\[${DEPENDS_ON_SYMBOL}:: *([a-zA-Z0-9-_, ]+?) *\\]`);
   const match = line.match(regex);
-  if (!match) return insertBeforeBlockLink(line, newInlineField(DEPENDS_ON_SYMBOL, depId));
+  if (match) {
+    const ids = match[1].split(',').map((s) => s.trim()).filter(Boolean);
+    if (ids.includes(depId)) return line;
+    ids.push(depId);
+    return line.slice(0, match.index) + `[${DEPENDS_ON_SYMBOL}:: ${ids.join(',')}]` + line.slice(match.index + match[0].length);
+  }
 
-  const ids = match[1].split(',').map((s) => s.trim()).filter(Boolean);
-  if (ids.includes(depId)) return line;
-  ids.push(depId);
-  return line.slice(0, match.index) + `[${DEPENDS_ON_SYMBOL}:: ${ids.join(',')}]` + line.slice(match.index + match[0].length);
+  const emoji = line.match(EMOJI_DEPENDS_ON);
+  if (emoji) {
+    const ids = emoji[2].split(',').map((id) => id.trim());
+    if (ids.includes(depId)) return line;
+    ids.push(depId);
+    return line.slice(0, emoji.index) + `${emoji[1]}${DEPENDS_ON_EMOJI} ${ids.join(',')}` + line.slice(emoji.index + emoji[0].length);
+  }
+  const field = format === 'emoji' ? emojiField(DEPENDS_ON_EMOJI, depId) : newInlineField(DEPENDS_ON_SYMBOL, depId);
+  return insertBeforeBlockLink(line, field);
 }
 
 export function removeDependsOnTag(line, depId) {
   const regex = new RegExp(`( *\\[${DEPENDS_ON_SYMBOL}:: *([a-zA-Z0-9-_, ]+?) *\\])`);
   const match = line.match(regex);
-  if (!match) return line;
+  if (match) {
+    const ids = match[2].split(',').map((s) => s.trim()).filter((id) => id && id !== depId);
+    const replacement = ids.length > 0 ? ` [${DEPENDS_ON_SYMBOL}:: ${ids.join(',')}]` : '';
+    return line.slice(0, match.index) + replacement + line.slice(match.index + match[0].length);
+  }
 
-  const ids = match[2].split(',').map((s) => s.trim()).filter((id) => id && id !== depId);
-  const replacement = ids.length > 0 ? ` [${DEPENDS_ON_SYMBOL}:: ${ids.join(',')}]` : '';
-  return line.slice(0, match.index) + replacement + line.slice(match.index + match[0].length);
+  const emoji = line.match(EMOJI_DEPENDS_ON);
+  if (!emoji) return line;
+  const ids = emoji[2].split(',').map((id) => id.trim()).filter((id) => id !== depId);
+  const replacement = ids.length > 0 ? ` ${DEPENDS_ON_EMOJI} ${ids.join(',')}` : '';
+  return line.slice(0, emoji.index) + replacement + line.slice(emoji.index + emoji[0].length);
 }
 
 // Characters the Tasks plugin allows in an id.
@@ -124,6 +149,10 @@ export function listItemBlockEnd(lines, lineNumber) {
 // "[key:: value]" or "(key:: value)".
 const INLINE_FIELD = /[[(]([A-Za-z][\w-]*)::\s*([^\])]*?)\s*[\])]/g;
 
+// The emoji that mark a date, paired with the Dataview field name they stand
+// for: due, scheduled, start and done.
+const EMOJI_DATES = [['\u{1F4C5}', 'due'], ['\u23F3', 'scheduled'], ['\u{1F6EB}', 'start'], ['\u2705', 'completion']];
+
 // Every inline field on the line, keyed by field name (first one wins). The
 // Tasks plugin only reads fields from the end of a line backwards and stops
 // at the first piece of plain text, so a line such as
@@ -135,13 +164,28 @@ export function readInlineFields(line) {
   for (const match of line.matchAll(INLINE_FIELD)) {
     if (!(match[1] in fields)) fields[match[1]] = match[2];
   }
+  // The emoji style is read into the same names, so the rest of the plugin
+  // does not care which style a line is written in.
+  const id = line.match(EMOJI_ID);
+  if (id && !('id' in fields)) fields.id = id[1];
+  const dependsOn = line.match(EMOJI_DEPENDS_ON);
+  if (dependsOn && !('dependsOn' in fields)) fields.dependsOn = dependsOn[2];
+  for (const [emoji, key] of EMOJI_DATES) {
+    const date = line.match(new RegExp(`${emoji}\\uFE0F?\\s*(\\d{4}-\\d{2}-\\d{2})`, 'u'));
+    if (date && !(key in fields)) fields[key] = date[1];
+  }
   return fields;
 }
+
+// The emoji fields that are metadata and never part of a task's name: id,
+// dependencies, dates and priority.
+const EMOJI_STRIP =
+  /(?:\u{1F194}\uFE0F?\s*[A-Za-z0-9_-]+|\u26D4\uFE0F?\s*[A-Za-z0-9_-]+(?: *, *[A-Za-z0-9_-]+)*|[\u{1F4C5}\u23F3\u{1F6EB}\u2795\u2705\u274C]\uFE0F?\s*\d{4}-\d{2}-\d{2}|[\u{1F53A}\u23EB\u{1F53C}\u{1F53D}\u23EC]\uFE0F?)/gu;
 
 // A task's display text without any inline fields, for the case where the
 // Tasks plugin left unread fields inside its description.
 export function stripInlineFields(text) {
-  return text.replace(INLINE_FIELD, ' ').replace(/\s+/g, ' ').trim();
+  return text.replace(INLINE_FIELD, ' ').replace(EMOJI_STRIP, ' ').replace(/\s+/g, ' ').trim();
 }
 
 const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -238,9 +282,9 @@ const DATAVIEW_PRIORITY = /( *)[[(]priority:: *(?:highest|high|medium|low|lowest
 const EMOJI_PRIORITY = /( *)(?:\u{1F53A}|⏫|\u{1F53C}|\u{1F53D}|⏬)️?/u;
 
 // Sets the line's priority to the level with the given enum string, in the
-// format the line already uses (a line with none yet gets the Dataview
-// field). Level '3' (None) removes it.
-export function setPriorityInLine(line, value) {
+// format the line already uses (a line with none yet gets a field in `format`).
+// Level '3' (None) removes it.
+export function setPriorityInLine(line, value, format = 'dataview') {
   const level = PRIORITY_LEVELS.find((l) => l.value === value);
   if (!level) return line;
   if (DATAVIEW_PRIORITY.test(line)) {
@@ -249,5 +293,15 @@ export function setPriorityInLine(line, value) {
   if (EMOJI_PRIORITY.test(line)) {
     return line.replace(EMOJI_PRIORITY, (m, gap) => (level.emoji ? `${gap}${level.emoji}` : ''));
   }
-  return level.field ? insertBeforeBlockLink(line, newInlineField('priority', level.field)) : line;
+  if (!level.field) return line;
+  return insertBeforeBlockLink(line, format === 'emoji' ? ` ${level.emoji}` : newInlineField('priority', level.field));
+}
+
+// The priority a line is written with, as the Tasks plugin's enum string, or
+// null when it has none. Read for a line the plugin parsed in the other style.
+export function readPriority(line) {
+  const field = line.match(/[[(]priority:: *(highest|high|medium|low|lowest) *[\])]/);
+  if (field) return PRIORITY_LEVELS.find((l) => l.field === field[1]).value;
+  const emoji = line.match(/\u{1F53A}|\u23EB|\u{1F53C}|\u{1F53D}|\u23EC/u);
+  return emoji ? PRIORITY_LEVELS.find((l) => l.emoji === emoji[0]).value : null;
 }

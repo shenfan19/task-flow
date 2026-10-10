@@ -58,6 +58,19 @@
 
     <hr class="ft-sep">
 
+    <!-- How this plugin writes an id, a dependency or a priority on a task
+         line it adds one to. Fields already on a line keep their own style.
+         It describes the notes, so it is shared by every profile. -->
+    <div class="ft-format-row">
+      <label for="taskFormat">Task format</label>
+      <select id="taskFormat" class="dropdown" :value="taskStore.writeFormat" @change="taskStore.setTaskFormat($event.target.value)">
+        <option v-for="format in TASK_FORMATS" :key="format.value" :value="format.value">{{ format.label }}</option>
+      </select>
+    </div>
+    <p class="ft-format-note">Used for new and edited tasks. A field already on a line keeps its style.</p>
+
+    <hr class="ft-sep">
+
     <div class="form-check">
       <input
         class="form-check-input"
@@ -93,6 +106,7 @@
 
 <script setup>
 import { useTaskStore } from '../store';
+import { TASK_FORMATS } from '../utils/taskLineEdits';
 import RailCard from './RailCard.vue';
 
 const taskStore = useTaskStore();
@@ -176,6 +190,19 @@ const setNumber = (key, event) => {
 .ft-link-grid input[type='range'] {
   width: 100%;
   min-width: 80px;
+}
+
+.ft-format-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ft-format-note {
+  margin: 4px 0 0;
+  color: var(--text-muted, #666);
+  font-size: 11px;
 }
 
 .ft-link-value {

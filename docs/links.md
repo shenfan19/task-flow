@@ -6,7 +6,7 @@ A link is a field on a task line in your note. Nothing is stored anywhere else, 
 
 ## Link two tasks
 
-Drag from a node's downstream side onto another node. That is the bottom in a top to bottom layout, and the left or right side in a left to right layout. The node you drop on now depends on the first one. Drag from the upstream side instead to make the first node depend on the other. A missing `[id:: ]` is generated for you.
+Drag from a node's downstream side onto another node. That is the bottom in a top to bottom layout, and the left or right side in a left to right layout. The node you drop on now depends on the first one. Drag from the upstream side instead to make the first node depend on the other. A missing id is generated for you.
 
 ## Delete a link
 
@@ -31,8 +31,9 @@ Right-click a node and choose **Change id…** to give the task a new id. Every 
 
 ## What is written to your notes
 
-- Linking: adds an `[id:: ]` field to one task line and a `[dependsOn:: ]` field to the other.
-- Unlinking: removes that entry from `[dependsOn:: ]`.
+- Linking: adds an id field to one task line and a dependency field to the other.
+- Unlinking: removes that entry from the dependency list.
+- Format: the emoji format `🆔` and `⛔`, or the Dataview format `[id:: ]` and `[dependsOn:: ]`, as set under **Task format** in **Style**. A field already on a line is edited in the style it has.
 - Creating: inserts a new `- [ ] untitled` line below the task the connection started from.
 
 Only the task lines involved are changed. There is no undo inside the flowchart. Obsidian's own undo works while the note is open in an editor, and the core File recovery plugin keeps snapshots you can go back to.

@@ -32,6 +32,7 @@ In the **Style** card, you can set:
 - Nodes: the font size and background of every node, and a font size and background of their own for the tasks of each priority from Highest to Lowest.
 - Links: drag **Line width** and **Arrow size** to size them.
 - Text: render task text as Markdown, and show tags as chips with automatic colors.
+- Task format: choose Tasks emoji or Dataview for the fields this plugin adds to a task line, which are the id and dependencies when you link tasks, the new task when you drag onto empty canvas, a changed id and a priority on a line that has none. A field already on a line keeps its own style. The setting describes your notes, so every profile shares it. Until you choose, it follows the format the Tasks plugin is set to.
 - Link counts: turn on **Show link counts**. Each node then shows `depend N`, the number of tasks it depends on, where its arrows come in, and `next N`, the number of tasks that depend on it, where they go out. Every link is counted, whether or not the filters show the task at its other end. It is off by default.
 
 Back to the [manual](index.md).

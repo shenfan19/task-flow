@@ -10,6 +10,8 @@
 
 [中文说明](https://github.com/shenfan19/task-flow/blob/main/README_zh.md)
 
+[Watch the four minute walkthrough on YouTube](https://www.youtube.com/watch?v=bcdKUnvzx1I)
+
 **Drag onto another task to link them. Drag onto empty canvas to create a task, downstream if you start from the bottom and upstream if you start from the top.**
 
 ![Linking two tasks by dragging, creating a task that depends on one by dragging down onto empty canvas, creating a task that one depends on by dragging up, then clicking Layout](images_ai/link-and-create.gif)
@@ -37,7 +39,7 @@ Three lines like these become three connected nodes:
 
 ## Getting started
 
-1. Install and enable the [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) plugin. Tasks Flowchart reads its Dataview-style fields `[id:: ]` and `[dependsOn:: ]`. The emoji format `🆔` and `⛔` is not supported yet.
+1. Install and enable the [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) plugin. Tasks Flowchart reads ids and dependencies in either of its formats, the emoji format `🆔` and `⛔` or the Dataview format `[id:: ]` and `[dependsOn:: ]`, and writes the one you pick under **Task format** in **Style**.
 2. Install Tasks Flowchart from **Settings → Community plugins → Browse**. To install manually, copy `main.js`, `manifest.json` and `styles.css` from the [latest release](https://github.com/shenfan19/task-flow/releases/latest) into `<your-vault>/.obsidian/plugins/task-flow/`.
 3. Click **Open tasks flowchart** in the left ribbon, or run **Tasks Flowchart: Open flowchart**. Click **Layout** at the top left, then **Overview**.
 4. New to linking tasks? Click **Create sample note** on the empty canvas, or run **Tasks Flowchart: Create sample note**, for a small linked plan to try things on.
@@ -59,7 +61,7 @@ Each item links to its page in the [manual](docs/index.md).
 
 A task missing from the graph usually has no dependency link, and **Only show tasks with a relation** hides such tasks by default. Otherwise check the keyword, status, tag, priority and folder filters, and check that the Tasks plugin indexes the line, which requires the Tasks global filter tag if you set one.
 
-Tasks Flowchart reads `[id:: ]`, `[dependsOn:: ]` and date fields anywhere on the line, so links survive text that archiving plugins append after them. The Tasks plugin only reads fields at the end of a line, so its own queries see no id, dependencies or dates on such a task.
+Tasks Flowchart reads ids, dependencies and dates in both formats anywhere on the line, so links survive text that archiving plugins append after them. The Tasks plugin only reads fields at the end of a line, and only in the format it is set to, so its own queries see no id, dependencies or dates on such a task, or on a line that mixes the two formats.
 
 ## Feedback
 
@@ -71,7 +73,7 @@ Dependencies live only in your notes. Node positions, the pan and zoom of the ca
 
 ## Your notes
 
-Tasks Flowchart edits your notes directly. Linking two tasks adds an `[id:: ]` field to one task line and a `[dependsOn:: ]` field to the other, unlinking removes that entry from `[dependsOn:: ]`, and dropping a connection on empty canvas inserts a new `- [ ] untitled` line below the task it started from. It changes only the task lines involved and leaves the rest of the note as it is. There is no undo inside the flowchart: Obsidian's own undo works while the note is open in an editor, and the core File recovery plugin keeps snapshots you can go back to. Keep your vault backed up or under version control, such as git or Obsidian Sync version history, before using it on notes that matter.
+Tasks Flowchart edits your notes directly. Linking two tasks adds an id field to one task line and a dependency field to the other, `🆔` and `⛔` or `[id:: ]` and `[dependsOn:: ]` depending on **Task format**, unlinking removes that entry from the dependency list, and dropping a connection on empty canvas inserts a new `- [ ] untitled` line below the task it started from. It changes only the task lines involved and leaves the rest of the note as it is. There is no undo inside the flowchart: Obsidian's own undo works while the note is open in an editor, and the core File recovery plugin keeps snapshots you can go back to. Keep your vault backed up or under version control, such as git or Obsidian Sync version history, before using it on notes that matter.
 
 The plugin is provided as is, without warranty of any kind, as set out in the [MIT license](https://github.com/shenfan19/task-flow/blob/main/LICENSE).
 

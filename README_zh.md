@@ -10,6 +10,8 @@
 
 [English](https://github.com/shenfan19/task-flow/blob/main/README.md)
 
+[在 YouTube 观看四分钟演示视频](https://www.youtube.com/watch?v=bcdKUnvzx1I)，英文朗读。
+
 **拖到另一个任务上即建立依赖，拖到画布空白处即新建任务。从底边往下拖，新任务依赖它；从顶边往上拖，它依赖新任务。**
 
 ![拖动连接两个任务，向下拖到空白处新建依赖它的任务，向上拖到空白处新建它所依赖的任务，最后点 Layout](images_ai/link-and-create.gif)
@@ -37,7 +39,7 @@
 
 ## 快速上手
 
-1. 安装并启用 [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) 插件。Tasks Flowchart 读取它的 Dataview 风格字段 `[id:: ]` 和 `[dependsOn:: ]`，暂不支持 emoji 格式 `🆔` 和 `⛔`。
+1. 安装并启用 [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) 插件。Tasks Flowchart 两种格式都能读取，emoji 格式的 `🆔` 和 `⛔`，以及 Dataview 格式的 `[id:: ]` 和 `[dependsOn:: ]`，写入时用你在 **Style** 里 **Task format** 选的那一种。
 2. 在 **设置 → 第三方插件 → 浏览** 里安装 Tasks Flowchart。也可以手动安装，把[最新版本](https://github.com/shenfan19/task-flow/releases/latest)的 `main.js`、`manifest.json`、`styles.css` 拷贝到 `<你的vault>/.obsidian/plugins/task-flow/`。
 3. 点击左侧功能区的 **Open tasks flowchart**，或者运行命令 **Tasks Flowchart: Open flowchart**。先点左上角的 **Layout**，再点 **Overview**。
 4. 第一次用任务依赖？在空白画布上点 **Create sample note**，或者运行命令 **Tasks Flowchart: Create sample note**，会生成一篇带依赖的小计划，可以拿来试。
@@ -59,7 +61,7 @@
 
 某个任务在图上不见了，通常是因为它没有任何依赖关系，而 **Only show tasks with a relation** 默认会隐藏这类任务。否则请检查关键字、状态、tag、优先级和文件夹过滤，并确认 Tasks 插件识别了这一行，如果你设置了 Tasks 的全局过滤标签，这一行要带上它。
 
-Tasks Flowchart 在整行的任意位置读取 `[id:: ]`、`[dependsOn:: ]` 和日期字段，所以归档插件在字段后面追加文字时，连线照样有效。Tasks 插件只读取行尾的字段，因此它自己的查询功能读不到这类任务的 id、依赖和日期。
+Tasks Flowchart 在整行的任意位置读取两种格式的 id、依赖和日期字段，所以归档插件在字段后面追加文字时，连线照样有效。Tasks 插件只读取行尾的字段，而且只认它自己设定的那一种格式，因此它自己的查询功能读不到这类任务，以及两种格式混写的行里的 id、依赖和日期。
 
 ## 反馈
 
@@ -71,7 +73,7 @@ Tasks Flowchart 在整行的任意位置读取 `[id:: ]`、`[dependsOn:: ]` 和�
 
 ## 对笔记的修改
 
-Tasks Flowchart 会直接修改你的笔记。连接两个任务时，会给一行任务加上 `[id:: ]` 字段，给另一行加上 `[dependsOn:: ]` 字段；删除依赖时，从 `[dependsOn:: ]` 里去掉对应的一项；把连线拖到空白处松开时，会在出发任务下面插入一行新的 `- [ ] untitled`。插件只改涉及的任务行，笔记里的其他内容保持原样。流程图里没有撤销功能：笔记在编辑器中打开时，可以用 Obsidian 自带的撤销；Obsidian 的核心插件"文件恢复"也会保存快照，可以回退到之前的版本。在重要的笔记上使用之前，请先备份 vault，或者用 git、Obsidian Sync 的版本历史做版本管理。
+Tasks Flowchart 会直接修改你的笔记。连接两个任务时，会给一行任务加上 id 字段，给另一行加上依赖字段，按 **Task format** 写成 `🆔` 和 `⛔`，或 `[id:: ]` 和 `[dependsOn:: ]`；删除依赖时，从依赖列表里去掉对应的一项；把连线拖到空白处松开时，会在出发任务下面插入一行新的 `- [ ] untitled`。插件只改涉及的任务行，笔记里的其他内容保持原样。流程图里没有撤销功能：笔记在编辑器中打开时，可以用 Obsidian 自带的撤销；Obsidian 的核心插件"文件恢复"也会保存快照，可以回退到之前的版本。在重要的笔记上使用之前，请先备份 vault，或者用 git、Obsidian Sync 的版本历史做版本管理。
 
 本插件按原样提供，不作任何形式的担保，详见 [MIT 许可证](https://github.com/shenfan19/task-flow/blob/main/LICENSE)。
 

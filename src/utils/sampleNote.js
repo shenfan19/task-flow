@@ -1,4 +1,8 @@
 import { TasksPluginAPI } from '../api/TasksPluginAPI';
+import { PRIORITY_LEVELS } from './taskLineEdits';
+
+// The emoji that mark a due, scheduled or done date in the Tasks emoji format.
+const EMOJI_FOR_DATE = { due: '\u{1F4C5}', scheduled: '\u23F3', completion: '\u2705' };
 
 // A small plan written into the vault to show what a linked task list looks
 // like: each task names the tasks it waits for in [dependsOn:: ], using
@@ -30,12 +34,21 @@ const isoDay = (offset) => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 };
 
-// Fields are written the way the Tasks plugin writes them in its Dataview
-// format, two spaces apart and at the end of the line, so the Tasks plugin
-// reads every one of them too.
-function sampleNoteContent(globalFilter) {
+// Fields are written the way the Tasks plugin writes them in the format
+// chosen in Style, at the end of the line, so the Tasks plugin reads every
+// one of them too. The Dataview fields are two spaces apart.
+function sampleNoteContent(globalFilter, format) {
   const lines = SAMPLE_TASKS.map((t) => {
     const fields = [];
+    if (format === 'emoji') {
+      const emoji = PRIORITY_LEVELS.find((l) => l.field === t.priority)?.emoji;
+      if (emoji) fields.push(emoji);
+      if (t.deps) fields.push(`\u26D4 ${t.deps}`);
+      if (t.id) fields.push(`\u{1F194} ${t.id}`);
+      if (t.date) fields.push(`${EMOJI_FOR_DATE[t.date[0]]} ${isoDay(t.date[1])}`);
+      const filter = globalFilter ? `${globalFilter} ` : '';
+      return `- [${t.done ? 'x' : ' '}] ${filter}${t.name} ${t.tags} ${fields.join(' ')}`.trimEnd();
+    }
     if (t.id) fields.push(`[id:: ${t.id}]`);
     if (t.deps) fields.push(`[dependsOn:: ${t.deps}]`);
     if (t.priority) fields.push(`[priority:: ${t.priority}]`);
@@ -71,11 +84,11 @@ export function takePendingSampleLayout(tasks) {
 
 // Writes the sample note, or finds the one written before, which is left as
 // it is. Resolves to the note's file.
-export async function createSampleNote(app) {
+export async function createSampleNote(app, format = 'dataview') {
   const existing = app.vault.getAbstractFileByPath(SAMPLE_PATH);
   if (existing) return existing;
   const globalFilter = await new TasksPluginAPI(app).getGlobalFilter();
-  const file = await app.vault.create(SAMPLE_PATH, sampleNoteContent(globalFilter));
+  const file = await app.vault.create(SAMPLE_PATH, sampleNoteContent(globalFilter, format));
   pendingLayoutPath = SAMPLE_PATH;
   return file;
 }
