@@ -268,37 +268,16 @@ const nodes = computed(() =>
   }))
 );
 
-// Which pair of handles (see TaskFlowNode.vue's 4 sides) an edge should use.
-// The axis follows the layout direction setting: TB/BT only ever use the
-// top/bottom handles, LR/RL only left/right, so every edge in the graph runs
-// the same way. Picking the nearest side per edge instead mixed the two axes
-// (a far-sideways edge in a TB layout would leave from a left/right handle),
-// which is what made curves bend oddly and cross each other.
+// Which pair of handles (see TaskFlowNode.vue's 4 sides) an edge uses. It
+// depends on the layout direction alone: TB only ever uses the bottom handle
+// of the source and the top handle of the target, LR the right and the left,
+// and so on, for every edge. Node positions play no part, so moving a node or
+// laying the graph out again never makes a link jump to another side.
 const HANDLES_BY_DIRECTION = {
-  right: { source: 'right-source', target: 'left-target' },
-  left: { source: 'left-source', target: 'right-target' },
-  bottom: { source: 'bottom-source', target: 'top-target' },
-  top: { source: 'top-source', target: 'bottom-target' }
-};
-
-// Along the layout axis, closer than this (px, top-left to top-left) counts
-// as "same row/column" — only reachable by dragging nodes by hand, since
-// dagre always puts a dependency's two ends in different ranks. Forcing the
-// layout axis there would loop the edge back on itself, so fall back to the
-// cross axis for just that edge.
-const SAME_RANK_TOLERANCE = 30;
-
-const pickHandles = (sourcePos, targetPos, layoutDirection) => {
-  const dx = targetPos.x - sourcePos.x;
-  const dy = targetPos.y - sourcePos.y;
-  const vertical = layoutDirection === 'TB' || layoutDirection === 'BT';
-  const useVertical = vertical
-    ? Math.abs(dy) >= SAME_RANK_TOLERANCE
-    : Math.abs(dx) < SAME_RANK_TOLERANCE;
-  const direction = useVertical
-    ? (dy >= 0 ? 'bottom' : 'top')
-    : (dx >= 0 ? 'right' : 'left');
-  return HANDLES_BY_DIRECTION[direction];
+  TB: { source: 'bottom-source', target: 'top-target' },
+  BT: { source: 'top-source', target: 'bottom-target' },
+  LR: { source: 'right-source', target: 'left-target' },
+  RL: { source: 'left-source', target: 'right-target' }
 };
 
 // On the time axis, an edge whose dependent task is dated earlier than the
@@ -314,9 +293,7 @@ const edges = computed(() => {
   return taskStore.filteredEdges.map((edge) => {
     const source = taskById.get(edge.source);
     const target = taskById.get(edge.target);
-    const handles = source && target
-      ? pickHandles(source.position, target.position, layoutDirection)
-      : HANDLES_BY_DIRECTION.bottom;
+    const handles = HANDLES_BY_DIRECTION[layoutDirection] ?? HANDLES_BY_DIRECTION.TB;
     const backward = timeAxis && source?.day != null && target?.day != null && target.day < source.day;
     // A highlighted edge takes the Highlight color, arrowhead included;
     // otherwise a backward edge on the time axis is red.

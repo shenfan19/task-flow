@@ -160,20 +160,61 @@ export function applyLanes(positions, nodes, edges, direction, by = 'none', orde
   if (by !== 'priority' && byLane.has(NO_KEY)) laneOrder.push(NO_KEY);
 
   // Inside a lane, nodes whose stretches along the flow overlap go on
-  // separate tracks side by side; the lane is as wide as its tracks.
+  // separate tracks side by side; the lane is as wide as its tracks. A node
+  // stays on the track of the node it depends on whenever that track is free
+  // there, so a chain keeps one column down the lane instead of hopping to
+  // whichever track happens to be free first. Where the track is taken, as
+  // for the second of two tasks that follow the same one, it goes to the
+  // nearest free track.
+  const parentsOf = new Map();
+  for (const e of edges) {
+    if (!parentsOf.has(e.target)) parentsOf.set(e.target, []);
+    parentsOf.get(e.target).push(e.source);
+  }
   const lanes = [];
   let cursor = 0;
   for (const key of laneOrder) {
-    const members = byLane.get(key).sort((a, b) => a.main - b.main);
-    const trackEnds = [];
+    const members = byLane.get(key).sort((a, b) => a.main - b.main || a.cross - b.cross);
+    const inLane = new Map(members.map((m) => [m.id, m]));
     for (const item of members) {
-      let track = trackEnds.findIndex((end) => end + MAIN_GAP <= item.main - item.mainSize / 2);
-      if (track === -1) {
-        track = trackEnds.length;
-        trackEnds.push(0);
+      const parents = (parentsOf.get(item.id) ?? []).map((id) => inLane.get(id)).filter((p) => p && p.main < item.main);
+      item.parent = parents.sort((p, q) => q.main - p.main || p.cross - q.cross)[0] ?? null;
+    }
+    // Length of the longest chain that continues below each task in the lane.
+    // Of the tasks that follow the same one, the one with the longest chain
+    // below it takes its track, so the main line stays straight and the
+    // shorter branches step aside.
+    const below = new Map();
+    for (const item of [...members].reverse()) below.set(item.id, 0);
+    for (const item of [...members].reverse()) {
+      if (item.parent) below.set(item.parent.id, Math.max(below.get(item.parent.id), below.get(item.id) + 1));
+    }
+    // Tasks in the same row are placed with those that have a parent first,
+    // ordered by their parent's track, so each can claim the parent's track.
+    const rows = [];
+    for (const item of members) {
+      const row = rows[rows.length - 1];
+      if (row && Math.abs(row[0].main - item.main) < 1) row.push(item);
+      else rows.push([item]);
+    }
+    const trackEnds = [];
+    for (const row of rows) {
+      row.sort((a, b) => (b.parent ? 1 : 0) - (a.parent ? 1 : 0) || (a.parent ? a.parent.track - b.parent.track : 0) || below.get(b.id) - below.get(a.id) || a.cross - b.cross);
+      for (const item of row) {
+        const isFree = (t) => trackEnds[t] + MAIN_GAP <= item.main - item.mainSize / 2;
+        const want = item.parent ? item.parent.track : 0;
+        let track = -1;
+        for (let d = 0; d < trackEnds.length && track === -1; d++) {
+          if (want - d >= 0 && want - d < trackEnds.length && isFree(want - d)) track = want - d;
+          else if (want + d < trackEnds.length && isFree(want + d)) track = want + d;
+        }
+        if (track === -1) {
+          track = trackEnds.length;
+          trackEnds.push(0);
+        }
+        trackEnds[track] = item.main + item.mainSize / 2;
+        item.track = track;
       }
-      trackEnds[track] = item.main + item.mainSize / 2;
-      item.track = track;
     }
     const trackWidth = Math.max(...members.map((i) => i.crossSize)) + CROSS_GAP;
     const width = trackEnds.length * trackWidth + 2 * LANE_PAD;

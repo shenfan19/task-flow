@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.12.0
+
+### Added
+
+- A manual in the `docs` folder, one page for each part of the plugin, with an animation on each page. The README now holds only an overview and links to it.
+
+### Changed
+
+- Layout now arranges each group of linked tasks on its own and sets the groups side by side in the order their first task appears. A tree is no longer stretched to make room for unrelated tasks, and a change to one group leaves the others where they were.
+- With the date axis on, the tasks of one level that would touch are moved apart by the least total distance, around where they were, instead of all being pushed to the right. A chain no longer drifts into a slant over several levels.
+- Inside a lane, a task now stays on the track of the task it depends on when that track is free. Of several tasks that follow the same one, the one with the longest chain below it takes that track. Chains keep one column instead of hopping between tracks.
+- Node positions from Layout are whole pixels.
+
+### Fixed
+
+- A task created by dragging onto empty canvas no longer loses its link when it is named in the Tasks edit dialog. The dialog now opens once the Tasks plugin has indexed the task it depends on. Before, the dialog dropped a link to an id it had not seen yet, so confirming it removed `[dependsOn:: ]` from the new line and the task vanished from a graph that shows only linked tasks.
+- A link always leaves the downstream side of its source and enters the upstream side of its target for the chosen direction. It used to pick the side from the two nodes' positions, so a small move could make a link jump to another side. A link between nodes dragged out of order now curves round instead.
+
 ## 0.11.0
 
 ### Added

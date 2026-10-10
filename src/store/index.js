@@ -62,6 +62,28 @@ async function editTaskLine(task, transform) {
   });
 }
 
+// The ids a task line lists in its [dependsOn:: ] field.
+const dependsOnIdsOf = (line) => {
+  const match = /\[dependsOn::\s*([^\]]*)\]/.exec(line);
+  return match ? match[1].split(',').map((id) => id.trim()).filter(Boolean) : [];
+};
+
+// Waits, up to a few seconds, until the Tasks plugin has indexed every task
+// the line depends on. Its edit dialog looks those tasks up by id and drops
+// any it cannot find, so a dialog opened right after an id was written to a
+// note, as when a task is created by dragging, would delete the new link when
+// confirmed. Gives up quietly on timeout and opens the dialog anyway.
+const INDEX_WAIT_MS = 4000;
+const INDEX_POLL_MS = 100;
+async function waitForIndexedIds(api, ids) {
+  const deadline = Date.now() + INDEX_WAIT_MS;
+  while (ids.length && Date.now() < deadline) {
+    const known = new Set(api.getTasks().map((t) => t?.id).filter(Boolean));
+    if (ids.every((id) => known.has(id))) return;
+    await new Promise((resolve) => activeWindow.setTimeout(resolve, INDEX_POLL_MS));
+  }
+}
+
 // Name for a task created by dragging out of a node; numbered when the
 // file already has one of that name, since the node id is derived from
 // path + name and two identical names would collide. Kept to one word, with
@@ -698,6 +720,7 @@ export const useTaskStore = defineStore('task', {
       }
       const before = withoutEol(lines[index]);
       const eol = lines[index].slice(before.length);
+      await waitForIndexedIds(api, dependsOnIdsOf(before));
       watchForTaskModal();
       const edited = await api.editTaskLineModal(before);
       if (!edited || edited === before) return;

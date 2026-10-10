@@ -8,8 +8,8 @@
          each other, so an edge can be anchored to whichever side the layout
          direction calls for regardless of whether this node is that edge's
          source or target.
-         Only the source dot is visible; the target one is still tracked for
-         position lookups (see TaskGraphView.vue's pickHandles). -->
+         Only the source dot is visible. Which pair an edge uses follows the
+         layout direction alone (see HANDLES_BY_DIRECTION in TaskGraphView.vue). -->
     <Handle type="target" :position="Position.Top" id="top-target" class="ft-node-handle ft-node-handle--hidden" />
     <Handle type="source" :position="Position.Top" id="top-source" class="ft-node-handle" />
 

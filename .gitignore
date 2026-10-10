@@ -1,9 +1,9 @@
 node_modules/
 dist/
-task-flow/
 obsidian-tasks-reference/
-
-c_task/
 
 # Local scratch and backups, never committed
 temp_*/
+
+# Local test copy script, never committed
+temp_copy_local.bat

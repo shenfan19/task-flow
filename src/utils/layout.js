@@ -6,42 +6,93 @@ import dagre from '@dagrejs/dagre';
 const DEFAULT_NODE_WIDTH = 180;
 const DEFAULT_NODE_HEIGHT = 40;
 
-// Runs a hierarchical (dagre) layout over the given nodes/edges and returns
-// new {id, x, y} positions. Only called on explicit user action (see the
-// "Layout" button in TaskGraphView.vue) so it never fights a manual drag.
-// Each node may carry its own {width, height}; using the real rendered size
-// rather than one fixed size for every node is what makes a TB/BT column
-// actually come out centered instead of visually skewed to one side, since
-// task text length varies a lot from node to node.
-function runDagre(nodes, edges, direction) {
-  const g = new dagre.graphlib.Graph();
-  g.setDefaultEdgeLabel(() => ({}));
-  g.setGraph({ rankdir: direction, nodesep: 40, ranksep: 60 });
-
-  nodes.forEach((node) => {
-    g.setNode(node.id, sizeOf(node));
-  });
-  edges.forEach((edge) => {
-    g.setEdge(edge.source, edge.target);
-  });
-
-  dagre.layout(g);
-  return g;
-}
+const COMPONENT_GAP = 80;
 
 const sizeOf = (node) => ({
   width: node.width || DEFAULT_NODE_WIDTH,
   height: node.height || DEFAULT_NODE_HEIGHT
 });
 
+// Splits the nodes into groups that are linked to each other, in the order
+// the first node of each group appears in `nodes`, so the order does not
+// depend on anything but the input.
+function connectedComponents(nodes, edges) {
+  const parent = new Map(nodes.map((node) => [node.id, node.id]));
+  const find = (id) => {
+    while (parent.get(id) !== id) {
+      parent.set(id, parent.get(parent.get(id)));
+      id = parent.get(id);
+    }
+    return id;
+  };
+  for (const edge of edges) {
+    if (!parent.has(edge.source) || !parent.has(edge.target)) continue;
+    parent.set(find(edge.source), find(edge.target));
+  }
+  const groups = new Map();
+  for (const node of nodes) {
+    const root = find(node.id);
+    if (!groups.has(root)) groups.set(root, []);
+    groups.get(root).push(node);
+  }
+  return [...groups.values()];
+}
+
+// Runs a hierarchical (dagre) layout over the given nodes/edges, one linked
+// group at a time, and returns a Map of node id -> {x, y} center. Every group
+// is laid out on its own, then the groups are set side by side across the
+// flow direction in input order, all starting at 0 along it. A change to one
+// group therefore cannot move the nodes of another, and unrelated tasks
+// cannot pull a chain out of line. Each node may carry its own {width,
+// height}; using the real rendered size rather than one fixed size for every
+// node is what makes a TB/BT column actually come out centered instead of
+// visually skewed to one side, since task text length varies a lot from node
+// to node.
+function runDagre(nodes, edges, direction) {
+  const vertical = direction === 'TB' || direction === 'BT';
+  const centers = new Map();
+  let cursor = 0;
+
+  for (const group of connectedComponents(nodes, edges)) {
+    const g = new dagre.graphlib.Graph();
+    g.setDefaultEdgeLabel(() => ({}));
+    g.setGraph({ rankdir: direction, nodesep: 40, ranksep: 60 });
+    const ids = new Set(group.map((node) => node.id));
+    group.forEach((node) => g.setNode(node.id, sizeOf(node)));
+    edges.forEach((edge) => {
+      if (edge.source !== edge.target && ids.has(edge.source) && ids.has(edge.target)) {
+        g.setEdge(edge.source, edge.target);
+      }
+    });
+    dagre.layout(g);
+
+    let minCross = Infinity;
+    let maxCross = -Infinity;
+    for (const node of group) {
+      const { x, y } = g.node(node.id);
+      const { width, height } = sizeOf(node);
+      const cross = vertical ? x : y;
+      const half = (vertical ? width : height) / 2;
+      minCross = Math.min(minCross, cross - half);
+      maxCross = Math.max(maxCross, cross + half);
+    }
+    for (const node of group) {
+      const { x, y } = g.node(node.id);
+      centers.set(node.id, vertical ? { x: x - minCross + cursor, y } : { x, y: y - minCross + cursor });
+    }
+    cursor += maxCross - minCross + COMPONENT_GAP;
+  }
+  return centers;
+}
+
 export function layoutWithDagre(nodes, edges, direction = 'TB') {
-  const g = runDagre(nodes, edges, direction);
+  const centers = runDagre(nodes, edges, direction);
 
   return nodes.map((node) => {
-    const { x, y } = g.node(node.id);
+    const { x, y } = centers.get(node.id);
     const { width, height } = sizeOf(node);
     // dagre positions are node centers; Vue Flow positions are top-left corners
-    return { id: node.id, x: x - width / 2, y: y - height / 2 };
+    return { id: node.id, x: Math.round(x - width / 2), y: Math.round(y - height / 2) };
   });
 }
 
@@ -113,6 +164,43 @@ function assignLevels(nodes, edges) {
   return { levelOf: (id) => levelOfGroup.get(groupOf.get(id)), dayOfGroup, levelOfGroup };
 }
 
+// Moves the nodes of each level apart just far enough that none touches
+// another, as little as possible and symmetrically: a crowd is spread out
+// around where it was, instead of everything being pushed the same way, which
+// stacked up from level to level into a slant. Within a level the order given
+// by dagre is kept; the new centers minimise the total squared move under the
+// spacing rule (pool adjacent violators on the gaps removed).
+function spreadLevels(items) {
+  const byLevel = new Map();
+  for (const item of items) {
+    if (!byLevel.has(item.level)) byLevel.set(item.level, []);
+    byLevel.get(item.level).push(item);
+  }
+  for (const row of byLevel.values()) {
+    row.sort((a, b) => a.cross - b.cross);
+    // offset[i]: distance from row[0]'s center to row[i]'s once packed.
+    const offset = [0];
+    for (let i = 1; i < row.length; i++) {
+      offset[i] = offset[i - 1] + (row[i - 1].crossSize + row[i].crossSize) / 2 + CROSS_GAP;
+    }
+    // y[i] = cross[i] - offset[i] has to be non-decreasing; pool blocks that are not.
+    const blocks = [];
+    row.forEach((item, i) => {
+      blocks.push({ sum: item.cross - offset[i], count: 1 });
+      while (blocks.length > 1) {
+        const last = blocks[blocks.length - 1];
+        const prev = blocks[blocks.length - 2];
+        if (prev.sum / prev.count <= last.sum / last.count) break;
+        blocks.splice(blocks.length - 2, 2, { sum: prev.sum + last.sum, count: prev.count + last.count });
+      }
+    });
+    let i = 0;
+    for (const block of blocks) {
+      for (let k = 0; k < block.count; k++, i++) row[i].cross = block.sum / block.count + offset[i];
+    }
+  }
+}
+
 // Time-axis layout. Along the flow direction nodes sit on the levels from
 // assignLevels, each level only as far from the previous one as its nodes
 // need, so the axis stretches and shrinks with the tasks rather than
@@ -123,14 +211,14 @@ function assignLevels(nodes, edges) {
 // ruler interpolates its dates between. With no dated node at all, anchors
 // is empty.
 export function layoutWithTimeAxis(nodes, edges, direction = 'TB') {
-  const g = runDagre(nodes, edges, direction);
+  const centers = runDagre(nodes, edges, direction);
   const vertical = direction === 'TB' || direction === 'BT';
   const sign = direction === 'BT' || direction === 'RL' ? -1 : 1;
   const { levelOf, dayOfGroup, levelOfGroup } = assignLevels(nodes, edges);
 
   const items = nodes.map((node) => {
     const { width, height } = sizeOf(node);
-    const center = g.node(node.id);
+    const center = centers.get(node.id);
     return {
       id: node.id,
       width,
@@ -150,22 +238,13 @@ export function layoutWithTimeAxis(nodes, edges, direction = 'TB') {
     levelMain[l] = levelMain[l - 1] + (levelSize[l - 1] + levelSize[l]) / 2 + LEVEL_GAP;
   }
 
-  items.sort((a, b) => a.cross - b.cross);
-  const placed = [];
-  for (const item of items) {
-    for (const p of placed) {
-      if (p.level !== item.level) continue;
-      const minCross = p.cross + (p.crossSize + item.crossSize) / 2 + CROSS_GAP;
-      if (item.cross < minCross) item.cross = minCross;
-    }
-    placed.push(item);
-  }
+  spreadLevels(items);
 
   const positions = items.map((item) => {
     const main = sign * levelMain[item.level];
     const cx = vertical ? item.cross : main;
     const cy = vertical ? main : item.cross;
-    return { id: item.id, x: cx - item.width / 2, y: cy - item.height / 2 };
+    return { id: item.id, x: Math.round(cx - item.width / 2), y: Math.round(cy - item.height / 2) };
   });
 
   const anchors = [...dayOfGroup.entries()]
