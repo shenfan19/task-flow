@@ -10,9 +10,9 @@
 
 [中文说明](https://github.com/shenfan19/task-flow/blob/main/README_zh.md)
 
-**Drag onto another task to link them, or onto empty canvas to create a linked task.**
+**Drag onto another task to link them. Drag onto empty canvas to create a task, downstream if you start from the bottom and upstream if you start from the top.**
 
-![Linking two tasks by dragging, then dragging onto empty canvas to create a new linked task and naming it in the Tasks edit dialog](images_ai/link-and-create.gif)
+![Linking two tasks by dragging, creating a task that depends on one by dragging down onto empty canvas, creating a task that one depends on by dragging up, then clicking Layout](images_ai/link-and-create.gif)
 
 **Layout puts every task in order, and the date axis stretches the flow along real dates.**
 

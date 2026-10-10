@@ -10,9 +10,9 @@
 
 [English](https://github.com/shenfan19/task-flow/blob/main/README.md)
 
-**拖到另一个任务上即建立依赖，拖到画布空白处即新建关联任务。**
+**拖到另一个任务上即建立依赖，拖到画布空白处即新建任务。从底边往下拖，新任务依赖它；从顶边往上拖，它依赖新任务。**
 
-![拖动连接两个任务，再拖到空白处新建关联任务并在 Tasks 编辑框里命名](images_ai/link-and-create.gif)
+![拖动连接两个任务，向下拖到空白处新建依赖它的任务，向上拖到空白处新建它所依赖的任务，最后点 Layout](images_ai/link-and-create.gif)
 
 **Layout 把任务按依赖排好，日期轴再按真实日期拉开流程。**
 

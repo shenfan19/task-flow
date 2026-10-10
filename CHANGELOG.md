@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.12.1
+
+### Fixed
+
+- A task renamed right after it was created by dragging now stays where it was dropped. A node that is not on the graph yet used to take the position saved earlier under the same name, if a task of that name had ever existed, in preference to the position of the line it replaced, so the renamed task could jump to where an old, deleted one had been.
+
 ## 0.12.0
 
 ### Added

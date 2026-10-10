@@ -561,6 +561,7 @@ export const useTaskStore = defineStore('task', {
       const positionByLine = new Map(
         this.tasks.map((task) => [lineKey(task.path, task.originalTask?.taskLocation?.lineNumber), task.position])
       );
+      const shownIds = new Set(this.tasks.map((task) => task.id));
 
       this.tasks = allTasks.map((t) => {
         // Fields are read from the whole line as well as taken from the Tasks
@@ -570,8 +571,14 @@ export const useTaskStore = defineStore('task', {
         const path = t.taskLocation?.path || t.path || '';
         const id = stableTaskId(path, name);
         const carried = positionByLine.get(lineKey(path, t.taskLocation?.lineNumber));
-        const pos = this.positions[id] || (carried && { ...carried }) || { x: Math.random() * 500, y: Math.random() * 500 };
-        if (!this.positions[id] && carried) this.positions[id] = pos;
+        // A node that is on the graph keeps its saved position. A node that
+        // is not, a renamed task for instance, takes over the position of
+        // what was on its line, ahead of any position saved earlier under
+        // the same id: a task once deleted or renamed leaves its position
+        // behind, and a new task given the same name would jump there.
+        const takeOver = !shownIds.has(id) && carried;
+        const pos = takeOver ? { ...carried } : this.positions[id] || { x: Math.random() * 500, y: Math.random() * 500 };
+        if (takeOver) this.positions[id] = pos;
         return {
           id, // stable across re-parses; independent of the Tasks plugin's own id field
           pluginId: t.id || fields.id || '', // the task's id field, used to match dependsOn references

@@ -1,6 +1,6 @@
 # Links and new tasks
 
-![Linking two tasks by dragging, then creating a linked task by dragging onto empty canvas](../images_ai/link-and-create.gif)
+![Linking two tasks by dragging, creating a task that depends on one by dragging down onto empty canvas, creating a task that one depends on by dragging up, then clicking Layout](../images_ai/link-and-create.gif)
 
 A link is a field on a task line in your note. Nothing is stored anywhere else, so every change here is an edit to the note.
 
@@ -14,7 +14,12 @@ Right-click an arrow and choose **Delete link**, or click the arrow and press De
 
 ## Create a linked task
 
-Let go on empty canvas instead of on a node. A line `- [ ] untitled` is added below the original task and its subtasks, linked by the same rule, and opened in the Tasks edit dialog to fill in.
+Let go on empty canvas instead of on a node. A line `- [ ] untitled` is added below the original task and its subtasks, linked to it, and opened in the Tasks edit dialog to fill in. Which side you start from decides the direction of the new link.
+
+- Downstream: start from the downstream side, the bottom in a top to bottom layout. The new task depends on the one you started from, and its arrow comes out of that task.
+- Upstream: start from the upstream side, the top in a top to bottom layout. The task you started from depends on the new one, and the arrow comes into the task you started from.
+
+The new task stays where you let go, also after you rename it. Click **Layout** afterwards to arrange it with the rest.
 
 - New task: set it in **View** to **Open note** to open the new line in a side pane instead, with `untitled` selected so you can type the name right away.
 - Numbering: further ones are called `untitled2`, `untitled3` and so on, one word each so that a double-click selects the whole name.

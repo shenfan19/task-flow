@@ -1,7 +1,7 @@
 {
 	"id": "task-flow",
 	"name": "Tasks Flowchart",
-	"version": "0.12.0",
+	"version": "0.12.1",
 	"minAppVersion": "1.7.2",
 	"description": "Plan and edit tasks with a flowchart view.",
 	"author": "Fan Shen",
