@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.13.1
+
+### Fixed
+
+- The wait before the sample note opens uses `window.setTimeout()`, as the community plugin checks require.
+- The command bridge between the plugin and the flowchart view is now typed, which removes the unsafe-type warnings from the community checks.
+- Updated build dependencies (`postcss`, `nanoid`, `source-map-js` and others) to versions outside their published vulnerability ranges.
+
 ## 0.13.0
 
 ### Added

@@ -84,7 +84,7 @@ export default class TaskFlowPlugin extends Plugin {
 			callback: async () => {
 				await this.activateView();
 				for (let i = 0; i < SAMPLE_WAIT_ATTEMPTS && !hasOpenGraph(); i++) {
-					await new Promise((resolve) => activeWindow.setTimeout(resolve, SAMPLE_WAIT_INTERVAL_MS));
+					await new Promise((resolve) => window.setTimeout(resolve, SAMPLE_WAIT_INTERVAL_MS));
 				}
 				runViewCommand('sample');
 			}
