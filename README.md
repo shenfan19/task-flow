@@ -10,6 +10,8 @@
 
 [中文说明](https://github.com/shenfan19/task-flow/blob/main/README_zh.md)
 
+[![Tasks Flowchart, a four minute walkthrough on YouTube](https://img.youtube.com/vi/bcdKUnvzx1I/maxresdefault.jpg)](https://www.youtube.com/watch?v=bcdKUnvzx1I)
+
 [Watch the four minute walkthrough on YouTube](https://www.youtube.com/watch?v=bcdKUnvzx1I)
 
 **Drag onto another task to link them. Drag onto empty canvas to create a task, downstream if you start from the bottom and upstream if you start from the top.**

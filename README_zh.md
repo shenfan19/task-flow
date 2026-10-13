@@ -10,6 +10,8 @@
 
 [English](https://github.com/shenfan19/task-flow/blob/main/README.md)
 
+[![Tasks Flowchart 四分钟演示视频，YouTube](https://img.youtube.com/vi/bcdKUnvzx1I/maxresdefault.jpg)](https://www.youtube.com/watch?v=bcdKUnvzx1I)
+
 [在 YouTube 观看四分钟演示视频](https://www.youtube.com/watch?v=bcdKUnvzx1I)，英文朗读。
 
 **拖到另一个任务上即建立依赖，拖到画布空白处即新建任务。从底边往下拖，新任务依赖它；从顶边往上拖，它依赖新任务。**
