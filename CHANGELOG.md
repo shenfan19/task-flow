@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.13.2
+
+### Changed
+
+- Lane labels use the same font size as the task nodes and grow with the canvas zoom, so they stay readable when zoomed in. Zooming out does not shrink them below that size, and they stay where they were.
+- Lane labels are easier to read against the lane fill. A lane with a color gets a label in a much darker shade of it on the light theme and a much lighter one on the dark theme; a lane without one is black or white.
+
 ## 0.13.1
 
 ### Fixed

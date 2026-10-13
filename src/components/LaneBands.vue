@@ -11,7 +11,8 @@
     >
       <span
         class="ft-lanes__label"
-        :style="{ fontSize: labelSize }"
+        :class="{ 'ft-lanes__label--hued': band.hue !== undefined }"
+        :style="{ '--lane-hue': band.hue, fontSize: labelSize }"
       >{{ band.label }}</span>
     </div>
   </div>
@@ -66,6 +67,7 @@ const bands = computed(() => {
     return {
       key: lane.key,
       label: lane.label,
+      hue,
       style: vertical.value
         ? { left: `${from}px`, width: `${size}px`, background: fill }
         : { top: `${from}px`, height: `${size}px`, background: fill }
@@ -132,5 +134,15 @@ const bands = computed(() => {
 /* Unscoped on purpose: a scoped rule under :global() loses its second half. */
 .theme-dark .ft-lanes .ft-lanes__label {
   color: #fff;
+}
+
+/* Lanes with a hue tint their label: very dark on the light theme, very
+   light on the dark one, still far from the faint band fill. */
+.ft-lanes .ft-lanes__label--hued {
+  color: hsl(var(--lane-hue) 80% 22%);
+}
+
+.theme-dark .ft-lanes .ft-lanes__label--hued {
+  color: hsl(var(--lane-hue) 90% 84%);
 }
 </style>
