@@ -9,7 +9,10 @@
       class="ft-lanes__band"
       :style="band.style"
     >
-      <span class="ft-lanes__label" :style="{ color: band.color }">{{ band.label }}</span>
+      <span
+        class="ft-lanes__label"
+        :style="{ fontSize: labelSize }"
+      >{{ band.label }}</span>
     </div>
   </div>
 </template>
@@ -46,6 +49,11 @@ const hueOf = (lane, tagHues) => {
   return hash;
 };
 
+// Labels start from the nodes' font size and grow with the canvas zoom, so
+// they stay readable when zoomed in. Zooming out does not shrink them below
+// that size; their anchor positions do not move.
+const labelSize = computed(() => `${taskStore.appearance.fontSize * Math.max(1, viewport.value.zoom)}px`);
+
 const bands = computed(() => {
   const { x, y, zoom } = viewport.value;
   const offset = vertical.value ? x : y;
@@ -58,7 +66,6 @@ const bands = computed(() => {
     return {
       key: lane.key,
       label: lane.label,
-      color: hue === undefined ? 'var(--text-muted, #888)' : `hsl(${hue}, 60%, 42%)`,
       style: vertical.value
         ? { left: `${from}px`, width: `${size}px`, background: fill }
         : { top: `${from}px`, height: `${size}px`, background: fill }
@@ -101,10 +108,14 @@ const bands = computed(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 11px;
   font-weight: 600;
   padding: 0 6px;
+  /* Black on the light theme, white on the dark one, whatever the lane hue.
+     Pure black and white rather than --text-normal, which some themes soften
+     to a grey that sinks into the band fill. */
+  color: #000;
 }
+
 
 .ft-lanes--vertical .ft-lanes__label {
   left: 0;
@@ -114,5 +125,12 @@ const bands = computed(() => {
 .ft-lanes--horizontal .ft-lanes__label {
   right: 84px;
   top: 2px;
+}
+</style>
+
+<style>
+/* Unscoped on purpose: a scoped rule under :global() loses its second half. */
+.theme-dark .ft-lanes .ft-lanes__label {
+  color: #fff;
 }
 </style>
