@@ -8,11 +8,9 @@
 
 **Tasks Flowchart** 是一款 [Obsidian](https://obsidian.md) 插件，把 [Tasks 插件](https://github.com/obsidian-tasks-group/obsidian-tasks) 里的任务画成流程图。沿着依赖链看清工作的来龙去脉，找出卡住其他任务的那几项，拖一拖就能建立依赖或新建任务。每条依赖都作为一个字段，记在笔记里对应的任务行上。
 
+**安装：** 在 **设置 → 第三方插件 → 浏览** 里搜索 **Tasks Flowchart**，或在[社区页面](https://community.obsidian.md/plugins/task-flow)一键添加到 Obsidian。
+
 [English](https://github.com/shenfan19/task-flow/blob/main/README.md)
-
-[![Tasks Flowchart 四分钟演示视频，YouTube](https://img.youtube.com/vi/bcdKUnvzx1I/maxresdefault.jpg)](https://www.youtube.com/watch?v=bcdKUnvzx1I)
-
-[在 YouTube 观看四分钟演示视频](https://www.youtube.com/watch?v=bcdKUnvzx1I)，英文朗读。
 
 **拖到另一个任务上即建立依赖，拖到画布空白处即新建任务。从底边往下拖，新任务依赖它；从顶边往上拖，它依赖新任务。**
 
@@ -42,7 +40,7 @@
 ## 快速上手
 
 1. 安装并启用 [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) 插件。Tasks Flowchart 两种格式都能读取，emoji 格式的 `🆔` 和 `⛔`，以及 Dataview 格式的 `[id:: ]` 和 `[dependsOn:: ]`，写入时用你在 **Style** 里 **Task format** 选的那一种。
-2. 在 **设置 → 第三方插件 → 浏览** 里安装 Tasks Flowchart。也可以手动安装，把[最新版本](https://github.com/shenfan19/task-flow/releases/latest)的 `main.js`、`manifest.json`、`styles.css` 拷贝到 `<你的vault>/.obsidian/plugins/task-flow/`。
+2. 在 **设置 → 第三方插件 → 浏览** 里安装 Tasks Flowchart，也可以从[社区页面](https://community.obsidian.md/plugins/task-flow)安装。也可以手动安装，把[最新版本](https://github.com/shenfan19/task-flow/releases/latest)的 `main.js`、`manifest.json`、`styles.css` 拷贝到 `<你的vault>/.obsidian/plugins/task-flow/`。
 3. 点击左侧功能区的 **Open tasks flowchart**，或者运行命令 **Tasks Flowchart: Open flowchart**。先点左上角的 **Layout**，再点 **Overview**。
 4. 第一次用任务依赖？在空白画布上点 **Create sample note**，或者运行命令 **Tasks Flowchart: Create sample note**，会生成一篇带依赖的小计划，可以拿来试。
 
@@ -58,6 +56,12 @@
 - **排布**：Layout、日期轴、Separate links，见 [Arranging the graph](docs/arranging.md) 和 [How Layout arranges nodes](docs/layout_stability.md)。
 - **泳道**：按 tag、笔记或优先级分组，见 [Lanes](docs/lanes.md)。
 - **筛选、预设和样式**：见 [Filters, profiles and style](docs/filters_profiles_style.md)。
+
+## 演示视频
+
+[![Tasks Flowchart 四分钟演示视频，YouTube](https://img.youtube.com/vi/bcdKUnvzx1I/maxresdefault.jpg)](https://www.youtube.com/watch?v=bcdKUnvzx1I)
+
+[在 YouTube 观看四分钟演示视频](https://www.youtube.com/watch?v=bcdKUnvzx1I)，英文朗读。
 
 ## 常见问题
 

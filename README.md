@@ -8,11 +8,9 @@
 
 **Tasks Flowchart** is a plugin for [Obsidian](https://obsidian.md) that draws your [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) as a flowchart. Follow the flow of work along dependency chains, spot the tasks holding others up, and link or create tasks by dragging. Every link is saved as a field on the task line in your note.
 
+**Install:** search **Tasks Flowchart** under **Settings → Community plugins → Browse**, or [add it to Obsidian from the community page](https://community.obsidian.md/plugins/task-flow).
+
 [中文说明](https://github.com/shenfan19/task-flow/blob/main/README_zh.md)
-
-[![Tasks Flowchart, a four minute walkthrough on YouTube](https://img.youtube.com/vi/bcdKUnvzx1I/maxresdefault.jpg)](https://www.youtube.com/watch?v=bcdKUnvzx1I)
-
-[Watch the four minute walkthrough on YouTube](https://www.youtube.com/watch?v=bcdKUnvzx1I)
 
 **Drag onto another task to link them. Drag onto empty canvas to create a task, downstream if you start from the bottom and upstream if you start from the top.**
 
@@ -42,7 +40,7 @@ Three lines like these become three connected nodes:
 ## Getting started
 
 1. Install and enable the [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) plugin. Tasks Flowchart reads ids and dependencies in either of its formats, the emoji format `🆔` and `⛔` or the Dataview format `[id:: ]` and `[dependsOn:: ]`, and writes the one you pick under **Task format** in **Style**.
-2. Install Tasks Flowchart from **Settings → Community plugins → Browse**. To install manually, copy `main.js`, `manifest.json` and `styles.css` from the [latest release](https://github.com/shenfan19/task-flow/releases/latest) into `<your-vault>/.obsidian/plugins/task-flow/`.
+2. Install Tasks Flowchart from **Settings → Community plugins → Browse**, or from its [community page](https://community.obsidian.md/plugins/task-flow). To install manually, copy `main.js`, `manifest.json` and `styles.css` from the [latest release](https://github.com/shenfan19/task-flow/releases/latest) into `<your-vault>/.obsidian/plugins/task-flow/`.
 3. Click **Open tasks flowchart** in the left ribbon, or run **Tasks Flowchart: Open flowchart**. Click **Layout** at the top left, then **Overview**.
 4. New to linking tasks? Click **Create sample note** on the empty canvas, or run **Tasks Flowchart: Create sample note**, for a small linked plan to try things on.
 
@@ -58,6 +56,12 @@ Each item links to its page in the [manual](docs/index.md).
 - **Arrange**: one click of Layout orders the graph, the date axis places tasks by date, and Separate links keeps overlapping links apart. See [Arranging the graph](docs/arranging.md) and [How Layout arranges nodes](docs/layout_stability.md).
 - **Lanes**: group tasks by tag, note or priority. See [Lanes](docs/lanes.md).
 - **Filters, profiles and style**: hide what you do not need, save a setup as a profile, and size and color the nodes. See [Filters, profiles and style](docs/filters_profiles_style.md).
+
+## Walkthrough video
+
+[![Tasks Flowchart, a four minute walkthrough on YouTube](https://img.youtube.com/vi/bcdKUnvzx1I/maxresdefault.jpg)](https://www.youtube.com/watch?v=bcdKUnvzx1I)
+
+[Watch the four minute walkthrough on YouTube](https://www.youtube.com/watch?v=bcdKUnvzx1I)
 
 ## Troubleshooting
 
