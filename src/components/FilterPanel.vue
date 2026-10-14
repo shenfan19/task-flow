@@ -219,7 +219,8 @@ import { confirmDialog } from '../utils/confirmDialog';
 import RailCard from './RailCard.vue';
 import { getApp } from '../pluginContext';
 import TreeNode from './TreeNode.vue';
-import { NONE_PRIORITY, PRIORITY_HUES, PRIORITY_LEVELS_NONE_LAST } from '../utils/taskLineEdits';
+import { NONE_PRIORITY, PRIORITY_HUES, PRIORITY_LEVELS_NONE_LAST, normalizeTag } from '../utils/taskLineEdits';
+import { promptName } from '../utils/promptName';
 
 const taskStore = useTaskStore();
 const treeData = ref([]);
@@ -254,9 +255,46 @@ const removeTagEverywhere = async (tag) => {
   new Notice(`Tasks Flowchart: removed ${tag} from ${changed} task${changed === 1 ? '' : 's'}.`);
 };
 
+// Renames the tag on every task of the view. A name that is already another
+// tag merges the two.
+const renameTagEverywhere = async (tag) => {
+  const app = getApp();
+  const holders = taskStore.tasks.filter((t) => t.tags.includes(tag));
+  if (!app || !holders.length) return;
+  const noteCount = new Set(holders.map((t) => t.path)).size;
+  const text = await promptName(app, {
+    title: `Rename ${tag}`,
+    placeholder: '#tag',
+    value: tag,
+    submitText: 'Rename',
+    emptyText: 'Enter a tag.',
+    validate: (value) => {
+      const next = normalizeTag(value);
+      if (!next) return 'Use letters, digits, - _ and /, not only digits, no spaces.';
+      return next === tag ? 'Enter a different tag.' : null;
+    }
+  });
+  const next = text && normalizeTag(text);
+  if (!next || next === tag) return;
+  if (taskStore.allTags.includes(next)) {
+    const sure = await confirmDialog(app, {
+      title: `Merge into ${next}`,
+      message: `${next} is already a tag. Tasks tagged ${tag} will get ${next} instead, in ${holders.length} task${holders.length === 1 ? '' : 's'} in ${noteCount} note${noteCount === 1 ? '' : 's'}. This edits the text of those notes.`,
+      confirmText: 'Merge'
+    });
+    if (!sure) return;
+  }
+  const changed = await taskStore.removeTagFromAllTasks(tag, next);
+  new Notice(`Tasks Flowchart: renamed ${tag} to ${next} on ${changed} task${changed === 1 ? '' : 's'}.`);
+};
+
 const onTagContextMenu = (event, tag) => {
   event.preventDefault();
   const menu = new Menu();
+  menu.addItem((item) => item
+    .setTitle(`Rename ${tag}…`)
+    .setIcon('pencil')
+    .onClick(() => renameTagEverywhere(tag)));
   menu.addItem((item) => item
     .setTitle(`Remove ${tag} from all tasks`)
     .setIcon('trash')

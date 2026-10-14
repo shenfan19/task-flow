@@ -11,6 +11,7 @@ Each page covers one part of the plugin. Open the page for what you want to do.
 | Put tasks of one tag, note or priority in a column | [Lanes](lanes.md) |
 | Hide tasks, save settings as profiles, change colors and sizes | [Filters, profiles and style](filters_profiles_style.md) |
 | Understand why a link is straight or slanted | [How Layout arranges nodes](layout_stability.md) |
+| Read how selection, the pointer and Esc are implemented | [Selection and pointer implementation](selection_and_pointer_implementation_ai.md) |
 
 The controls are at the top left of the view. **Layout**, **Overview** and **Reset** are buttons, and below them the **Profile** row and the folded cards **View**, **Filters** and **Style**. Click a card's title to open it.
 

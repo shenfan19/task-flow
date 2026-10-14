@@ -12,7 +12,7 @@ Double-click a node, or right-click it and choose **Edit task…**, to edit the 
 
 Right-click a node and choose **Add tag** to pick one of the tags already used in your notes, or **New tag…** at the bottom of that list to type a new one. **Remove tag** lists the task's own tags. A new tag is written before the fields at the end of the line, such as `[id:: ]`, so the Tasks plugin still reads them.
 
-Right-click a tag in the filter panel and choose **Remove … from all tasks** to take it off every task of the view. A confirmation says how many tasks and notes it touches.
+Right-click a tag in the filter panel and choose **Remove … from all tasks** to take it off every task of the view. A confirmation says how many tasks and notes it touches. Choose **Rename …** instead to give the tag a new name on every task of the view. If the new name is already a tag, the two are merged after a confirmation.
 
 ## Priority
 
@@ -26,7 +26,7 @@ Right-click a node and choose **Open note** to open its note in a side pane with
 
 ## Several nodes at once
 
-Shift-drag a box around nodes, or select several, then right-click the box or one of the selected nodes. **Highlight**, **Focus chain**, **Add tag**, **Remove tag** and **Priority** then apply to all of them. **Open note**, **Edit task…** and **Change id…** are only in the menu of a single node.
+Drag a box around nodes, or select several, then right-click the box or one of the selected nodes. **Highlight**, **Focus chain**, **Add tag**, **Remove tag** and **Priority** then apply to all of them. **Open note**, **Edit task…** and **Change id…** are only in the menu of a single node.
 
 ## Refresh
 

@@ -21,12 +21,13 @@
     </div>
 
     <!-- Graph Container (Full Size) -->
-    <div class="w-100 h-100 bg-white ft-graph-container" :class="{ 'ft-lod': zoomedFarOut }" :style="{ '--ft-highlight': taskStore.appearance.highlightColor, '--ft-select': taskStore.appearance.nodeBorder }">
+    <div ref="graphContainer" class="w-100 h-100 bg-white ft-graph-container" :class="{ 'ft-lod': zoomedFarOut, 'ft-select-ready': selectKeyHeld }" :style="{ '--ft-highlight': taskStore.appearance.highlightColor, '--ft-select': taskStore.appearance.nodeBorder }">
       <VueFlow
         :nodes="nodes"
         :edges="edges"
         :default-edge-options="defaultEdgeOptions"
         :delete-key-code="DELETE_KEYS"
+        :disable-keyboard-a11y="true"
         :zoom-on-double-click="false"
         :min-zoom="MIN_ZOOM"
         :max-zoom="MAX_ZOOM"
@@ -77,7 +78,7 @@ import '@vue-flow/core/dist/theme-default.css';
 import { useTaskStore, isPlaceholderTaskName } from '../store';
 import { MarkdownView, Menu, MenuItem } from 'obsidian';
 import { getApp } from '../pluginContext';
-import { onViewCommand } from '../viewCommands';
+import { onEscape, onViewCommand } from '../viewCommands';
 import ActionBar from './ActionBar.vue';
 import ProfileBar from './ProfileBar.vue';
 import FilterPanel from './FilterPanel.vue';
@@ -95,7 +96,7 @@ import { promptName } from '../utils/promptName';
 import { isValidTaskId, normalizeTag, PRIORITY_LEVELS_NONE_LAST, NONE_PRIORITY } from '../utils/taskLineEdits';
 
 const taskStore = useTaskStore();
-const { fitView, findNode, getSelectedNodes, setCenter, screenToFlowCoordinate, viewport, dimensions, setViewport } = useVueFlow();
+const { fitView, findNode, getSelectedNodes, setCenter, screenToFlowCoordinate, viewport, dimensions, setViewport, removeSelectedElements, getSelectedEdges, addSelectedNodes } = useVueFlow();
 
 // When the canvas changes size, most often because a note opens in a side
 // pane next to it, the view is shifted by half the change so that the point
@@ -122,6 +123,130 @@ watch(
 // Vue Flow only listens for Backspace by default; Delete is what most
 // people reach for first to remove a selected edge.
 const DELETE_KEYS = ['Backspace', 'Delete'];
+
+// The mouse works as in Obsidian's canvas: dragging empty canvas with the
+// left or the middle button moves the view, the wheel zooms, and holding
+// Shift, Ctrl or Cmd turns a left drag into a selection box and a click into
+// adding or removing one node from the selection. The pointer is an arrow
+// over the canvas and the nodes, a hand while the canvas is dragged and a
+// crosshair while one of those keys is held.
+//
+// The keys are read from the mouse events themselves rather than from Vue
+// Flow's key listeners. Those depend on key presses reaching the page, which
+// they did not do in every setup, and a mouse event always says which
+// modifiers were down. The handlers sit in the capture phase, ahead of Vue
+// Flow, and consume the events they act on.
+const graphContainer = ref(null);
+const selectKeyHeld = ref(false);
+const hasSelectKey = (event) => event.shiftKey || event.ctrlKey || event.metaKey;
+const onModifierKey = (event) => {
+  selectKeyHeld.value = hasSelectKey(event);
+};
+
+const consume = (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+};
+
+// The node under the pointer, also when the box around a multiple selection
+// lies on top of it.
+const nodeAt = (event) => {
+  const direct = event.target.closest?.('.vue-flow__node');
+  if (direct) return direct;
+  if (!event.target.closest?.('.vue-flow__nodesselection-rect')) return null;
+  return activeDocument.elementsFromPoint(event.clientX, event.clientY).find((el) => el.classList.contains('vue-flow__node')) ?? null;
+};
+
+const toggleNodeSelection = (id) => {
+  const ids = new Set(getSelectedNodes.value.map((n) => n.id));
+  if (!ids.delete(id)) ids.add(id);
+  const nodes = [...ids].map((nodeId) => findNode(nodeId)).filter(Boolean);
+  if (nodes.length) addSelectedNodes(nodes);
+  else removeSelectedElements([...getSelectedNodes.value]);
+};
+
+// Draws a box from the pointer's starting point and selects the nodes it
+// touches when the button is released. A press that never moved is a click
+// on empty canvas and changes nothing.
+const startSelectionBox = (start) => {
+  const host = graphContainer.value;
+  if (!host) return;
+  const box = activeDocument.createElement('div');
+  box.className = 'ft-select-box';
+  host.appendChild(box);
+  const hostRect = host.getBoundingClientRect();
+  let moved = false;
+  const rectTo = (event) => ({
+    left: Math.min(start.clientX, event.clientX),
+    top: Math.min(start.clientY, event.clientY),
+    right: Math.max(start.clientX, event.clientX),
+    bottom: Math.max(start.clientY, event.clientY)
+  });
+  const onMove = (event) => {
+    const r = rectTo(event);
+    moved = moved || r.right - r.left > 3 || r.bottom - r.top > 3;
+    box.style.left = `${r.left - hostRect.left}px`;
+    box.style.top = `${r.top - hostRect.top}px`;
+    box.style.width = `${r.right - r.left}px`;
+    box.style.height = `${r.bottom - r.top}px`;
+  };
+  const finish = (event) => {
+    activeWindow.removeEventListener('pointermove', onMove, true);
+    activeWindow.removeEventListener('pointerup', onUp, true);
+    activeWindow.removeEventListener('pointercancel', onCancel, true);
+    box.remove();
+    return event;
+  };
+  const onUp = (event) => {
+    finish(event);
+    if (!moved) return;
+    const r = rectTo(event);
+    const hit = [...host.querySelectorAll('.vue-flow__node')].filter((el) => {
+      const b = el.getBoundingClientRect();
+      return b.right >= r.left && b.left <= r.right && b.bottom >= r.top && b.top <= r.bottom;
+    });
+    const nodes = hit.map((el) => findNode(el.getAttribute('data-id'))).filter(Boolean);
+    if (nodes.length) addSelectedNodes(nodes);
+    else removeSelectedElements([...getSelectedNodes.value, ...getSelectedEdges.value]);
+  };
+  const onCancel = (event) => finish(event);
+  activeWindow.addEventListener('pointermove', onMove, true);
+  activeWindow.addEventListener('pointerup', onUp, true);
+  activeWindow.addEventListener('pointercancel', onCancel, true);
+};
+
+const onGraphPointerDown = (event) => {
+  selectKeyHeld.value = hasSelectKey(event);
+  if (event.button !== 0 || !hasSelectKey(event)) return;
+  if (event.target.closest?.('.vue-flow__handle, .vue-flow__edge, .vue-flow__panel, .ft-left-rail')) return;
+  const node = nodeAt(event);
+  if (node) {
+    consume(event);
+    toggleNodeSelection(node.getAttribute('data-id'));
+  } else if (event.target.closest?.('.vue-flow__pane, .vue-flow__nodesselection-rect')) {
+    consume(event);
+    startSelectionBox(event);
+  }
+};
+
+// The click and double click that follow such a press belong to it, so a
+// node is neither opened nor edited by the click that added it to the
+// selection.
+const onGraphClick = (event) => {
+  if (event.button === 0 && hasSelectKey(event) && !event.target.closest?.('.vue-flow__edge, .vue-flow__panel')) consume(event);
+};
+
+// Esc clears the selection. The view's key scope in main.ts asks for it, and
+// takes the key only when something was selected, so a press with nothing to
+// clear still behaves as Obsidian does. A press meant for a text box, a
+// dialog or a menu never reaches the view's scope.
+const onEscapeKey = () => {
+  const selected = [...getSelectedNodes.value, ...getSelectedEdges.value];
+  if (!selected.length) return false;
+  removeSelectedElements(selected);
+  return true;
+};
+const clearModifiers = () => { selectKeyHeld.value = false; };
 
 // Node components are registered here rather than through a
 // <template #node-task> slot. A slot is a new function each time this view
@@ -931,6 +1056,7 @@ watch(
   }
 );
 
+const stopEscape = onEscape(onEscapeKey);
 const stopViewCommands = onViewCommand((name) => {
   if (name === 'layout') onLayoutClick();
   else if (name === 'overview') onOverviewClick();
@@ -940,6 +1066,14 @@ const stopViewCommands = onViewCommand((name) => {
 });
 
 onMounted(async () => {
+  const host = graphContainer.value;
+  host?.addEventListener('pointerdown', onGraphPointerDown, true);
+  host?.addEventListener('pointermove', onModifierKey, true);
+  host?.addEventListener('click', onGraphClick, true);
+  host?.addEventListener('dblclick', onGraphClick, true);
+  activeDocument.addEventListener('keydown', onModifierKey);
+  activeDocument.addEventListener('keyup', onModifierKey);
+  activeWindow.addEventListener('blur', clearModifiers);
   // Positions must load before tasks are built, since each task's starting
   // position is read from taskStore.positions at construction time.
   await taskStore.loadState();
@@ -960,7 +1094,16 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  const host = graphContainer.value;
+  host?.removeEventListener('pointerdown', onGraphPointerDown, true);
+  host?.removeEventListener('pointermove', onModifierKey, true);
+  host?.removeEventListener('click', onGraphClick, true);
+  host?.removeEventListener('dblclick', onGraphClick, true);
+  activeDocument.removeEventListener('keydown', onModifierKey);
+  activeDocument.removeEventListener('keyup', onModifierKey);
+  activeWindow.removeEventListener('blur', clearModifiers);
   stopViewCommands();
+  stopEscape();
   void taskStore.flushState();
   const app = getApp();
   if (app && cacheUpdateRef) app.workspace.offref(cacheUpdateRef);
@@ -1030,6 +1173,41 @@ onUnmounted(() => {
 .ft-graph-container :deep(.vue-flow__node.selected .task-flow-node) {
   outline: 2px solid var(--ft-select);
   outline-offset: 2px;
+}
+
+/* Pointer: an arrow over the canvas and the nodes, a hand only while the
+   canvas is dragged, a crosshair while Shift, Ctrl or Cmd is held. Vue Flow's
+   own rules put a hand on the pane and on every node. */
+.ft-graph-container :deep(.vue-flow__pane),
+.ft-graph-container :deep(.vue-flow__pane.draggable),
+.ft-graph-container :deep(.vue-flow__pane.selection),
+.ft-graph-container :deep(.vue-flow__node),
+.ft-graph-container :deep(.vue-flow__node.draggable),
+.ft-graph-container :deep(.vue-flow__node.draggable.dragging),
+.ft-graph-container :deep(.vue-flow__nodesselection-rect),
+.ft-graph-container :deep(.vue-flow__nodesselection-rect.dragging) {
+  cursor: default;
+}
+
+.ft-graph-container {
+  position: relative;
+}
+
+.ft-graph-container :deep(.ft-select-box) {
+  position: absolute;
+  z-index: 10;
+  pointer-events: none;
+  border: 1px solid var(--ft-select);
+  background: color-mix(in srgb, var(--ft-select) 12%, transparent);
+}
+
+.ft-graph-container.ft-select-ready :deep(.vue-flow__pane),
+.ft-graph-container.ft-select-ready :deep(.vue-flow__selection) {
+  cursor: crosshair;
+}
+
+.ft-graph-container :deep(.vue-flow__pane.dragging) {
+  cursor: grabbing;
 }
 
 /* Highlight: a glowing outline in the Highlight color from Style,

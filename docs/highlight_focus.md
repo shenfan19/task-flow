@@ -6,7 +6,9 @@ Both mark part of the graph without changing any note.
 
 ## Select
 
-Click a node or an arrow to select it. Clicking empty canvas deselects. Hold Shift and drag on empty canvas to select every node in a box, or hold Ctrl, Cmd on a Mac, and click to add nodes one by one. Selected nodes are dragged together. Dragging on empty canvas without Shift moves the view.
+Click a node or an arrow to select it. Clicking empty canvas or pressing Esc deselects. Hold Shift, Ctrl or Cmd on a Mac and drag on empty canvas to select every node in a box. With one of those keys held, a click adds a node to the selection or takes it out. Selected nodes are dragged together.
+
+Dragging empty canvas with the left or middle button moves the view, and the wheel zooms. The pointer is an arrow over the canvas and the nodes, a crosshair while Shift, Ctrl or Cmd is held, and a hand while the canvas is dragged.
 
 ## Highlight
 

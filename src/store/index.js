@@ -21,6 +21,7 @@ import {
   renameIdInLine,
   addTagToLine,
   removeTagFromLine,
+  renameTagInLine,
   setPriorityInLine,
   NONE_PRIORITY
 } from '../utils/taskLineEdits';
@@ -800,11 +801,11 @@ export const useTaskStore = defineStore('task', {
       await editTaskLine(task, (line) => setPriorityInLine(line, value, this.writeFormat));
       task.priority = value;
     },
-    // Takes the tag off every task of the view, one write per note. Lines are
-    // only edited in place, so the line numbers of a note's other tasks stay
-    // valid while its tasks are processed together. Returns how many tasks
-    // were changed.
-    async removeTagFromAllTasks(tag) {
+    // Takes the tag off every task of the view, or with `newTag` writes that
+    // tag in its place, one write per note. Lines are only edited in place, so
+    // the line numbers of a note's other tasks stay valid while its tasks are
+    // processed together. Returns how many tasks were changed.
+    async removeTagFromAllTasks(tag, newTag = null) {
       const app = getApp();
       if (!app) return 0;
       const byPath = new Map();
@@ -822,17 +823,20 @@ export const useTaskStore = defineStore('task', {
           for (const task of tasks) {
             const index = locateTaskLine(lines, task);
             if (index === -1) continue;
-            const edited = editKeepingEol(lines[index], (line) => removeTagFromLine(line, tag));
+            const edited = editKeepingEol(lines[index], (line) => (newTag ? renameTagInLine(line, tag, newTag) : removeTagFromLine(line, tag)));
             if (edited === lines[index]) continue;
             lines[index] = edited;
             task.originalTask = { ...task.originalTask, originalMarkdown: withoutEol(edited) };
-            task.tags = task.tags.filter((t) => t !== tag);
+            const rest = task.tags.filter((t) => t !== tag);
+            task.tags = newTag && !rest.includes(newTag) ? [...rest, newTag] : rest;
             changed++;
           }
           return lines.join('\n');
         });
       }
-      this.filters.tags = this.filters.tags.filter((t) => t !== tag);
+      this.filters.tags = this.filters.tags
+        .map((t) => (t === tag ? newTag : t))
+        .filter((t, i, all) => t && all.indexOf(t) === i);
       return changed;
     },
     // Removes the dependency the given edge represents, both from the

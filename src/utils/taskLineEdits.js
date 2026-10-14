@@ -252,6 +252,13 @@ export function removeTagFromLine(line, tag) {
   return line.replace(tagRegex(tag), '');
 }
 
+// Writes `newTag` where `oldTag` stood, keeping its place on the line. A line
+// that already has `newTag` just loses `oldTag`, so no tag appears twice.
+export function renameTagInLine(line, oldTag, newTag) {
+  if (tagRegex(newTag).test(line)) return removeTagFromLine(line, oldTag);
+  return line.replace(tagRegex(oldTag), (_, lead) => `${lead}${newTag}`);
+}
+
 // The Tasks plugin's priority levels, in its enum order. `value` is the
 // Priority enum string the plugin reports, `field` the Dataview value and
 // `emoji` the shorthand of the emoji format.

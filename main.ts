@@ -1,9 +1,9 @@
-import { Plugin, WorkspaceLeaf, ItemView } from 'obsidian';
+import { Plugin, WorkspaceLeaf, ItemView, Scope } from 'obsidian';
 import { createApp, App as VueApp } from 'vue';
 import { createPinia } from 'pinia';
 import App from './src/App.vue';
 import { setPlugin } from './src/pluginContext';
-import { hasOpenGraph, runViewCommand } from './src/viewCommands';
+import { hasOpenGraph, runEscape, runViewCommand } from './src/viewCommands';
 
 const VIEW_TYPE_TASK_FLOW = "task-flow-view";
 
@@ -140,6 +140,10 @@ class TaskFlowView extends ItemView {
 
 	constructor(leaf: WorkspaceLeaf) {
 		super(leaf);
+		// Returning false marks the key as used, which keeps Obsidian from
+		// switching tabs on it.
+		this.scope = new Scope(this.app.scope);
+		this.scope.register([], 'Escape', () => (runEscape() ? false : undefined));
 	}
 
 	getViewType() {

@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.14.0
+
+### Fixed
+
+- Selecting several nodes with Shift or Ctrl, and drawing a selection box with Shift, did not work in some setups. The keys are now read from the mouse events themselves, which always say which modifiers were down, instead of from key presses that did not always reach the page. Ctrl, Cmd and Shift all draw the box and all add or remove a single node from the selection. A node added this way is no longer opened or edited by the click that added it, and a node under the box around a multiple selection can be removed from it.
+- Esc with something selected no longer makes Obsidian switch to the previous tab. It clears the selection instead. An Esc with nothing selected behaves as before.
+
+### Added
+
+- Right-click a tag in the filter panel and choose **Rename** to rename it on every task of the view. A name that is already a tag merges the two after a confirmation.
+- The selection box is drawn as a shaded rectangle while it is dragged.
+
+### Changed
+
+- The pointer is an arrow over the canvas and the nodes, a crosshair while Shift, Ctrl or Cmd is held, and a hand only while the canvas is dragged. Dragging empty canvas still moves the view and the wheel still zooms.
+- Vue Flow's keyboard handling of nodes is switched off. It made Esc select a node that had focus, and nothing in the plugin used it.
+
 ## 0.13.2
 
 ### Changed

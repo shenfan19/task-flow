@@ -17,3 +17,20 @@ export function hasOpenGraph(): boolean {
 export function runViewCommand(name: string): void {
   handlers.forEach((handler) => handler(name));
 }
+
+// Esc, caught by the view's key scope in main.ts. Obsidian answers an Esc that
+// nothing consumed by switching to the previous tab, so the graph says
+// whether it used the key: it does when it cleared a selection.
+type EscapeHandler = () => boolean;
+const escapeHandlers = new Set<EscapeHandler>();
+
+export function onEscape(handler: EscapeHandler): () => boolean {
+  escapeHandlers.add(handler);
+  return () => escapeHandlers.delete(handler);
+}
+
+export function runEscape(): boolean {
+  let used = false;
+  escapeHandlers.forEach((handler) => { if (handler()) used = true; });
+  return used;
+}
