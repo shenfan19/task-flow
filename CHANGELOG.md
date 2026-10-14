@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.15.0
+
+### Changed
+
+- **Keywords** in **Filters** now also match a task's id and its dates, besides the text and tags. dependsOn and priority are still not searched, so an id finds that task and not every task that depends on it. Priority has its own filter.
+
 ## 0.14.0
 
 ### Fixed

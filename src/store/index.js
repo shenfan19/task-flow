@@ -114,6 +114,12 @@ function dayFromIso(text) {
   return m ? Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])) / 86400000 : null;
 }
 
+// The id and the dates of a task, for the keyword filter.
+function searchFieldsOf(fields) {
+  const dates = Object.values(fields).filter((v) => /^\d{4}-\d{2}-\d{2}/.test(v));
+  return [fields.id, ...dates].filter(Boolean).join(' ');
+}
+
 function taskDay(t, fields) {
   for (const [field, inline] of DATE_FIELDS) {
     const m = t[field];
@@ -377,13 +383,13 @@ export const useTaskStore = defineStore('task', {
       const checkedPriorities = new Set(this.filters.priorities);
       const keywords = this.keywords;
       return this.relatedTasks.filter(task => {
-        // Keywords, matched in the task's text and tags, e.g. "archived on"
-        // to hide tasks an archiving plugin has marked. The line's fields
-        // (id, dependsOn, dates, priority) are not searched: name is the
-        // description with them stripped. In include mode a task needs at
-        // least one keyword, in exclude mode none.
+        // Keywords, matched in the task's text, tags, id and dates,
+        // e.g. "archived on" to hide tasks an archiving plugin has marked.
+        // dependsOn and priority are not searched, or an id would also find
+        // every task that depends on it. In include mode a task needs at least one
+        // keyword, in exclude mode none.
         if (keywords.length > 0) {
-          const line = `${task.name} ${task.tags.join(' ')}`.toLowerCase();
+          const line = `${task.name} ${task.tags.join(' ')} ${task.searchFields ?? ''}`.toLowerCase();
           const hasKeyword = keywords.some((k) => line.includes(k));
           if (this.filters.textMode === 'include' ? !hasKeyword : hasKeyword) return false;
         }
@@ -593,6 +599,7 @@ export const useTaskStore = defineStore('task', {
           dependsOn: [...new Set([...(t.dependsOn || []), ...splitIds(fields.dependsOn)])],
           originalTask: t, // Keep a reference to the actual Obsidian Task object
           name,
+          searchFields: searchFieldsOf(fields),
           path,
           completed: t.status?.symbol !== ' ',
           status: t.status,

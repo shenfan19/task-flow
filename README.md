@@ -71,7 +71,7 @@ Tasks Flowchart reads ids, dependencies and dates in both formats anywhere on th
 
 ## Feedback
 
-Found a bug or have an idea? Please [open an issue on GitHub](https://github.com/shenfan19/task-flow/issues). For a bug, include your Obsidian and Tasks versions and a few task lines that show the problem. Keywords in Filters search the task text and tags only, not fields such as `[id:: ]` or dates. If you need to filter by those, open an issue and describe what you are trying to do.
+Found a bug or have an idea? Please [open an issue on GitHub](https://github.com/shenfan19/task-flow/issues). For a bug, include your Obsidian and Tasks versions and a few task lines that show the problem.
 
 ## Data
 
