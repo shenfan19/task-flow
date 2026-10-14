@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.15.2
+
+### Fixed
+
+- Clearing the keywords in **Filters**, or any change that brought many tasks back at once, left the nodes invisible for seconds while the links were already drawn. Vue Flow keeps a node hidden until it has measured it; nodes now show as soon as they are in place.
+
 ## 0.15.1
 
 ### Fixed

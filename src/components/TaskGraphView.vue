@@ -389,7 +389,13 @@ const nodes = computed(() =>
     type: 'task',
     position: task.position,
     data: { task },
-    class: markClasses('nodeIds', task.id)
+    class: markClasses('nodeIds', task.id),
+    // Vue Flow keeps a node hidden until it has measured it. The position is
+    // already known and does not depend on the size, so showing the node at
+    // once only saves the wait: after a filter was cleared, hundreds of nodes
+    // stayed invisible for seconds with their links already drawn. A style
+    // given here is applied after Vue Flow's own.
+    style: { visibility: 'visible' }
   }))
 );
 
