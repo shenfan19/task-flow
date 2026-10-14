@@ -216,6 +216,29 @@ export function applyLanes(positions, nodes, edges, direction, by = 'none', orde
         item.track = track;
       }
     }
+    // A task with no parent in the lane took the first free track from the
+    // left, and its tasks, finding that track taken further down, stepped
+    // aside: the task then sat beside its chain instead of above it. It moves
+    // to the track of the task that continues the longest chain below it when
+    // that track is free over its own stretch.
+    const spans = trackEnds.map(() => []);
+    const childrenOf = new Map();
+    for (const item of members) {
+      spans[item.track].push(item);
+      if (item.parent) childrenOf.set(item.parent.id, [...(childrenOf.get(item.parent.id) ?? []), item]);
+    }
+    for (const item of members) {
+      const kids = childrenOf.get(item.id);
+      if (item.parent || !kids) continue;
+      const lead = [...kids].sort((a, b) => below.get(b.id) - below.get(a.id) || a.track - b.track)[0];
+      if (lead.track === item.track) continue;
+      const from = item.main - item.mainSize / 2 - MAIN_GAP;
+      const to = item.main + item.mainSize / 2 + MAIN_GAP;
+      if (spans[lead.track].some((o) => o.main + o.mainSize / 2 > from && o.main - o.mainSize / 2 < to)) continue;
+      spans[item.track] = spans[item.track].filter((o) => o !== item);
+      spans[lead.track].push(item);
+      item.track = lead.track;
+    }
     const trackWidth = Math.max(...members.map((i) => i.crossSize)) + CROSS_GAP;
     const width = trackEnds.length * trackWidth + 2 * LANE_PAD;
     lanes.push({ key, start: cursor, end: cursor + width, trackWidth, members });

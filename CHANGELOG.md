@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.15.1
+
+### Fixed
+
+- With lanes by tag, a task with no parent in its lane could sit at the left of the lane, beside its tasks instead of above them, whenever the track on its left was free and the track of its tasks was taken further down. It now sits on the track of the task that continues the longest chain below it when that track is free.
+
 ## 0.15.0
 
 ### Changed
