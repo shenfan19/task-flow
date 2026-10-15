@@ -13,6 +13,6 @@ Each page covers one part of the plugin. Open the page for what you want to do.
 | Understand why a link is straight or slanted | [How Layout arranges nodes](layout_stability.md) |
 | Read how selection, the pointer and Esc are implemented | [Selection and pointer implementation](selection_and_pointer_implementation.md) |
 
-The controls are at the top left of the view. **Layout**, **Overview** and **Reset** are buttons, and below them the **Profile** row and the folded cards **View**, **Filters** and **Style**. Click a card's title to open it.
+The controls are in one panel at the top left of the view. Drag its top bar to move it, and click **–** to fold it into a ⚙ icon; the position is remembered. In the panel, **Layout**, **Overview** and **Reset** are buttons, and below them the **Profile** row and the folded cards **View**, **Filters** and **Style**. Click a card's title to open it.
 
 Back to the [README](../README.md).

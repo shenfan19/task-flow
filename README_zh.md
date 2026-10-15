@@ -44,7 +44,7 @@
 3. 点击左侧功能区的 **Open tasks flowchart**，或者运行命令 **Tasks Flowchart: Open flowchart**。先点左上角的 **Layout**，再点 **Overview**。
 4. 第一次用任务依赖？在空白画布上点 **Create sample note**，或者运行命令 **Tasks Flowchart: Create sample note**，会生成一篇带依赖的小计划，可以拿来试。
 
-视图左上角是 **Layout**、**Overview** 和 **Reset** 三个按钮，下面是一行 **Profile**。其余设置在下方默认折叠的卡片里，分别是 **View**、**Filters** 和 **Style**，点卡片标题展开。
+视图左上角是一个控制面板，按住它的顶栏可以拖动，点 **–** 可以收成一个 ⚙ 图标，位置会被记住。面板里是 **Layout**、**Overview** 和 **Reset** 三个按钮，下面是一行 **Profile**。其余设置在下方默认折叠的卡片里，分别是 **View**、**Filters** 和 **Style**，点卡片标题展开。
 
 ## 功能一览
 

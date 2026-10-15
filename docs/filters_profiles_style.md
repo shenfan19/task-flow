@@ -6,7 +6,7 @@
 
 In the **Filters** card, choose which tasks the graph shows. The settings are kept between sessions.
 
-- Only show tasks with a relation: on by default, it hides tasks that have no dependency link.
+- Only show tasks with a relation: on by default, it hides tasks that have no dependency link. With more than 100 tasks, the first time you turn it off each day asks for a confirmation, because drawing every task can be slow.
 - Keywords: separated by commas and matched in the task text and tags, in any case, such as `archived on`. They are also matched in the id and the dates, but not in `[dependsOn:: ]` or the priority, which has its own filter.
 - Tags, priority and folders: tick the ones you want, then choose **Include** to show only those tasks or **Exclude** to hide them.
 - Status: at the end of the panel, with the relation switch.

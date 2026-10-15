@@ -1,8 +1,7 @@
 <template>
   <!-- The two actions used most, always in sight at the top of the rail and
        drawn in the accent color, and Reset, which clears highlights and
-       focus. Framed like the cards below but with no title, so the Profile row
-       under it, the one control with no frame, stands out. -->
+       focus. Frameless, inside the dock's single frame. -->
   <div class="ft-action-bar">
     <div class="ft-action-buttons">
       <button class="mod-cta" title="Arrange all nodes in the chosen direction" @click="$emit('layout')">Layout</button>
@@ -18,25 +17,35 @@ defineEmits(['layout', 'overview', 'reset']);
 
 <style scoped>
 .ft-action-bar {
-  width: 250px;
+  width: 100%;
   box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 6px;
-  border-radius: 8px;
-  border: 1px solid var(--background-modifier-border, #d0d4da);
-  background: var(--background-primary, #fff);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 .ft-action-buttons {
   display: flex;
-  gap: 6px;
+  gap: 4px;
 }
 
+/* No frame on the buttons: a light tint at rest, stronger under the pointer. */
 .ft-action-buttons button {
   flex: 1 1 0;
   font-weight: 600;
+  background: color-mix(in srgb, var(--text-normal, #222) 9%, transparent);
+  border: none;
+  box-shadow: none;
+  color: var(--text-normal, #222);
+}
+
+.ft-action-buttons button.mod-cta {
+  color: var(--interactive-accent, #5b6ee1);
+  background: color-mix(in srgb, var(--interactive-accent, #5b6ee1) 14%, transparent);
+}
+
+.ft-action-buttons button:hover {
+  background: color-mix(in srgb, var(--text-normal, #222) 16%, transparent);
+}
+
+.ft-action-buttons button.mod-cta:hover {
+  background: color-mix(in srgb, var(--interactive-accent, #5b6ee1) 26%, transparent);
 }
 </style>

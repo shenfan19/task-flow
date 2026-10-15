@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.16.0
+
+### Changed
+
+- The controls are now one panel with a single frame instead of separate framed cards. Its top bar drags the panel anywhere in the view, and **–** folds it into a ⚙ icon that can be dragged too. The position and whether it is folded are remembered.
+- **Layout**, **Overview** and **Reset** have no frame, and the titles of **Filters**, **View** and **Style** stand out with a light tint, so both read clearly in any theme.
+
+### Added
+
+- Turning off **Only show tasks with a relation** with more than 100 tasks asks for confirmation the first time each day, since drawing every task can render slowly.
+
 ## 0.15.2
 
 ### Fixed

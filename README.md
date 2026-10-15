@@ -44,7 +44,7 @@ Three lines like these become three connected nodes:
 3. Click **Open tasks flowchart** in the left ribbon, or run **Tasks Flowchart: Open flowchart**. Click **Layout** at the top left, then **Overview**.
 4. New to linking tasks? Click **Create sample note** on the empty canvas, or run **Tasks Flowchart: Create sample note**, for a small linked plan to try things on.
 
-At the top left of the view are the **Layout**, **Overview** and **Reset** buttons and, below them, the **Profile** row. The other settings live in the folded cards under them, **View**, **Filters** and **Style**; click a card's title to open it.
+The controls are in one panel at the top left of the view. Drag its top bar to move it, and click **–** to fold it into a ⚙ icon; the position is remembered. In the panel are the **Layout**, **Overview** and **Reset** buttons and, below them, the **Profile** row. The other settings live in the folded cards under them, **View**, **Filters** and **Style**; click a card's title to open it.
 
 ## What you can do
 

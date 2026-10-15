@@ -71,7 +71,8 @@ const onDelete = () => {
 
 <style scoped>
 .ft-profile-row {
-  width: 250px;
+  width: 100%;
+  padding: 0 4px;
   box-sizing: border-box;
   display: flex;
   align-items: center;

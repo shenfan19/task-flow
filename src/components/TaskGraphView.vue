@@ -2,7 +2,7 @@
   <div class="position-relative w-100 h-100 ft-graph-root">
     <!-- Left rail: the Layout and Overview buttons, then the Profile row,
          view controls, filters and node appearance -->
-    <div class="ft-left-rail">
+    <RailDock>
       <ActionBar
         @layout="onLayoutClick"
         @overview="onOverviewClick"
@@ -18,7 +18,7 @@
         @lane-change="onLaneChange"
       />
       <AppearancePanel />
-    </div>
+    </RailDock>
 
     <!-- Graph Container (Full Size) -->
     <div ref="graphContainer" class="w-100 h-100 bg-white ft-graph-container" :class="{ 'ft-lod': zoomedFarOut, 'ft-select-ready': selectKeyHeld }" :style="{ '--ft-highlight': taskStore.appearance.highlightColor, '--ft-select': taskStore.appearance.nodeBorder }">
@@ -79,6 +79,7 @@ import { useTaskStore, isPlaceholderTaskName } from '../store';
 import { MarkdownView, Menu, MenuItem } from 'obsidian';
 import { getApp } from '../pluginContext';
 import { onEscape, onViewCommand } from '../viewCommands';
+import RailDock from './RailDock.vue';
 import ActionBar from './ActionBar.vue';
 import ProfileBar from './ProfileBar.vue';
 import FilterPanel from './FilterPanel.vue';
@@ -1133,17 +1134,6 @@ onUnmounted(() => {
    the view header (Bootstrap's position-relative class isn't loaded). */
 .ft-graph-root {
   position: relative;
-}
-
-.ft-left-rail {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  z-index: 1000;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
 }
 
 /* Focus: everything outside the focused chain fades. Vue Flow puts a

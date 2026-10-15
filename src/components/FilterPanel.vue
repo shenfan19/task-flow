@@ -204,7 +204,8 @@
         class="form-check-input"
         type="checkbox"
         id="onlyRelatedToggle"
-        v-model="taskStore.filters.onlyRelated"
+        :checked="taskStore.filters.onlyRelated"
+        @change="onOnlyRelatedChange"
       >
       <label class="form-check-label" for="onlyRelatedToggle">Only show tasks with a relation</label>
     </div>
@@ -236,6 +237,46 @@ const priorityCounts = computed(() => {
   }
   return counts;
 });
+
+// Showing tasks with no link draws every task of the vault, which is slow
+// when there are many, so the first untick of the day asks, but only above
+// this many tasks.
+const UNRELATED_WARN_COUNT = 100;
+const WARNED_KEY = 'task-flow-unrelated-warned';
+
+const warnedToday = () => {
+  try {
+    return window.localStorage.getItem(WARNED_KEY) === new Date().toDateString();
+  } catch {
+    return false;
+  }
+};
+
+const markWarnedToday = () => {
+  try {
+    window.localStorage.setItem(WARNED_KEY, new Date().toDateString());
+  } catch {
+    // Without storage the question simply comes back next time.
+  }
+};
+
+const onOnlyRelatedChange = async (event) => {
+  const box = event.target;
+  const app = getApp();
+  if (box.checked || !app || taskStore.tasks.length <= UNRELATED_WARN_COUNT || warnedToday()) {
+    taskStore.filters.onlyRelated = box.checked;
+    return;
+  }
+  box.checked = true;
+  const sure = await confirmDialog(app, {
+    title: 'Show tasks with no relation',
+    message: `${taskStore.tasks.length} tasks may render slowly. Show anyway? If you do, you won't be asked again today.`,
+    confirmText: 'Show all'
+  });
+  if (!sure) return;
+  markWarnedToday();
+  taskStore.filters.onlyRelated = false;
+};
 
 // Right-clicking a tag offers to take it off every task of the view, which
 // rewrites the notes, so it is confirmed first with the number of tasks and

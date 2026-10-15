@@ -49,12 +49,7 @@ const toggle = () => {
 
 <style scoped>
 .ft-card {
-  width: 250px;
   box-sizing: border-box;
-  border-radius: 8px;
-  border: 1px solid var(--background-modifier-border, #d0d4da);
-  background: var(--background-primary, #fff);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
   font-size: 12px;
 }
 
@@ -63,9 +58,13 @@ const toggle = () => {
   justify-content: space-between;
   align-items: center;
   gap: 6px;
-  padding: 6px 10px;
+  padding: 7px 10px;
+  font-size: 13px;
   font-weight: 600;
+  color: var(--text-normal, #222);
+  background: color-mix(in srgb, var(--text-normal, #222) 9%, transparent);
   cursor: pointer;
+  border-radius: 6px;
   user-select: none;
 }
 
@@ -73,8 +72,13 @@ const toggle = () => {
   cursor: default;
 }
 
-.ft-card--open .ft-card__head {
-  border-bottom: 1px solid var(--background-modifier-border, #d0d4da);
+.ft-card__head:hover {
+  background: color-mix(in srgb, var(--text-normal, #222) 16%, transparent);
+}
+
+
+.ft-card--fixed .ft-card__head:hover {
+  background: color-mix(in srgb, var(--text-normal, #222) 9%, transparent);
 }
 
 .ft-card__chevron {
@@ -88,8 +92,8 @@ const toggle = () => {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 8px 10px 10px;
-  max-height: calc(100vh - 220px);
+  padding: 6px 4px 8px;
+  max-height: calc(100vh - 260px);
   overflow-y: auto;
 }
 
