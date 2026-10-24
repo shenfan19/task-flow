@@ -126,6 +126,25 @@
       >
       <label class="form-check-label" for="separateLinksToggle">{{ t('Separate links') }}</label>
     </div>
+
+    <hr class="ft-sep">
+
+    <!-- The interface language: Auto follows Obsidian. The language names are
+         written in their own language and are not translated. -->
+    <div class="ft-interval-row">
+      <label class="ft-click-label" for="languageChoice">{{ t('Language') }}</label>
+      <select
+        id="languageChoice"
+        class="dropdown ft-click-select"
+        :value="languageChoice"
+        @change="setLanguage($event.target.value)"
+      >
+        <option value="auto">{{ t('Follow Obsidian') }}</option>
+        <option value="en">English</option>
+        <option value="zh-CN">简体中文</option>
+        <option value="zh-TW">繁體中文</option>
+      </select>
+    </div>
   </RailCard>
 </template>
 
@@ -133,7 +152,7 @@
 import { computed } from 'vue';
 import { useTaskStore } from '../store';
 import RailCard from './RailCard.vue';
-import { t } from '../i18n';
+import { languageChoice, setLanguage, t } from '../i18n';
 
 defineEmits(['direction-change', 'edge-type-change', 'time-axis-change', 'separate-links-change', 'lane-change']);
 

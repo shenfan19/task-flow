@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.19.0
+
+### Added
+
+- A **Language** list at the bottom of the **View** card: follow Obsidian, English, 简体中文 or 繁體中文. The panel redraws at once; command names and the ribbon tooltip change after Obsidian restarts.
+
 ## 0.18.0
 
 ### Added

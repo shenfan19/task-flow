@@ -1,8 +1,9 @@
 // Interface text. English is the source language and also the key: t('Layout')
-// returns the English text unless the Obsidian language has a dictionary with
+// returns the English text unless the chosen language has a dictionary with
 // that key, so a missing translation shows English rather than a blank or a
-// key name. Add a language by adding a dictionary file and an entry in DICTS
-// and in pickLocale.
+// key name. Add a language by adding a dictionary file, an entry in DICTS, a
+// case in obsidianLocale and an option in the View card.
+import { ref } from 'vue';
 import zhCN from './zh-CN';
 import zhTW from './zh-TW';
 
@@ -14,11 +15,41 @@ const DICTS: Record<string, Dictionary> = {
   'zh-TW': zhTW
 };
 
+// The language is a choice the user can change in the View card: 'auto' follows
+// Obsidian, the others fix it. It is kept in localStorage, next to the panel
+// position, and is a ref so every t() call made while a component renders is
+// tracked and the interface redraws at once. Texts fixed when the plugin loads
+// (command names, the ribbon tooltip) update after Obsidian restarts.
+export type LanguageChoice = 'auto' | 'en' | 'zh-CN' | 'zh-TW';
+
+export const LANGUAGE_CHOICES: LanguageChoice[] = ['auto', 'en', 'zh-CN', 'zh-TW'];
+
+const STORAGE_KEY = 'task-flow-language';
+
+function readChoice(): LanguageChoice {
+  try {
+    const saved = window.localStorage.getItem(STORAGE_KEY) as LanguageChoice | null;
+    if (saved && LANGUAGE_CHOICES.includes(saved)) return saved;
+  } catch {
+    // Without storage the language just follows Obsidian.
+  }
+  return 'auto';
+}
+
+export const languageChoice = ref<LanguageChoice>(readChoice());
+
+export function setLanguage(choice: LanguageChoice): void {
+  languageChoice.value = choice;
+  try {
+    window.localStorage.setItem(STORAGE_KEY, choice);
+  } catch {
+    // The choice then only lasts until Obsidian restarts.
+  }
+}
+
 // Obsidian keeps its interface language in localStorage ('zh' for Simplified
-// Chinese, 'zh-TW' for Traditional); an English install has no entry. The
-// language only changes after a restart of Obsidian, so reading it once at
-// load is enough.
-function pickLocale(): string | null {
+// Chinese, 'zh-TW' for Traditional); an English install has no entry.
+function obsidianLocale(): string | null {
   let raw = '';
   try {
     raw = window.localStorage.getItem('language') ?? '';
@@ -31,21 +62,25 @@ function pickLocale(): string | null {
   return null;
 }
 
-const locale = pickLocale();
-const dictionary: Dictionary = (locale && DICTS[locale]) || {};
+function currentDictionary(): Dictionary {
+  const choice = languageChoice.value;
+  const locale = choice === 'auto' ? obsidianLocale() : choice;
+  return (locale && DICTS[locale]) || {};
+}
 
 const fill = (text: string, params?: Params): string => (params
   ? text.replace(/\{(\w+)\}/g, (whole, name: string) => (name in params ? String(params[name]) : whole))
   : text);
 
 export function t(text: string, params?: Params): string {
-  return fill(dictionary[text] ?? text, params);
+  return fill(currentDictionary()[text] ?? text, params);
 }
 
 // A count with its noun: tp(3, '{n} task', '{n} tasks'). English picks the
 // singular for 1 and the plural otherwise; a dictionary is keyed by the plural
 // form and has no singular, since Chinese does not inflect.
 export function tp(count: number, one: string, other: string, params?: Params): string {
+  const dictionary = currentDictionary();
   const key = dictionary[other] ? other : count === 1 ? one : other;
   return fill(dictionary[key] ?? key, { ...params, n: count });
 }

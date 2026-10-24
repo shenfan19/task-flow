@@ -55,6 +55,8 @@ const zhCN: Record<string, string> = {
   'New task': '新建任务',
   'Date axis': '日期轴',
   'Separate links': '分开重叠的连线',
+  'Language': '语言',
+  'Follow Obsidian': '跟随 Obsidian',
 
   // Style card
   'Style': '样式',

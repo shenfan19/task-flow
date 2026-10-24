@@ -55,6 +55,8 @@ const zhTW: Record<string, string> = {
   'New task': '新增任務',
   'Date axis': '日期軸',
   'Separate links': '分開重疊的連線',
+  'Language': '語言',
+  'Follow Obsidian': '跟隨 Obsidian',
 
   // Style card
   'Style': '樣式',
