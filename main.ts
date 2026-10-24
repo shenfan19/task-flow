@@ -4,7 +4,7 @@ import { createPinia } from 'pinia';
 import App from './src/App.vue';
 import { setPlugin } from './src/pluginContext';
 import { hasOpenGraph, runEscape, runViewCommand } from './src/viewCommands';
-import { t } from './src/i18n';
+import { onLanguageChange, t } from './src/i18n';
 
 const VIEW_TYPE_TASK_FLOW = "task-flow-view";
 
@@ -23,6 +23,10 @@ export default class TaskFlowPlugin extends Plugin {
 		// settings, stored as plain JSON in .obsidian/plugins/task-flow/data.json)
 		// through this, see src/pluginContext.ts.
 		setPlugin(this);
+
+		// Obsidian reads a tab's title once, so it is told to read it again when
+		// the language is changed in the View card.
+		this.register(onLanguageChange(() => this.refreshTabTitles()));
 
 		this.registerView(
 			VIEW_TYPE_TASK_FLOW,
@@ -109,6 +113,14 @@ export default class TaskFlowPlugin extends Plugin {
 	onunload() {
 		for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE_TASK_FLOW)) {
 			if (leaf.view instanceof TaskFlowView) leaf.view.unmountApp();
+		}
+	}
+
+	// updateHeader is not in Obsidian's typings, so it is called only if the
+	// leaf has it.
+	refreshTabTitles() {
+		for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE_TASK_FLOW)) {
+			(leaf as WorkspaceLeaf & { updateHeader?: () => void }).updateHeader?.();
 		}
 	}
 

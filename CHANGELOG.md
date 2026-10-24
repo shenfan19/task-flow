@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.20.1
+
+### Fixed
+
+- The title of the flowchart tab now changes at once when the language is changed in the **View** card, instead of keeping the old language until the tab is reopened.
+
 ## 0.20.0
 
 ### Added

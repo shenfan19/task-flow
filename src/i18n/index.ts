@@ -50,8 +50,21 @@ function readChoice(): LanguageChoice {
 
 export const languageChoice = ref<LanguageChoice>(readChoice());
 
+// Code outside the Vue components, which redraw by themselves, that must act
+// when the language changes, like the plugin refreshing its tab titles.
+const changeListeners = new Set<() => void>();
+
+// Returns the function that removes the listener again.
+export function onLanguageChange(listener: () => void): () => void {
+  changeListeners.add(listener);
+  return () => {
+    changeListeners.delete(listener);
+  };
+}
+
 export function setLanguage(choice: LanguageChoice): void {
   languageChoice.value = choice;
+  changeListeners.forEach((listener) => listener());
   try {
     window.localStorage.setItem(STORAGE_KEY, choice);
   } catch {
