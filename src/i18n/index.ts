@@ -6,13 +6,25 @@
 import { ref } from 'vue';
 import zhCN from './zh-CN';
 import zhTW from './zh-TW';
+import ja from './ja';
+import ko from './ko';
+import de from './de';
+import fr from './fr';
+import es from './es';
+import ru from './ru';
 
 type Dictionary = Record<string, string>;
 type Params = Record<string, string | number>;
 
 const DICTS: Record<string, Dictionary> = {
   'zh-CN': zhCN,
-  'zh-TW': zhTW
+  'zh-TW': zhTW,
+  ja,
+  ko,
+  de,
+  fr,
+  es,
+  ru
 };
 
 // The language is a choice the user can change in the View card: 'auto' follows
@@ -20,9 +32,9 @@ const DICTS: Record<string, Dictionary> = {
 // position, and is a ref so every t() call made while a component renders is
 // tracked and the interface redraws at once. Texts fixed when the plugin loads
 // (command names, the ribbon tooltip) update after Obsidian restarts.
-export type LanguageChoice = 'auto' | 'en' | 'zh-CN' | 'zh-TW';
+export type LanguageChoice = 'auto' | 'en' | 'zh-CN' | 'zh-TW' | 'ja' | 'ko' | 'de' | 'fr' | 'es' | 'ru';
 
-export const LANGUAGE_CHOICES: LanguageChoice[] = ['auto', 'en', 'zh-CN', 'zh-TW'];
+export const LANGUAGE_CHOICES: LanguageChoice[] = ['auto', 'en', 'zh-CN', 'zh-TW', 'ja', 'ko', 'de', 'fr', 'es', 'ru'];
 
 const STORAGE_KEY = 'task-flow-language';
 
@@ -48,7 +60,8 @@ export function setLanguage(choice: LanguageChoice): void {
 }
 
 // Obsidian keeps its interface language in localStorage ('zh' for Simplified
-// Chinese, 'zh-TW' for Traditional); an English install has no entry.
+// Chinese, 'zh-TW' for Traditional, 'ja', 'de' and so on for the others); an
+// English install has no entry.
 function obsidianLocale(): string | null {
   let raw = '';
   try {
@@ -59,7 +72,8 @@ function obsidianLocale(): string | null {
   const code = raw.toLowerCase();
   if (code === 'zh-tw' || code === 'zh-hk' || code === 'zh-hant') return 'zh-TW';
   if (code === 'zh' || code === 'zh-cn' || code === 'zh-hans') return 'zh-CN';
-  return null;
+  const base = code.split('-')[0];
+  return base in DICTS ? base : null;
 }
 
 function currentDictionary(): Dictionary {
@@ -77,10 +91,12 @@ export function t(text: string, params?: Params): string {
 }
 
 // A count with its noun: tp(3, '{n} task', '{n} tasks'). English picks the
-// singular for 1 and the plural otherwise; a dictionary is keyed by the plural
-// form and has no singular, since Chinese does not inflect.
+// singular for 1 and the plural otherwise. A dictionary is keyed by both forms
+// when its language inflects; one without a singular entry, like Chinese, uses
+// the plural entry for every count. Russian, whose forms depend on the last
+// digits, words these as 'tasks: {n}' to avoid the inflection.
 export function tp(count: number, one: string, other: string, params?: Params): string {
   const dictionary = currentDictionary();
-  const key = dictionary[other] ? other : count === 1 ? one : other;
-  return fill(dictionary[key] ?? key, { ...params, n: count });
+  const text = (count === 1 && dictionary[one]) || dictionary[other] || (count === 1 ? one : other);
+  return fill(text, { ...params, n: count });
 }

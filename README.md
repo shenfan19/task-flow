@@ -59,7 +59,7 @@ Each item links to its page in the [manual](docs/index.md).
 
 ## Language
 
-The interface follows Obsidian's language by default, and **Language** at the bottom of the **View** card fixes it instead: English, Simplified Chinese (简体中文) and Traditional Chinese (繁體中文). Anything without a translation shows in English. To add a language, copy `src/i18n/zh-CN.ts`, translate the values and register it in `src/i18n/index.ts` and in the **Language** list; the manual stays in English.
+The interface follows Obsidian's language by default, and **Language** at the bottom of the **View** card fixes it instead: English, Simplified Chinese (简体中文), Traditional Chinese (繁體中文), Japanese (日本語), Korean (한국어), German (Deutsch), French (Français), Spanish (Español) and Russian (Русский). None of the translations has been proofread yet, so corrections are welcome as issues or pull requests. Anything without a translation shows in English. To add a language, copy `src/i18n/zh-CN.ts`, translate the values and register it in `src/i18n/index.ts` and in the **Language** list; the manual stays in English.
 
 ## Walkthrough video
 

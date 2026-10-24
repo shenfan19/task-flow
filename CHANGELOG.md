@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.20.0
+
+### Added
+
+- The interface is also translated into Japanese, Korean, German, French, Spanish and Russian, and each is in the **Language** list. None of the translations has been proofread yet.
+
 ## 0.19.0
 
 ### Added
