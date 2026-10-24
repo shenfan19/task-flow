@@ -3,6 +3,7 @@ import { Notice } from 'obsidian';
 import { TasksPluginAPI } from '../api/TasksPluginAPI';
 import { getApp, getPlugin } from '../pluginContext';
 import { stableTaskId } from '../utils/hash';
+import { t, tp } from '../i18n';
 import { watchForTaskModal } from '../utils/modalCloseButton';
 import { assignTagHues } from '../utils/tagColor';
 import {
@@ -478,7 +479,9 @@ export const useTaskStore = defineStore('task', {
       } catch (error) {
         console.error('Tasks Flowchart: could not read data.json', error);
         const copy = await setAsideUnreadableData(plugin);
-        new Notice(`Tasks Flowchart: saved positions and settings could not be read${copy ? ` and were copied to ${copy}` : ''}. Starting with defaults.`);
+        new Notice(copy
+          ? t('Tasks Flowchart: saved positions and settings could not be read and were copied to {copy}. Starting with defaults.', { copy })
+          : t('Tasks Flowchart: saved positions and settings could not be read. Starting with defaults.'));
       }
       // data.json used to be a flat {id: {x,y}} positions map; fall back to
       // treating the whole object as positions if it isn't in the new shape.
@@ -731,7 +734,7 @@ export const useTaskStore = defineStore('task', {
       if (!task || !app) return;
       const api = new TasksPluginAPI(app);
       if (!api.canEditInModal()) {
-        new Notice('Tasks Flowchart: editing a task needs the Tasks plugin 7.21.0 or later.');
+        new Notice(t('Tasks Flowchart: editing a task needs the Tasks plugin 7.21.0 or later.'));
         return;
       }
       const file = app.vault.getAbstractFileByPath(task.path);
@@ -739,7 +742,7 @@ export const useTaskStore = defineStore('task', {
       const lines = (await app.vault.read(file)).split('\n');
       const index = locateTaskLine(lines, task);
       if (index === -1) {
-        new Notice('Tasks Flowchart: the task line could not be found in its note.');
+        new Notice(t('Tasks Flowchart: the task line could not be found in its note.'));
         return;
       }
       const before = withoutEol(lines[index]);
@@ -759,7 +762,7 @@ export const useTaskStore = defineStore('task', {
         return current.join('\n');
       });
       if (!written) {
-        new Notice('Tasks Flowchart: the task changed in its note while the dialog was open, so the edit was not saved.');
+        new Notice(t('Tasks Flowchart: the task changed in its note while the dialog was open, so the edit was not saved.'));
         return;
       }
       // A task just created by dragging is kept on the graph by hand until
@@ -786,7 +789,7 @@ export const useTaskStore = defineStore('task', {
         dependent.dependsOn = dependent.dependsOn.map((id) => (id === oldId ? newId : id));
       }
       if (dependents.length) {
-        new Notice(`Tasks Flowchart: id changed to ${newId} in this task and ${dependents.length} task${dependents.length === 1 ? '' : 's'} depending on it.`);
+        new Notice(t('Tasks Flowchart: id changed to {id} in this task and {tasks} depending on it.', { id: newId, tasks: tp(dependents.length, '{n} task', '{n} tasks') }));
       }
     },
     async addTagToTask(taskId, tag) {

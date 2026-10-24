@@ -57,6 +57,10 @@
 - **泳道**：按 tag、笔记或优先级分组，见 [Lanes](docs/lanes.md)。
 - **筛选、预设和样式**：见 [Filters, profiles and style](docs/filters_profiles_style.md)。
 
+## 界面语言
+
+界面语言跟随 Obsidian 的设置，支持英文、简体中文和繁体中文，没有翻译的文字显示英文。手册只有英文和这份中文说明。
+
 ## 演示视频
 
 [![Tasks Flowchart 四分钟演示视频，YouTube](https://img.youtube.com/vi/bcdKUnvzx1I/maxresdefault.jpg)](https://www.youtube.com/watch?v=bcdKUnvzx1I)

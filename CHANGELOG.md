@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.18.0
+
+### Added
+
+- The interface is translated into Simplified Chinese and Traditional Chinese, following Obsidian's language. This covers the panel, cards, menus, dialogs, notices and command names. Text without a translation shows in English, and the manual and the sample note stay in English.
+
 ## 0.17.0
 
 ### Changed

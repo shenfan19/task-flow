@@ -4,12 +4,14 @@
        clears highlights and focus, smaller beside it. Frameless, inside the
        dock's single frame. -->
   <div class="ft-action-buttons">
-    <button class="ft-layout mod-cta" title="Arrange all nodes in the chosen direction, then fit the graph in the view" @click="$emit('layout')">Layout</button>
-    <button class="ft-reset" title="Clear every highlight and the focus" @click="$emit('reset')">Reset</button>
+    <button class="ft-layout mod-cta" :title="t('Arrange all nodes in the chosen direction, then fit the graph in the view')" @click="$emit('layout')">{{ t('Layout') }}</button>
+    <button class="ft-reset" :title="t('Clear every highlight and the focus')" @click="$emit('reset')">{{ t('Reset') }}</button>
   </div>
 </template>
 
 <script setup>
+import { t } from '../i18n';
+
 defineEmits(['layout', 'reset']);
 </script>
 

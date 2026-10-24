@@ -78,6 +78,7 @@ import '@vue-flow/core/dist/theme-default.css';
 import { useTaskStore, isPlaceholderTaskName } from '../store';
 import { MarkdownView, Menu, MenuItem } from 'obsidian';
 import { getApp } from '../pluginContext';
+import { t } from '../i18n';
 import { onEscape, onViewCommand } from '../viewCommands';
 import RailDock from './RailDock.vue';
 import ProfileBar from './ProfileBar.vue';
@@ -560,14 +561,14 @@ const promptChangeId = async (id) => {
   const app = getApp();
   if (!task || !app) return;
   const newId = await promptName(app, {
-    title: task.pluginId ? 'Change id' : 'Set id',
+    title: task.pluginId ? t('Change id') : t('Set id'),
     value: task.pluginId,
     placeholder: 'id',
-    submitText: 'Save',
-    emptyText: 'Enter an id.',
+    submitText: t('Save'),
+    emptyText: t('Enter an id.'),
     validate: (value) => {
-      if (!isValidTaskId(value)) return 'Use only letters, digits, - and _.';
-      if (value !== task.pluginId && taskStore.tasks.some((t) => t.pluginId === value)) return 'Another task already has this id.';
+      if (!isValidTaskId(value)) return t('Use only letters, digits, - and _.');
+      if (value !== task.pluginId && taskStore.tasks.some((t) => t.pluginId === value)) return t('Another task already has this id.');
       return null;
     }
   });
@@ -617,11 +618,11 @@ const promptNewTag = async (ids) => {
   const app = getApp();
   if (!app) return;
   const text = await promptName(app, {
-    title: 'New tag',
+    title: t('New tag'),
     placeholder: '#tag',
-    submitText: 'Add',
-    emptyText: 'Enter a tag.',
-    validate: (value) => (normalizeTag(value) ? null : 'Use letters, digits, - _ and /, not only digits, no spaces.')
+    submitText: t('Add'),
+    emptyText: t('Enter a tag.'),
+    validate: (value) => (normalizeTag(value) ? null : t('Use letters, digits, - _ and /, not only digits, no spaces.'))
   });
   const tag = text && normalizeTag(text);
   if (tag) await forEachTask(tasksOf(ids), (task) => taskStore.addTagToTask(task.id, tag));
@@ -630,16 +631,16 @@ const promptNewTag = async (ids) => {
 const addTagItems = (menu, ids) => {
   const tasks = tasksOf(ids);
   if (!tasks.length) return;
-  addSubmenu(menu, 'Add tag', 'tag', (sub) => {
+  addSubmenu(menu, t('Add tag'), 'tag', (sub) => {
     for (const tag of taskStore.allTags.filter((t) => tasks.some((task) => !task.tags.includes(t)))) {
       sub.addItem((item) => item.setTitle(tag).onClick(() => forEachTask(tasks, (task) => taskStore.addTagToTask(task.id, tag))));
     }
     sub.addSeparator();
-    sub.addItem((item) => item.setTitle('New tag…').setIcon('plus').onClick(() => promptNewTag(ids)));
+    sub.addItem((item) => item.setTitle(t('New tag…')).setIcon('plus').onClick(() => promptNewTag(ids)));
   });
   const present = [...new Set(tasks.flatMap((task) => task.tags))];
   if (!present.length) return;
-  addSubmenu(menu, 'Remove tag', 'tag', (sub) => {
+  addSubmenu(menu, t('Remove tag'), 'tag', (sub) => {
     for (const tag of present) {
       sub.addItem((item) => item.setTitle(tag).onClick(() => forEachTask(
         tasks.filter((task) => task.tags.includes(tag)),
@@ -654,11 +655,11 @@ const addTagItems = (menu, ids) => {
 const addPriorityItems = (menu, ids) => {
   const tasks = tasksOf(ids);
   if (!tasks.length) return;
-  addSubmenu(menu, 'Priority', 'flag', (sub) => {
+  addSubmenu(menu, t('Priority'), 'flag', (sub) => {
     for (const level of PRIORITY_LEVELS_NONE_LAST) {
       if (level.value === NONE_PRIORITY) sub.addSeparator();
       sub.addItem((item) => item
-        .setTitle(level.label)
+        .setTitle(t(level.label))
         .setChecked(tasks.every((task) => task.priority === level.value))
         .onClick(() => forEachTask(tasks, (task) => taskStore.setTaskPriority(task.id, level.value))));
     }
@@ -674,15 +675,15 @@ const onNodeDoubleClick = (event) => runNodeAction(taskStore.viewSettings.double
 const addClearItems = (menu, separate = true) => {
   if (!hasHighlight() && !focus.value) return;
   if (separate) menu.addSeparator();
-  if (hasHighlight()) menu.addItem((item) => item.setTitle('Clear all highlights').setIcon('eraser').onClick(clearHighlight));
-  if (focus.value) menu.addItem((item) => item.setTitle('Clear focus').setIcon('eraser').onClick(clearFocus));
+  if (hasHighlight()) menu.addItem((item) => item.setTitle(t('Clear all highlights')).setIcon('eraser').onClick(clearHighlight));
+  if (focus.value) menu.addItem((item) => item.setTitle(t('Clear focus')).setIcon('eraser').onClick(clearFocus));
 };
 
 // Highlight, or Remove highlight on an edge that is already lit.
 const addHighlightItem = (menu, set, id) => {
   const on = highlight.value[set].has(id);
   menu.addItem((item) => item
-    .setTitle(on ? 'Remove highlight' : 'Highlight')
+    .setTitle(on ? t('Remove highlight') : t('Highlight'))
     .setIcon('sparkles')
     .onClick(() => setHighlight(set, id, !on)));
 };
@@ -695,17 +696,17 @@ const showNodesMenu = (event, ids) => {
   const menu = new Menu();
   const lit = ids.every((id) => highlight.value.nodeIds.has(id));
   menu.addItem((item) => item
-    .setTitle(lit ? 'Remove highlight' : 'Highlight')
+    .setTitle(lit ? t('Remove highlight') : t('Highlight'))
     .setIcon('sparkles')
     .onClick(() => setNodesHighlight(ids, !lit)));
-  menu.addItem((item) => item.setTitle('Focus chain').setIcon('focus').onClick(() => focusChains(ids)));
+  menu.addItem((item) => item.setTitle(t('Focus chain')).setIcon('focus').onClick(() => focusChains(ids)));
   addTagItems(menu, ids);
   addPriorityItems(menu, ids);
   if (ids.length === 1) {
     menu.addSeparator();
-    menu.addItem((item) => item.setTitle('Open note').setIcon('file-text').onClick(() => runNodeAction('open', ids[0])));
-    menu.addItem((item) => item.setTitle('Edit task…').setIcon('pencil').onClick(() => runNodeAction('edit', ids[0])));
-    menu.addItem((item) => item.setTitle('Change id…').setIcon('hash').onClick(() => promptChangeId(ids[0])));
+    menu.addItem((item) => item.setTitle(t('Open note')).setIcon('file-text').onClick(() => runNodeAction('open', ids[0])));
+    menu.addItem((item) => item.setTitle(t('Edit task…')).setIcon('pencil').onClick(() => runNodeAction('edit', ids[0])));
+    menu.addItem((item) => item.setTitle(t('Change id…')).setIcon('hash').onClick(() => promptChangeId(ids[0])));
   }
   addClearItems(menu);
   menu.showAtMouseEvent(event);
@@ -730,10 +731,10 @@ const onEdgeContextMenu = ({ event, edge }) => {
   const menu = new Menu();
   addHighlightItem(menu, 'edgeIds', edge.id);
   menu.addSeparator();
-  menu.addItem((item) => item.setTitle('Open upstream note').setIcon('arrow-up').onClick(() => openTask(edge.source)));
-  menu.addItem((item) => item.setTitle('Open downstream note').setIcon('arrow-down').onClick(() => openTask(edge.target)));
+  menu.addItem((item) => item.setTitle(t('Open upstream note')).setIcon('arrow-up').onClick(() => openTask(edge.source)));
+  menu.addItem((item) => item.setTitle(t('Open downstream note')).setIcon('arrow-down').onClick(() => openTask(edge.target)));
   menu.addSeparator();
-  menu.addItem((item) => item.setTitle('Delete link').setIcon('trash').onClick(() => {
+  menu.addItem((item) => item.setTitle(t('Delete link')).setIcon('trash').onClick(() => {
     setHighlight('edgeIds', edge.id, false);
     taskStore.disconnectTasks(edge.source, edge.target);
   }));

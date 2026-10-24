@@ -6,8 +6,8 @@
       <div class="ft-empty__title">{{ text.title }}</div>
       <p v-for="line in text.lines" :key="line">{{ line }}</p>
       <div class="ft-empty__buttons">
-        <button v-if="reason === 'no-links'" @click="$emit('show-all')">Show all tasks</button>
-        <button v-if="reason === 'no-tasks' || reason === 'no-links'" class="mod-cta" @click="$emit('sample')">Create sample note</button>
+        <button v-if="reason === 'no-links'" @click="$emit('show-all')">{{ t('Show all tasks') }}</button>
+        <button v-if="reason === 'no-tasks' || reason === 'no-links'" class="mod-cta" @click="$emit('sample')">{{ t('Create sample note') }}</button>
       </div>
     </div>
   </div>
@@ -15,6 +15,7 @@
 
 <script setup>
 import { computed } from 'vue';
+import { t } from '../i18n';
 
 const props = defineProps({
   // 'no-plugin', 'no-tasks', 'no-links' or 'filtered'; see emptyReason in
@@ -49,7 +50,10 @@ const TEXTS = {
   }
 };
 
-const text = computed(() => TEXTS[props.reason]);
+const text = computed(() => {
+  const entry = TEXTS[props.reason];
+  return { title: t(entry.title), lines: entry.lines.map((line) => t(line)) };
+});
 </script>
 
 <style scoped>

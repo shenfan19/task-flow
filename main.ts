@@ -4,6 +4,7 @@ import { createPinia } from 'pinia';
 import App from './src/App.vue';
 import { setPlugin } from './src/pluginContext';
 import { hasOpenGraph, runEscape, runViewCommand } from './src/viewCommands';
+import { t } from './src/i18n';
 
 const VIEW_TYPE_TASK_FLOW = "task-flow-view";
 
@@ -28,7 +29,7 @@ export default class TaskFlowPlugin extends Plugin {
 			(leaf) => new TaskFlowView(leaf)
 		);
 
-		this.addRibbonIcon(VIEW_ICON, 'Open tasks flowchart', () => {
+		this.addRibbonIcon(VIEW_ICON, t('Open tasks flowchart'), () => {
 			void this.activateView();
 		});
 
@@ -36,7 +37,7 @@ export default class TaskFlowPlugin extends Plugin {
 		// shows up as "Tasks Flowchart: Open flowchart".
 		this.addCommand({
 			id: 'open-view',
-			name: 'Open flowchart',
+			name: t('Open flowchart'),
 			callback: () => {
 				void this.activateView();
 			}
@@ -46,7 +47,7 @@ export default class TaskFlowPlugin extends Plugin {
 		// get hotkeys. Offered only while a flowchart is open.
 		this.addCommand({
 			id: 'layout',
-			name: 'Layout, arrange and fit the graph in the view',
+			name: t('Layout, arrange and fit the graph in the view'),
 			checkCallback: (checking) => {
 				if (!hasOpenGraph()) return false;
 				if (!checking) runViewCommand('layout');
@@ -58,7 +59,7 @@ export default class TaskFlowPlugin extends Plugin {
 		// this reloads them at once.
 		this.addCommand({
 			id: 'refresh',
-			name: 'Refresh tasks',
+			name: t('Refresh tasks'),
 			checkCallback: (checking) => {
 				if (!hasOpenGraph()) return false;
 				if (!checking) runViewCommand('refresh');
@@ -68,7 +69,7 @@ export default class TaskFlowPlugin extends Plugin {
 
 		this.addCommand({
 			id: 'reset',
-			name: 'Reset, clear highlights and focus',
+			name: t('Reset, clear highlights and focus'),
 			checkCallback: (checking) => {
 				if (!hasOpenGraph()) return false;
 				if (!checking) runViewCommand('reset');
@@ -80,7 +81,7 @@ export default class TaskFlowPlugin extends Plugin {
 		// before, and shows it beside the flowchart, which opens if needed.
 		this.addCommand({
 			id: 'create-sample',
-			name: 'Create sample note',
+			name: t('Create sample note'),
 			callback: async () => {
 				await this.activateView();
 				for (let i = 0; i < SAMPLE_WAIT_ATTEMPTS && !hasOpenGraph(); i++) {
@@ -92,7 +93,7 @@ export default class TaskFlowPlugin extends Plugin {
 
 		this.addCommand({
 			id: 'overview',
-			name: 'Overview, fit the graph in the view',
+			name: t('Overview, fit the graph in the view'),
 			checkCallback: (checking) => {
 				if (!hasOpenGraph()) return false;
 				if (!checking) runViewCommand('overview');
@@ -151,7 +152,7 @@ class TaskFlowView extends ItemView {
 	}
 
 	getDisplayText() {
-		return "Tasks flowchart";
+		return t('Tasks flowchart');
 	}
 
 	getIcon() {

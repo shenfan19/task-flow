@@ -22,6 +22,7 @@
 // Priority lanes always keep their level order, so alpha, size and auto
 // change nothing there; only soft differs.
 import { NONE_PRIORITY, PRIORITY_LEVELS_NONE_LAST } from './taskLineEdits';
+import { t } from '../i18n';
 
 export const LANE_BY = ['none', 'tag', 'file', 'priority'];
 export const LANE_ORDERS = ['auto', 'alpha', 'size', 'soft'];
@@ -274,8 +275,8 @@ export function applyLanes(positions, nodes, edges, direction, by = 'none', orde
     for (const b of bands) nameCounts.set(fileLabel(b.key), (nameCounts.get(fileLabel(b.key)) || 0) + 1);
   }
   const labelOf = (key) => {
-    if (by === 'priority') return PRIORITY_LEVELS_NONE_LAST.find((l) => l.value === key)?.label ?? key;
-    if (key === NO_KEY) return by === 'file' ? '(no note)' : '(no tag)';
+    if (by === 'priority') return PRIORITY_LEVELS_NONE_LAST.find((l) => l.value === key)?.label ? t(PRIORITY_LEVELS_NONE_LAST.find((l) => l.value === key).label) : key;
+    if (key === NO_KEY) return by === 'file' ? t('(no note)') : t('(no tag)');
     if (by === 'file') return nameCounts.get(fileLabel(key)) > 1 ? key.replace(/\.md$/i, '') : fileLabel(key);
     return key;
   };

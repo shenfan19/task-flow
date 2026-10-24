@@ -1,9 +1,9 @@
 <template>
-  <RailCard title="Filters">
+  <RailCard :title="t('Filters')">
     <!-- Keywords, matched anywhere in the task line: Include shows only the
          tasks containing one, Exclude hides them. -->
     <div class="mb-3">
-      <label class="form-label text-muted small fw-bold mb-1" for="keywordInput">Keywords</label>
+      <label class="form-label text-muted small fw-bold mb-1" for="keywordInput">{{ t('Keywords') }}</label>
       <div class="d-flex gap-3 mb-1">
         <div class="form-check">
           <input
@@ -13,7 +13,7 @@
             v-model="taskStore.filters.textMode"
             id="textModeInclude"
           >
-          <label class="form-check-label" for="textModeInclude">Include</label>
+          <label class="form-check-label" for="textModeInclude">{{ t('Include') }}</label>
         </div>
         <div class="form-check">
           <input
@@ -23,15 +23,15 @@
             v-model="taskStore.filters.textMode"
             id="textModeExclude"
           >
-          <label class="form-check-label" for="textModeExclude">Exclude</label>
+          <label class="form-check-label" for="textModeExclude">{{ t('Exclude') }}</label>
         </div>
       </div>
       <input
         id="keywordInput"
         type="text"
         class="form-control form-control-sm ft-exclude-input"
-        placeholder="e.g. archived on, #someday"
-        title="Comma-separated keywords, matched in the task text and tags in any case. Include shows only the tasks containing any of them, Exclude hides those tasks."
+        :placeholder="t('e.g. archived on, #someday')"
+        :title="t('Comma-separated keywords, matched in the task text and tags in any case. Include shows only the tasks containing any of them, Exclude hides those tasks.')"
         v-model.trim="taskStore.filters.excludeText"
       >
     </div>
@@ -40,7 +40,7 @@
 
     <!-- Tag Filter: click a chip to check/uncheck it -->
     <div class="mb-3">
-      <label class="form-label text-muted small fw-bold mb-1">Tags</label>
+      <label class="form-label text-muted small fw-bold mb-1">{{ t('Tags') }}</label>
       <div class="d-flex gap-3 mb-1">
         <div class="form-check">
           <input
@@ -50,7 +50,7 @@
             v-model="taskStore.filters.tagMode"
             id="tagModeInclude"
           >
-          <label class="form-check-label" for="tagModeInclude">Include</label>
+          <label class="form-check-label" for="tagModeInclude">{{ t('Include') }}</label>
         </div>
         <div class="form-check">
           <input
@@ -60,7 +60,7 @@
             v-model="taskStore.filters.tagMode"
             id="tagModeExclude"
           >
-          <label class="form-check-label" for="tagModeExclude">Exclude</label>
+          <label class="form-check-label" for="tagModeExclude">{{ t('Exclude') }}</label>
         </div>
       </div>
       <div class="ft-tag-list">
@@ -74,19 +74,19 @@
           class="ft-tag ft-tag-toggle"
           :class="{ 'ft-tag-toggle--on': checkedTags.has(tag) }"
           :style="{ '--ft-tag-hue': taskStore.tagHues.get(tag) ?? 0 }"
-          :title="`${count} task${count === 1 ? '' : 's'}`"
+          :title="tp(count, '{n} task', '{n} tasks')"
           @click="taskStore.toggleTagFilter(tag)"
           @keydown.enter.prevent="taskStore.toggleTagFilter(tag)"
           @contextmenu="onTagContextMenu($event, tag)"
         >{{ tag.replace(/^#/, '') }}</span>
-        <span v-if="taskStore.availableTags.length === 0" class="text-muted small">No tags found</span>
+        <span v-if="taskStore.availableTags.length === 0" class="text-muted small">{{ t('No tags found') }}</span>
       </div>
       <button
         v-if="taskStore.filters.tags.length"
         type="button"
         class="ft-tag-clear"
         @click="taskStore.filters.tags = []"
-      >Clear</button>
+      >{{ t('Clear') }}</button>
     </div>
 
     <hr class="ft-sep">
@@ -94,7 +94,7 @@
     <!-- Priority Filter: click a chip to check/uncheck it; None is the last
          chip, on the same row as the others to save space -->
     <div class="mb-3">
-      <label class="form-label text-muted small fw-bold mb-1">Priority</label>
+      <label class="form-label text-muted small fw-bold mb-1">{{ t('Priority') }}</label>
       <div class="d-flex gap-3 mb-1">
         <div class="form-check">
           <input
@@ -104,7 +104,7 @@
             v-model="taskStore.filters.priorityMode"
             id="priorityModeInclude"
           >
-          <label class="form-check-label" for="priorityModeInclude">Include</label>
+          <label class="form-check-label" for="priorityModeInclude">{{ t('Include') }}</label>
         </div>
         <div class="form-check">
           <input
@@ -114,7 +114,7 @@
             v-model="taskStore.filters.priorityMode"
             id="priorityModeExclude"
           >
-          <label class="form-check-label" for="priorityModeExclude">Exclude</label>
+          <label class="form-check-label" for="priorityModeExclude">{{ t('Exclude') }}</label>
         </div>
       </div>
       <div class="ft-tag-list">
@@ -125,10 +125,10 @@
             class="ft-tag ft-tag-toggle"
             :class="{ 'ft-tag-toggle--on': checkedPriorities.has(level.value) }"
             :style="{ '--ft-tag-hue': PRIORITY_HUES[level.value] }"
-            :title="`${priorityCounts.get(level.value) ?? 0} task${priorityCounts.get(level.value) === 1 ? '' : 's'}`"
+            :title="tp(priorityCounts.get(level.value) ?? 0, '{n} task', '{n} tasks')"
             @click="taskStore.togglePriorityFilter(level.value)"
             @keydown.enter.prevent="taskStore.togglePriorityFilter(level.value)"
-          >{{ level.label }}</span>
+          >{{ t(level.label) }}</span>
         </template>
       </div>
       <button
@@ -136,14 +136,14 @@
         type="button"
         class="ft-tag-clear"
         @click="taskStore.filters.priorities = []"
-      >Clear</button>
+      >{{ t('Clear') }}</button>
     </div>
 
     <hr class="ft-sep">
 
     <!-- Directory Tree Filter -->
     <div class="mb-3">
-      <label class="form-label text-muted small fw-bold mb-1">Directory Path</label>
+      <label class="form-label text-muted small fw-bold mb-1">{{ t('Directory Path') }}</label>
       <div class="d-flex gap-3 mb-1">
         <div class="form-check">
           <input
@@ -153,7 +153,7 @@
             v-model="taskStore.filters.directoryMode"
             id="dirModeInclude"
           >
-          <label class="form-check-label" for="dirModeInclude">Include</label>
+          <label class="form-check-label" for="dirModeInclude">{{ t('Include') }}</label>
         </div>
         <div class="form-check">
           <input
@@ -163,7 +163,7 @@
             v-model="taskStore.filters.directoryMode"
             id="dirModeExclude"
           >
-          <label class="form-check-label" for="dirModeExclude">Exclude</label>
+          <label class="form-check-label" for="dirModeExclude">{{ t('Exclude') }}</label>
         </div>
       </div>
       <div class="directory-tree border rounded bg-light p-2 mt-1">
@@ -171,7 +171,7 @@
           <TreeNode :node="node" />
         </template>
         <div v-if="treeData.length === 0" class="text-muted small text-center p-2">
-          No directories found
+          {{ t('No directories found') }}
         </div>
       </div>
     </div>
@@ -183,15 +183,15 @@
          mistake. -->
     <!-- Status Filter -->
     <div class="mb-3">
-      <label class="form-label text-muted small fw-bold mb-1">Status</label>
+      <label class="form-label text-muted small fw-bold mb-1">{{ t('Status') }}</label>
       <div class="d-flex gap-3">
         <div class="form-check">
           <input class="form-check-input" type="checkbox" v-model="taskStore.filters.status.todo" id="filterTodo">
-          <label class="form-check-label" for="filterTodo">To-do</label>
+          <label class="form-check-label" for="filterTodo">{{ t('To-do') }}</label>
         </div>
         <div class="form-check">
           <input class="form-check-input" type="checkbox" v-model="taskStore.filters.status.done" id="filterDone">
-          <label class="form-check-label" for="filterDone">Done</label>
+          <label class="form-check-label" for="filterDone">{{ t('Done') }}</label>
         </div>
       </div>
     </div>
@@ -207,7 +207,7 @@
         :checked="taskStore.filters.onlyRelated"
         @change="onOnlyRelatedChange"
       >
-      <label class="form-check-label" for="onlyRelatedToggle">Only show tasks with a relation</label>
+      <label class="form-check-label" for="onlyRelatedToggle">{{ t('Only show tasks with a relation') }}</label>
     </div>
   </RailCard>
 </template>
@@ -222,6 +222,7 @@ import { getApp } from '../pluginContext';
 import TreeNode from './TreeNode.vue';
 import { NONE_PRIORITY, PRIORITY_HUES, PRIORITY_LEVELS_NONE_LAST, normalizeTag } from '../utils/taskLineEdits';
 import { promptName } from '../utils/promptName';
+import { t, tp } from '../i18n';
 
 const taskStore = useTaskStore();
 const treeData = ref([]);
@@ -269,9 +270,9 @@ const onOnlyRelatedChange = async (event) => {
   }
   box.checked = true;
   const sure = await confirmDialog(app, {
-    title: 'Show tasks with no relation',
-    message: `${taskStore.tasks.length} tasks may render slowly. Show anyway? If you do, you won't be asked again today.`,
-    confirmText: 'Show all'
+    title: t('Show tasks with no relation'),
+    message: t("{count} tasks may render slowly. Show anyway? If you do, you won't be asked again today.", { count: taskStore.tasks.length }),
+    confirmText: t('Show all')
   });
   if (!sure) return;
   markWarnedToday();
@@ -287,13 +288,17 @@ const removeTagEverywhere = async (tag) => {
   if (!app || !holders.length) return;
   const noteCount = new Set(holders.map((t) => t.path)).size;
   const sure = await confirmDialog(app, {
-    title: `Remove ${tag}`,
-    message: `Remove ${tag} from ${holders.length} task${holders.length === 1 ? '' : 's'} in ${noteCount} note${noteCount === 1 ? '' : 's'}? This edits the text of those notes.`,
-    confirmText: 'Remove'
+    title: t('Remove {tag}', { tag }),
+    message: t('Remove {tag} from {tasks} in {notes}? This edits the text of those notes.', {
+      tag,
+      tasks: tp(holders.length, '{n} task', '{n} tasks'),
+      notes: tp(noteCount, '{n} note', '{n} notes')
+    }),
+    confirmText: t('Remove')
   });
   if (!sure) return;
   const changed = await taskStore.removeTagFromAllTasks(tag);
-  new Notice(`Tasks Flowchart: removed ${tag} from ${changed} task${changed === 1 ? '' : 's'}.`);
+  new Notice(t('Tasks Flowchart: removed {tag} from {tasks}.', { tag, tasks: tp(changed, '{n} task', '{n} tasks') }));
 };
 
 // Renames the tag on every task of the view. A name that is already another
@@ -304,40 +309,45 @@ const renameTagEverywhere = async (tag) => {
   if (!app || !holders.length) return;
   const noteCount = new Set(holders.map((t) => t.path)).size;
   const text = await promptName(app, {
-    title: `Rename ${tag}`,
+    title: t('Rename {tag}', { tag }),
     placeholder: '#tag',
     value: tag,
-    submitText: 'Rename',
-    emptyText: 'Enter a tag.',
+    submitText: t('Rename'),
+    emptyText: t('Enter a tag.'),
     validate: (value) => {
       const next = normalizeTag(value);
-      if (!next) return 'Use letters, digits, - _ and /, not only digits, no spaces.';
-      return next === tag ? 'Enter a different tag.' : null;
+      if (!next) return t('Use letters, digits, - _ and /, not only digits, no spaces.');
+      return next === tag ? t('Enter a different tag.') : null;
     }
   });
   const next = text && normalizeTag(text);
   if (!next || next === tag) return;
   if (taskStore.allTags.includes(next)) {
     const sure = await confirmDialog(app, {
-      title: `Merge into ${next}`,
-      message: `${next} is already a tag. Tasks tagged ${tag} will get ${next} instead, in ${holders.length} task${holders.length === 1 ? '' : 's'} in ${noteCount} note${noteCount === 1 ? '' : 's'}. This edits the text of those notes.`,
-      confirmText: 'Merge'
+      title: t('Merge into {next}', { next }),
+      message: t('{next} is already a tag. Tasks tagged {tag} will get {next} instead, in {tasks} in {notes}. This edits the text of those notes.', {
+        next,
+        tag,
+        tasks: tp(holders.length, '{n} task', '{n} tasks'),
+        notes: tp(noteCount, '{n} note', '{n} notes')
+      }),
+      confirmText: t('Merge')
     });
     if (!sure) return;
   }
   const changed = await taskStore.removeTagFromAllTasks(tag, next);
-  new Notice(`Tasks Flowchart: renamed ${tag} to ${next} on ${changed} task${changed === 1 ? '' : 's'}.`);
+  new Notice(t('Tasks Flowchart: renamed {tag} to {next} on {tasks}.', { tag, next, tasks: tp(changed, '{n} task', '{n} tasks') }));
 };
 
 const onTagContextMenu = (event, tag) => {
   event.preventDefault();
   const menu = new Menu();
   menu.addItem((item) => item
-    .setTitle(`Rename ${tag}…`)
+    .setTitle(t('Rename {tag}…', { tag }))
     .setIcon('pencil')
     .onClick(() => renameTagEverywhere(tag)));
   menu.addItem((item) => item
-    .setTitle(`Remove ${tag} from all tasks`)
+    .setTitle(t('Remove {tag} from all tasks', { tag }))
     .setIcon('trash')
     .onClick(() => removeTagEverywhere(tag)));
   menu.showAtMouseEvent(event);

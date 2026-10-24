@@ -57,6 +57,10 @@ Each item links to its page in the [manual](docs/index.md).
 - **Lanes**: group tasks by tag, note or priority. See [Lanes](docs/lanes.md).
 - **Filters, profiles and style**: hide what you do not need, save a setup as a profile, and size and color the nodes. See [Filters, profiles and style](docs/filters_profiles_style.md).
 
+## Language
+
+The interface follows Obsidian's language: English, Simplified Chinese (简体中文) and Traditional Chinese (繁體中文). Anything without a translation shows in English. To add a language, copy `src/i18n/zh-CN.ts`, translate the values and register it in `src/i18n/index.ts`; the manual stays in English.
+
 ## Walkthrough video
 
 [![Tasks Flowchart, a four minute walkthrough on YouTube](https://img.youtube.com/vi/bcdKUnvzx1I/maxresdefault.jpg)](https://www.youtube.com/watch?v=bcdKUnvzx1I)

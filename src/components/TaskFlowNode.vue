@@ -28,14 +28,14 @@
       v-if="taskStore.appearance.showLinkCounts"
       class="ft-link-count ft-link-count--up"
       :class="`ft-link-count--${sides.up}`"
-      :title="`${counts.up} upstream link${counts.up === 1 ? '' : 's'}`"
-    >depend {{ counts.up }}</span>
+      :title="tp(counts.up, '{n} upstream link', '{n} upstream links')"
+    >{{ t('depend {n}', { n: counts.up }) }}</span>
     <span
       v-if="taskStore.appearance.showLinkCounts"
       class="ft-link-count ft-link-count--down"
       :class="`ft-link-count--${sides.down}`"
-      :title="`${counts.down} downstream link${counts.down === 1 ? '' : 's'}`"
-    >next {{ counts.down }}</span>
+      :title="tp(counts.down, '{n} downstream link', '{n} downstream links')"
+    >{{ t('next {n}', { n: counts.down }) }}</span>
 
     <!-- Only one of these ever exists at a time: when rich text is off, the
          MarkdownRenderer call below never runs at all, not just hidden. -->
@@ -58,6 +58,7 @@ import { Handle, Position } from '@vue-flow/core';
 import { Component, MarkdownRenderer } from 'obsidian';
 import { useTaskStore } from '../store';
 import { getApp } from '../pluginContext';
+import { t, tp } from '../i18n';
 
 const props = defineProps({
   data: {

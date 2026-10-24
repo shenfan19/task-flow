@@ -1,4 +1,5 @@
 import { Modal } from 'obsidian';
+import { t } from '../i18n';
 
 // Asks for a name in an Obsidian dialog. Resolves to the trimmed name, or
 // null when the dialog is closed without one. `validate(name)` returns an
@@ -9,8 +10,8 @@ export function promptName(app, {
   title,
   placeholder = '',
   value = '',
-  submitText = 'Create',
-  emptyText = 'Enter a name.',
+  submitText = t('Create'),
+  emptyText = t('Enter a name.'),
   validate = () => null
 }) {
   return new Promise((resolve) => {
@@ -33,7 +34,7 @@ export function promptName(app, {
     };
 
     buttons.createEl('button', { text: submitText, cls: 'mod-cta' }).addEventListener('click', submit);
-    buttons.createEl('button', { text: 'Cancel' }).addEventListener('click', () => modal.close());
+    buttons.createEl('button', { text: t('Cancel') }).addEventListener('click', () => modal.close());
     input.addEventListener('keydown', (event) => {
       if (event.key === 'Enter' && !event.isComposing) {
         event.preventDefault();

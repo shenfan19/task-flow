@@ -5,20 +5,20 @@
        away; open, Layout is the first row of the body. The header is the
        handle to drag it by, and the position and open state are remembered. -->
   <div ref="root" class="ft-left-rail ft-dock" :class="{ 'ft-dock--open': open }" :style="{ left: pos.x + 'px', top: pos.y + 'px' }">
-    <div class="ft-dock__head" title="Drag to move" @pointerdown="startDrag">
+    <div class="ft-dock__head" :title="t('Drag to move')" @pointerdown="startDrag">
       <button
         class="ft-dock__toggle clickable-icon"
-        :title="open ? 'Fold the controls' : 'Open the controls (drag to move)'"
+        :title="open ? t('Fold the controls') : t('Open the controls (drag to move)')"
         @click="onToggleClick"
       >{{ open ? '–' : '⚙' }}</button>
       <span v-if="open" class="ft-dock__grip">⋯⋯</span>
       <button
         v-else
         class="ft-dock__action mod-cta"
-        title="Arrange the nodes, then fit the graph in the view"
+        :title="t('Arrange the nodes, then fit the graph in the view')"
         @pointerdown.stop
         @click="$emit('layout')"
-      >Layout</button>
+      >{{ t('Layout') }}</button>
     </div>
     <div v-if="open" class="ft-dock__body">
       <slot />
@@ -28,6 +28,7 @@
 
 <script setup>
 import { onBeforeUnmount, onMounted, reactive, ref } from 'vue';
+import { t } from '../i18n';
 
 defineEmits(['layout']);
 

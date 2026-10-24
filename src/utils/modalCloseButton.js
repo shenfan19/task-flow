@@ -1,4 +1,5 @@
 import { setIcon } from 'obsidian';
+import { t } from '../i18n';
 
 // The Tasks plugin's edit dialog puts its settings gear where the close
 // button usually sits, and some themes hide the default close button, so the
@@ -26,7 +27,7 @@ const addCloseButton = (container) => {
   if (hasVisibleCloseButton(container)) return;
   const button = modal.createEl('button', {
     cls: 'modal-close-button mod-raised clickable-icon ft-modal-close',
-    attr: { 'aria-label': 'Close' }
+    attr: { 'aria-label': t('Close') }
   });
   setIcon(button, 'x');
   // Pressing the button must not take focus from the dialog's form first.

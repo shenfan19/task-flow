@@ -15,13 +15,14 @@
       v-if="todayOffset !== null"
       class="ft-ruler__today"
       :style="tickStyle(todayOffset)"
-      title="Today"
+      :title="t('Today')"
     ></div>
   </div>
 </template>
 
 <script setup>
 import { computed } from 'vue';
+import { t } from '../i18n';
 import { useVueFlow } from '@vue-flow/core';
 
 // {direction, anchors} as produced by layoutWithTimeAxis: anchors are

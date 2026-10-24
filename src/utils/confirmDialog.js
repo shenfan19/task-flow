@@ -1,8 +1,9 @@
 import { Modal } from 'obsidian';
+import { t } from '../i18n';
 
 // Asks a yes/no question in an Obsidian dialog. Resolves to true only when
 // the confirm button is pressed.
-export function confirmDialog(app, { title, message, confirmText = 'Confirm' }) {
+export function confirmDialog(app, { title, message, confirmText = t('Confirm') }) {
   return new Promise((resolve) => {
     let result = false;
     const modal = new Modal(app);
@@ -13,7 +14,7 @@ export function confirmDialog(app, { title, message, confirmText = 'Confirm' }) 
       result = true;
       modal.close();
     });
-    buttons.createEl('button', { text: 'Cancel' }).addEventListener('click', () => modal.close());
+    buttons.createEl('button', { text: t('Cancel') }).addEventListener('click', () => modal.close());
     modal.onClose = () => resolve(result);
     modal.open();
   });
