@@ -42,11 +42,11 @@ export default class TaskFlowPlugin extends Plugin {
 			}
 		});
 
-		// The two buttons at the top of the view, as commands so they can
+		// The buttons at the top of the view, as commands so they can
 		// get hotkeys. Offered only while a flowchart is open.
 		this.addCommand({
 			id: 'layout',
-			name: 'Layout',
+			name: 'Layout, arrange and fit the graph in the view',
 			checkCallback: (checking) => {
 				if (!hasOpenGraph()) return false;
 				if (!checking) runViewCommand('layout');

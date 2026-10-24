@@ -1,5 +1,5 @@
 <template>
-  <!-- A bare row under the action bar, with no card frame. A profile holds
+  <!-- A bare row at the top of the dock body, with no card frame. A profile holds
        the Filters, View and Style together: choosing one
        loads all three, Save stores the current settings into it, and New…
        makes a new one from the current settings. -->

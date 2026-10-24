@@ -1,30 +1,35 @@
 <template>
-  <!-- The one frame around the whole control column. Open, it is a single
-       card whose header is the handle to drag it by; folded, it is a small
-       gear button at the same spot. Both can be dragged, and the position and
-       open state are remembered. -->
+  <!-- The one frame around the whole control column. Its header has the fold
+       button (a gear when folded, a dash when open) on the left. Folded, the
+       header also carries Layout, the action used most, so it stays one click
+       away; open, Layout is the first row of the body. The header is the
+       handle to drag it by, and the position and open state are remembered. -->
   <div ref="root" class="ft-left-rail ft-dock" :class="{ 'ft-dock--open': open }" :style="{ left: pos.x + 'px', top: pos.y + 'px' }">
-    <button
-      v-if="!open"
-      class="ft-dock__gear clickable-icon"
-      title="Tasks Flowchart controls (drag to move)"
-      @pointerdown="startDrag"
-      @click="onGearClick"
-    >⚙</button>
-    <template v-else>
-      <div class="ft-dock__head" title="Drag to move" @pointerdown="startDrag">
-        <span class="ft-dock__grip">⋯⋯</span>
-        <button class="ft-dock__fold clickable-icon" title="Fold the controls" @pointerdown.stop @click="setOpen(false)">–</button>
-      </div>
-      <div class="ft-dock__body">
-        <slot />
-      </div>
-    </template>
+    <div class="ft-dock__head" title="Drag to move" @pointerdown="startDrag">
+      <button
+        class="ft-dock__toggle clickable-icon"
+        :title="open ? 'Fold the controls' : 'Open the controls (drag to move)'"
+        @click="onToggleClick"
+      >{{ open ? '–' : '⚙' }}</button>
+      <span v-if="open" class="ft-dock__grip">⋯⋯</span>
+      <button
+        v-else
+        class="ft-dock__action mod-cta"
+        title="Arrange the nodes, then fit the graph in the view"
+        @pointerdown.stop
+        @click="$emit('layout')"
+      >Layout</button>
+    </div>
+    <div v-if="open" class="ft-dock__body">
+      <slot />
+    </div>
   </div>
 </template>
 
 <script setup>
 import { onBeforeUnmount, onMounted, reactive, ref } from 'vue';
+
+defineEmits(['layout']);
 
 const STORAGE_KEY = 'task-flow-dock';
 const MARGIN = 4;
@@ -98,8 +103,8 @@ const endDrag = () => {
   drag = null;
 };
 
-const onGearClick = () => {
-  if (!justDragged) setOpen(true);
+const onToggleClick = () => {
+  if (!justDragged) setOpen(!open.value);
 };
 
 onMounted(() => {
@@ -129,10 +134,26 @@ onBeforeUnmount(() => {
   width: 262px;
 }
 
-.ft-dock__gear {
+/* The header is the same folded and open, so folding changes only what hangs
+   below it; the toggle and Layout stay where they are. */
+.ft-dock__head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 4px 0 0;
+  cursor: grab;
+  user-select: none;
+}
+
+.ft-dock--open .ft-dock__head {
+  border-bottom: 1px solid var(--background-modifier-border, #d0d4da);
+}
+
+.ft-dock__toggle {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex: none;
   width: 30px;
   height: 30px;
   padding: 0;
@@ -143,16 +164,8 @@ onBeforeUnmount(() => {
   box-shadow: none;
 }
 
-.ft-dock__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 2px 4px 2px 28px;
-  cursor: grab;
-  user-select: none;
-  border-bottom: 1px solid var(--background-modifier-border, #d0d4da);
-}
-
+/* Frameless like the old rail buttons: a light tint at rest, stronger under
+   the pointer, accent color for Layout. */
 .ft-dock__grip {
   flex: 1 1 auto;
   text-align: center;
@@ -161,13 +174,30 @@ onBeforeUnmount(() => {
   color: var(--text-faint, #999);
 }
 
-.ft-dock__fold {
-  width: 22px;
-  height: 22px;
-  padding: 0;
-  background: none;
+.ft-dock__action {
+  flex: none;
+  height: 24px;
+  padding: 0 10px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text-normal, #222);
+  background: color-mix(in srgb, var(--text-normal, #222) 9%, transparent);
   border: none;
   box-shadow: none;
+}
+
+/* The text keeps the normal color: the accent tint is only behind it, so
+   Layout never reads dimmer than the rest of the panel. */
+.ft-dock__action.mod-cta {
+  background: color-mix(in srgb, var(--interactive-accent, #5b6ee1) 22%, transparent);
+}
+
+.ft-dock__action:hover {
+  background: color-mix(in srgb, var(--text-normal, #222) 16%, transparent);
+}
+
+.ft-dock__action.mod-cta:hover {
+  background: color-mix(in srgb, var(--interactive-accent, #5b6ee1) 26%, transparent);
 }
 
 .ft-dock__body {

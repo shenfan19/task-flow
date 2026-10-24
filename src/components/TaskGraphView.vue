@@ -1,11 +1,11 @@
 <template>
   <div class="position-relative w-100 h-100 ft-graph-root">
-    <!-- Left rail: the Layout and Overview buttons, then the Profile row,
-         view controls, filters and node appearance -->
-    <RailDock>
+    <!-- Left rail: the Layout and Reset row, then the Profile row, filters,
+         view controls and node appearance. Folded, the dock keeps a Layout
+         button beside its gear. -->
+    <RailDock @layout="onArrangeClick">
       <ActionBar
-        @layout="onLayoutClick"
-        @overview="onOverviewClick"
+        @layout="onArrangeClick"
         @reset="resetMarks"
       />
       <ProfileBar @layout="onLayoutClick" />
@@ -70,7 +70,7 @@
 </template>
 
 <script setup>
-import { computed, markRaw, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, markRaw, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { VueFlow, MarkerType, useVueFlow } from '@vue-flow/core';
 import { Background } from '@vue-flow/background';
 import '@vue-flow/core/dist/style.css';
@@ -80,7 +80,6 @@ import { MarkdownView, Menu, MenuItem } from 'obsidian';
 import { getApp } from '../pluginContext';
 import { onEscape, onViewCommand } from '../viewCommands';
 import RailDock from './RailDock.vue';
-import ActionBar from './ActionBar.vue';
 import ProfileBar from './ProfileBar.vue';
 import FilterPanel from './FilterPanel.vue';
 import ViewControlPanel from './ViewControlPanel.vue';
@@ -88,6 +87,7 @@ import AppearancePanel from './AppearancePanel.vue';
 import TaskFlowNode from './TaskFlowNode.vue';
 import TimeAxisRuler from './TimeAxisRuler.vue';
 import EmptyState from './EmptyState.vue';
+import ActionBar from './ActionBar.vue';
 import { createSampleNote, takePendingSampleLayout } from '../utils/sampleNote';
 import { TasksPluginAPI } from '../api/TasksPluginAPI';
 import { layoutWithDagre, layoutWithTimeAxis, separateOverlappingLinks } from '../utils/layout';
@@ -958,6 +958,15 @@ const onOverviewClick = () => {
   fitView({ padding: 0.2 });
 };
 
+// The Layout button and command: arranges the nodes, then fits the whole
+// graph in the view. The settings that re-run a layout (direction, lanes,
+// date axis) use onLayoutClick instead and keep the zoom.
+const onArrangeClick = async () => {
+  runAutoLayout();
+  await nextTick();
+  onOverviewClick();
+};
+
 // The canvas remembers where it was panned and zoomed to. It is saved when
 // a pan or zoom ends, once the saved one has been put back, so the default
 // view of a canvas that is still opening never overwrites it.
@@ -1065,7 +1074,7 @@ watch(
 
 const stopEscape = onEscape(onEscapeKey);
 const stopViewCommands = onViewCommand((name) => {
-  if (name === 'layout') onLayoutClick();
+  if (name === 'layout') void onArrangeClick();
   else if (name === 'overview') onOverviewClick();
   else if (name === 'reset') resetMarks();
   else if (name === 'refresh') taskStore.fetchTasksFromObsidian();

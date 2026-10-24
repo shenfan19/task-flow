@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.17.0
+
+### Changed
+
+- **Layout** and **Overview** are one button. **Layout** arranges the nodes and then fits the graph in the view. Changing the direction, lanes or date axis still re-arranges without moving the zoom. The **Overview** command stays for a fit without re-arranging.
+- A folded panel keeps **Layout** beside the ⚙ icon, one click away. The fold button is at the left of the top bar in both states (⚙ folded, – open). Open, **Layout** is the first row of the panel, wide, with a smaller **Reset** beside it.
+
 ## 0.16.0
 
 ### Changed

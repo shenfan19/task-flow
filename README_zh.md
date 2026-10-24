@@ -41,10 +41,10 @@
 
 1. 安装并启用 [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) 插件。Tasks Flowchart 两种格式都能读取，emoji 格式的 `🆔` 和 `⛔`，以及 Dataview 格式的 `[id:: ]` 和 `[dependsOn:: ]`，写入时用你在 **Style** 里 **Task format** 选的那一种。
 2. 在 **设置 → 第三方插件 → 浏览** 里安装 Tasks Flowchart，也可以从[社区页面](https://community.obsidian.md/plugins/task-flow)安装。也可以手动安装，把[最新版本](https://github.com/shenfan19/task-flow/releases/latest)的 `main.js`、`manifest.json`、`styles.css` 拷贝到 `<你的vault>/.obsidian/plugins/task-flow/`。
-3. 点击左侧功能区的 **Open tasks flowchart**，或者运行命令 **Tasks Flowchart: Open flowchart**。先点左上角的 **Layout**，再点 **Overview**。
+3. 点击左侧功能区的 **Open tasks flowchart**，或者运行命令 **Tasks Flowchart: Open flowchart**。点左上角的 **Layout**。
 4. 第一次用任务依赖？在空白画布上点 **Create sample note**，或者运行命令 **Tasks Flowchart: Create sample note**，会生成一篇带依赖的小计划，可以拿来试。
 
-视图左上角是一个控制面板，按住它的顶栏可以拖动，点 **–** 可以收成一个 ⚙ 图标，位置会被记住。面板里是 **Layout**、**Overview** 和 **Reset** 三个按钮，下面是一行 **Profile**。其余设置在下方默认折叠的卡片里，分别是 **View**、**Filters** 和 **Style**，点卡片标题展开。
+视图左上角是一个控制面板，按住它的顶栏可以拖动，点 **–** 可以收成一个 ⚙ 图标，位置会被记住。面板第一行是 **Layout** 和 **Reset** 两个按钮，**Layout** 更大，会先排版再把整张图适配到视图里，面板折叠后 ⚙ 旁边仍然留着 **Layout**。下面是一行 **Profile**。其余设置在下方默认折叠的卡片里，分别是 **View**、**Filters** 和 **Style**，点卡片标题展开。
 
 ## 功能一览
 

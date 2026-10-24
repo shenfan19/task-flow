@@ -4,9 +4,9 @@
 
 ## Drag and Layout
 
-Drag nodes freely and their positions are remembered. **Layout** arranges everything in the chosen direction, with curved, straight or stepped arrows, and keeps the zoom. The view stays where it is, or centers on the selected task if there is one. Layout runs only when you ask for it, so it never fights a node you just moved.
+Drag nodes freely and their positions are remembered. **Layout** arranges everything in the chosen direction, with curved, straight or stepped arrows, and then fits the whole graph on screen. Layout runs only when you ask for it, so it never fights a node you just moved. Changing the direction, lanes or date axis in **View** re-arranges too, but keeps the zoom.
 
-**Overview** fits the graph on screen. Both buttons sit at the top of the rail on the left. The commands **Tasks Flowchart: Layout** and **Tasks Flowchart: Overview, fit the graph in the view** do the same and can be given hotkeys in **Settings → Hotkeys**.
+The button is the first row of the panel. When the panel is folded, a **Layout** button stays beside the ⚙ icon. The commands **Tasks Flowchart: Layout, arrange and fit the graph in the view** and **Tasks Flowchart: Overview, fit the graph in the view** (a fit without re-arranging) can be given hotkeys in **Settings → Hotkeys**.
 
 The direction, the arrow type and the other arranging options are in the **View** card. The steps Layout takes, and which links it can and cannot keep straight, are in [How Layout arranges nodes](layout_stability.md).
 
