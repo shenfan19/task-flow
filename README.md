@@ -63,9 +63,9 @@ The interface follows Obsidian's language by default, and **Language** at the bo
 
 ## Walkthrough video
 
-[![Tasks Flowchart, a four minute walkthrough on YouTube](https://img.youtube.com/vi/bcdKUnvzx1I/maxresdefault.jpg)](https://www.youtube.com/watch?v=bcdKUnvzx1I)
+[![Tasks Flowchart, an under four minute walkthrough on YouTube](https://img.youtube.com/vi/ZlXBRI4P3Xw/maxresdefault.jpg)](https://www.youtube.com/watch?v=ZlXBRI4P3Xw)
 
-[Watch the four minute walkthrough on YouTube](https://www.youtube.com/watch?v=bcdKUnvzx1I)
+[Watch the walkthrough, under four minutes, on YouTube](https://www.youtube.com/watch?v=ZlXBRI4P3Xw)
 
 ## Troubleshooting
 
