@@ -1,6 +1,6 @@
 # Arranging the graph
 
-![Dragging three tasks out of place, clicking Layout to put them back, then turning on the date axis](../images_ai/layout-date-axis.gif)
+![Dragging three tasks out of place, clicking Layout to put them back, then turning on the date axis](../images/layout-date-axis.gif)
 
 ## Drag and Layout
 

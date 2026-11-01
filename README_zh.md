@@ -14,15 +14,15 @@
 
 **拖到另一个任务上即建立依赖，拖到画布空白处即新建任务。从底边往下拖，新任务依赖它；从顶边往上拖，它依赖新任务。**
 
-![拖动连接两个任务，向下拖到空白处新建依赖它的任务，向上拖到空白处新建它所依赖的任务，最后点 Layout](images_ai/link-and-create.gif)
+![拖动连接两个任务，向下拖到空白处新建依赖它的任务，向上拖到空白处新建它所依赖的任务，最后点 Layout](images/link-and-create.gif)
 
 **Layout 把任务按依赖排好，日期轴再按真实日期拉开流程。**
 
-![把三个任务拖乱，点 Layout 排回原位，再打开日期轴，任务沿标尺按日期排列](images_ai/layout-date-axis.gif)
+![把三个任务拖乱，点 Layout 排回原位，再打开日期轴，任务沿标尺按日期排列](images/layout-date-axis.gif)
 
 **按 tag、笔记或优先级把任务分成泳道。**
 
-![按 tag 分组，把泳道顺序切到 Soft pull，再按优先级分组，最后关闭泳道](images_ai/lanes.gif)
+![按 tag 分组，把泳道顺序切到 Soft pull，再按优先级分组，最后关闭泳道](images/lanes.gif)
 
 ## 为什么用 Tasks Flowchart
 

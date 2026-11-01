@@ -1,6 +1,6 @@
 # Editing tasks
 
-![Double-clicking a task, setting its priority and due date in the Tasks edit dialog, then clicking Layout to move it along the date axis](../images_ai/edit-task.gif)
+![Double-clicking a task, setting its priority and due date in the Tasks edit dialog, then clicking Layout to move it along the date axis](../images/edit-task.gif)
 
 Everything on this page changes the task line in its note, in the format the line already uses.
 

@@ -1,6 +1,6 @@
 # Links and new tasks
 
-![Linking two tasks by dragging, creating a task that depends on one by dragging down onto empty canvas, creating a task that one depends on by dragging up, then clicking Layout](../images_ai/link-and-create.gif)
+![Linking two tasks by dragging, creating a task that depends on one by dragging down onto empty canvas, creating a task that one depends on by dragging up, then clicking Layout](../images/link-and-create.gif)
 
 A link is a field on a task line in your note. Nothing is stored anywhere else, so every change here is an edit to the note.
 

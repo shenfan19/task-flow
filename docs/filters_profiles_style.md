@@ -1,6 +1,6 @@
 # Filters, profiles and style
 
-![Showing only the dev tag in Filters, saving the setup as a new profile, and switching between profiles](../images_ai/filters-profiles.gif)
+![Showing only the dev tag in Filters, saving the setup as a new profile, and switching between profiles](../images/filters-profiles.gif)
 
 ## Filters
 

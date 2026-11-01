@@ -14,15 +14,15 @@
 
 **Drag onto another task to link them. Drag onto empty canvas to create a task, downstream if you start from the bottom and upstream if you start from the top.**
 
-![Linking two tasks by dragging, creating a task that depends on one by dragging down onto empty canvas, creating a task that one depends on by dragging up, then clicking Layout](images_ai/link-and-create.gif)
+![Linking two tasks by dragging, creating a task that depends on one by dragging down onto empty canvas, creating a task that one depends on by dragging up, then clicking Layout](images/link-and-create.gif)
 
 **Layout puts every task in order, and the date axis stretches the flow along real dates.**
 
-![Dragging three tasks out of place, clicking Layout to put them back, then turning on the date axis to place each task by its date along a ruler](images_ai/layout-date-axis.gif)
+![Dragging three tasks out of place, clicking Layout to put them back, then turning on the date axis to place each task by its date along a ruler](images/layout-date-axis.gif)
 
 **Group tasks by tag, note or priority into lanes.**
 
-![Grouping tasks by tag, switching the lane order to soft pull, grouping by priority, then turning lanes off](images_ai/lanes.gif)
+![Grouping tasks by tag, switching the lane order to soft pull, grouping by priority, then turning lanes off](images/lanes.gif)
 
 ## Why Tasks Flowchart
 

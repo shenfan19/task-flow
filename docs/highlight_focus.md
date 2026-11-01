@@ -1,6 +1,6 @@
 # Highlight and focus
 
-![Focusing the chain of one task, highlighting two tasks, focusing another chain while the highlights stay, then clearing everything with Reset](../images_ai/focus-and-highlight.gif)
+![Focusing the chain of one task, highlighting two tasks, focusing another chain while the highlights stay, then clearing everything with Reset](../images/focus-and-highlight.gif)
 
 Both mark part of the graph without changing any note.
 

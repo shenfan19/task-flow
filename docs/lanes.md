@@ -1,6 +1,6 @@
 # Lanes
 
-![Grouping tasks by tag, switching the order to soft pull, grouping by priority, then turning lanes off](../images_ai/lanes.gif)
+![Grouping tasks by tag, switching the order to soft pull, grouping by priority, then turning lanes off](../images/lanes.gif)
 
 In **View**, **Group by** puts tasks that share a tag, a note or a priority in one column, or one row in a left to right layout. It is **None**, no lanes, until you pick another.
 
